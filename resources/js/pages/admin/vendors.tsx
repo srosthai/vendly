@@ -1,15 +1,15 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Store } from 'lucide-react';
-import StoreSuspensionController from '@/actions/App/Http/Controllers/StoreSuspensionController';
-import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
+import {
+    StoreStatusBadge,
+    StoreSuspendAction,
+} from '@/components/admin/store-suspension';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { SimplePagination } from '@/components/simple-pagination';
 import type { Paginated } from '@/components/simple-pagination';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -90,9 +90,14 @@ export default function Vendors({
                                     {vendors.data.map((vendor) => (
                                         <TableRow key={vendor.id}>
                                             <TableCell className="pl-5">
-                                                <p className="font-medium">
+                                                <Link
+                                                    href={admin.vendors.show(
+                                                        vendor.id,
+                                                    )}
+                                                    className="font-medium hover:text-primary hover:underline"
+                                                >
                                                     {vendor.name}
-                                                </p>
+                                                </Link>
                                                 <p className="text-muted-foreground">
                                                     /s/{vendor.slug}
                                                 </p>
@@ -105,11 +110,13 @@ export default function Vendors({
                                                 {vendor.published_count}
                                             </TableCell>
                                             <TableCell>
-                                                <StatusBadge vendor={vendor} />
+                                                <StoreStatusBadge
+                                                    suspended={vendor.suspended}
+                                                />
                                             </TableCell>
                                             <TableCell className="pr-5 text-right">
-                                                <SuspendAction
-                                                    vendor={vendor}
+                                                <StoreSuspendAction
+                                                    store={vendor}
                                                 />
                                             </TableCell>
                                         </TableRow>
@@ -122,18 +129,25 @@ export default function Vendors({
                                 <Card key={vendor.id} className="gap-3 p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="font-medium">
+                                            <Link
+                                                href={admin.vendors.show(
+                                                    vendor.id,
+                                                )}
+                                                className="font-medium hover:text-primary hover:underline"
+                                            >
                                                 {vendor.name}
-                                            </p>
+                                            </Link>
                                             <p className="text-sm text-muted-foreground">
                                                 {vendor.owner}, {vendor.plan},{' '}
                                                 {vendor.published_count}{' '}
                                                 published
                                             </p>
                                         </div>
-                                        <StatusBadge vendor={vendor} />
+                                        <StoreStatusBadge
+                                            suspended={vendor.suspended}
+                                        />
                                     </div>
-                                    <SuspendAction vendor={vendor} />
+                                    <StoreSuspendAction store={vendor} />
                                 </Card>
                             ))}
                         </div>
@@ -142,51 +156,6 @@ export default function Vendors({
                 )}
             </div>
         </>
-    );
-}
-
-function StatusBadge({ vendor }: { vendor: Vendor }) {
-    return vendor.suspended ? (
-        <Badge variant="destructive">Suspended</Badge>
-    ) : (
-        <Badge variant="success">Live</Badge>
-    );
-}
-
-function SuspendAction({ vendor }: { vendor: Vendor }) {
-    if (vendor.suspended) {
-        return (
-            <Form
-                {...StoreSuspensionController.destroy.form(vendor.id)}
-                options={{ preserveScroll: true }}
-            >
-                {({ processing }) => (
-                    <Button
-                        type="submit"
-                        variant="outline"
-                        size="sm"
-                        disabled={processing}
-                    >
-                        {processing && <Spinner />}
-                        Restore
-                    </Button>
-                )}
-            </Form>
-        );
-    }
-
-    return (
-        <ConfirmActionDialog
-            title={`Suspend ${vendor.name}?`}
-            description="The store disappears for customers and the vendor cannot change it until you restore it."
-            confirmLabel={`Suspend ${vendor.name}`}
-            action={StoreSuspensionController.store.form(vendor.id)}
-            trigger={
-                <Button variant="ghost" size="sm" className="text-destructive">
-                    Suspend
-                </Button>
-            }
-        />
     );
 }
 
