@@ -9,6 +9,10 @@ import {
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
+/**
+ * One group of sidebar links. Collapsed to icons, the label gives way to a
+ * short rule so every group keeps the same gap.
+ */
 export function NavMain({
     label,
     items,
@@ -20,7 +24,15 @@ export function NavMain({
 
     return (
         <SidebarGroup className="px-3 py-1">
-            {label ? <SidebarGroupLabel>{label}</SidebarGroupLabel> : null}
+            {label ? (
+                <>
+                    <SidebarGroupLabel>{label}</SidebarGroupLabel>
+                    <span
+                        aria-hidden="true"
+                        className="mx-auto mb-2 hidden h-px w-6 bg-sidebar-border group-data-[collapsible=icon]:block"
+                    />
+                </>
+            ) : null}
             <SidebarMenu className="gap-1">
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
