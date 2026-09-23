@@ -115,7 +115,7 @@ export function ListToolbar({
                         >
                             <SelectTrigger
                                 aria-label={filter.label}
-                                className="h-10 min-w-36 rounded-full bg-card"
+                                className="h-10 min-w-36 rounded-full bg-card pointer-coarse:h-11"
                             >
                                 <SelectValue />
                             </SelectTrigger>
@@ -166,7 +166,7 @@ export function ListToolbar({
                         >
                             <SelectTrigger
                                 aria-label="Sort"
-                                className="h-10 min-w-40 rounded-full bg-card"
+                                className="h-10 min-w-40 rounded-full bg-card pointer-coarse:h-11"
                             >
                                 <SelectValue />
                             </SelectTrigger>

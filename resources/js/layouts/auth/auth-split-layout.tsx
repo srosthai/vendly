@@ -29,7 +29,7 @@ export default function AuthSplitLayout({
                 />
                 <Link
                     href={home()}
-                    className="relative flex items-center gap-2 self-start rounded-md"
+                    className="relative flex min-h-11 items-center gap-2 self-start rounded-md"
                     aria-label="Vendly home"
                 >
                     <AppLogoIcon className="size-9" />
@@ -84,7 +84,7 @@ export default function AuthSplitLayout({
                 <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
                     <Link
                         href={home()}
-                        className="mb-8 flex items-center gap-2 self-start rounded-md lg:hidden"
+                        className="mb-8 flex min-h-11 items-center gap-2 self-start rounded-md lg:hidden"
                         aria-label="Vendly home"
                     >
                         <AppLogoIcon className="size-9" />

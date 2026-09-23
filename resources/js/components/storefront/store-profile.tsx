@@ -96,7 +96,7 @@ export function StoreContact({
     }
 
     const chip =
-        'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors';
+        'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors pointer-coarse:min-h-11';
 
     return (
         <div className={cn('flex flex-wrap items-center gap-2', className)}>
@@ -147,7 +147,7 @@ export function StoreContact({
                         rel="noopener noreferrer"
                         aria-label={social.label}
                         title={social.label}
-                        className="inline-flex size-9 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        className="inline-flex size-9 items-center justify-center rounded-full border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary pointer-coarse:size-11"
                     >
                         <social.icon className="size-4" />
                     </a>

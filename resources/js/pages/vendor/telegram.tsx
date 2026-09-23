@@ -353,16 +353,16 @@ export default function Telegram({
                                 {help.map((item) => (
                                     <details
                                         key={item.question}
-                                        className="group py-3 [&_summary::-webkit-details-marker]:hidden"
+                                        className="group py-1 [&_summary::-webkit-details-marker]:hidden"
                                     >
-                                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
                                             {item.question}
                                             <ChevronDown
                                                 className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
                                                 aria-hidden="true"
                                             />
                                         </summary>
-                                        <p className="mt-2 text-sm text-muted-foreground">
+                                        <p className="mb-2 text-sm text-muted-foreground">
                                             {item.answer}
                                         </p>
                                     </details>

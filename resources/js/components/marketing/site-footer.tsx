@@ -67,7 +67,7 @@ export function SiteFooter() {
                 <div className="max-w-sm">
                     <Link
                         href={home()}
-                        className="inline-flex items-center gap-1 rounded-md"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-md"
                         aria-label="Vendly home"
                     >
                         <AppLogo />

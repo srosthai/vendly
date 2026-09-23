@@ -29,7 +29,7 @@ function Switch({
             disabled={disabled}
             onClick={() => onCheckedChange?.(!checked)}
             className={cn(
-                'peer inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent p-0.5 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+                'peer relative inline-flex h-6 w-11 shrink-0 items-center rounded-full after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[""] border border-transparent p-0.5 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
                 className,
             )}
             {...props}

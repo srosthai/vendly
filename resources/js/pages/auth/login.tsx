@@ -77,7 +77,7 @@ export default function Login({
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
+                                            className="ml-auto inline-flex min-h-11 items-center text-sm"
                                         >
                                             Forgot password?
                                         </TextLink>

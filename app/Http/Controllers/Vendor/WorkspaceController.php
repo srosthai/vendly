@@ -30,6 +30,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -197,7 +198,13 @@ class WorkspaceController extends Controller
         $oldLogo = $store->logo_path;
 
         if ($request->hasFile('logo')) {
-            $store->logo_path = $request->file('logo')->store('logos', 'public');
+            $path = $request->file('logo')->store('logos', 'public');
+
+            if ($path === false) {
+                throw ValidationException::withMessages(['logo' => 'The logo could not be saved. Try uploading it again.']);
+            }
+
+            $store->logo_path = $path;
         } elseif ($request->boolean('remove_logo')) {
             $store->logo_path = null;
         }

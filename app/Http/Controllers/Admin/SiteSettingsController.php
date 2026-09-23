@@ -11,6 +11,7 @@ use App\Models\PaymentMethod;
 use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -154,7 +155,13 @@ class SiteSettingsController extends Controller
         $method->sort = (int) ($validated['sort'] ?? 0);
 
         if ($request->hasFile('logo')) {
-            $method->logo_path = $request->file('logo')->store('payment-methods', 'public');
+            $path = $request->file('logo')->store('payment-methods', 'public');
+
+            if ($path === false) {
+                throw ValidationException::withMessages(['logo' => 'The logo could not be saved. Try uploading it again.']);
+            }
+
+            $method->logo_path = $path;
         } elseif ($request->boolean('remove_logo')) {
             $method->logo_path = null;
         }

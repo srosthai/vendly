@@ -15,7 +15,7 @@ export function StorefrontFooter({ hidden }: { hidden: boolean }) {
         <footer className="flex justify-center pt-4 pb-2">
             <Link
                 href={home()}
-                className="flex items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
+                className="flex min-h-11 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
             >
                 <AppLogoIcon className="size-5" />
                 Made with Vendly

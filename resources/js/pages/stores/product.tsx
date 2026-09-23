@@ -243,7 +243,7 @@ export default function Product({
                 />
                 <Link
                     href={StoreController.show(store.slug)}
-                    className="-mt-2 inline-flex items-center gap-1 self-start rounded-md text-sm text-muted-foreground hover:text-foreground"
+                    className="-mt-2 inline-flex min-h-11 items-center gap-1 self-start rounded-md pr-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                     <ChevronLeft className="size-4" aria-hidden="true" />
                     All products

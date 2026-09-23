@@ -40,7 +40,7 @@ export function BillingPeriodSwitch({
                         aria-pressed={active}
                         onClick={() => onChange(period.value)}
                         className={cn(
-                            'inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                            'inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 pointer-coarse:min-h-11',
                             active
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground',
