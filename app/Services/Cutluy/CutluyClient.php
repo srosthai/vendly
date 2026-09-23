@@ -3,6 +3,7 @@
 namespace App\Services\Cutluy;
 
 use App\Exceptions\CutluyRequestException;
+use App\Models\PlatformSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -121,8 +122,10 @@ class CutluyClient
 
     private function request(): PendingRequest
     {
-        return Http::baseUrl(rtrim((string) config('services.cutluy.base_url'), '/'))
-            ->withToken((string) config('services.cutluy.key'))
+        $settings = PlatformSetting::current();
+
+        return Http::baseUrl($settings->cutluyBaseUrl())
+            ->withToken($settings->cutluyApiKey())
             ->acceptJson()
             ->asJson()
             ->connectTimeout(3)

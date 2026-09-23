@@ -104,6 +104,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('requests', [AdminInquiryController::class, 'index'])->name('requests');
         Route::get('site', [SiteSettingsController::class, 'edit'])->name('site');
         Route::put('site', [SiteSettingsController::class, 'update'])->name('site.update');
+        Route::put('site/cutluy', [SiteSettingsController::class, 'updateCutluy'])->name('site.cutluy.update');
         Route::post('site/payment-methods', [SiteSettingsController::class, 'storePaymentMethod'])->name('site.payment-methods.store');
         Route::put('site/payment-methods/{paymentMethod}', [SiteSettingsController::class, 'updatePaymentMethod'])->name('site.payment-methods.update');
         Route::delete('site/payment-methods/{paymentMethod}', [SiteSettingsController::class, 'destroyPaymentMethod'])->name('site.payment-methods.destroy');

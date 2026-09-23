@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SavePaymentMethodRequest;
+use App\Http\Requests\Admin\UpdateCutluySettingsRequest;
 use App\Http\Requests\Admin\UpdateSiteSettingsRequest;
 use App\Models\PaymentMethod;
 use App\Models\PlatformSetting;
@@ -13,8 +14,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * What the public website footer shows: contact details, social links, and
- * the payment methods listed under "We accept".
+ * What the public website footer shows (contact details, social links, and
+ * the payment methods listed under "We accept"), and the CutLuy credentials
+ * plan payments use.
  */
 class SiteSettingsController extends Controller
 {
@@ -32,6 +34,13 @@ class SiteSettingsController extends Controller
                 'social_links' => collect(PlatformSetting::SocialNetworks)
                     ->mapWithKeys(fn (string $network): array => [$network => $settings->social_links[$network] ?? ''])
                     ->all(),
+            ],
+            'cutluy' => [
+                'api_key' => $this->secretState($settings->cutluy_api_key, (string) config('services.cutluy.key')),
+                'webhook_secret' => $this->secretState($settings->cutluy_webhook_secret, (string) config('services.cutluy.webhook_secret')),
+                'base_url' => $settings->cutluy_base_url ?? '',
+                'default_base_url' => (string) config('services.cutluy.base_url'),
+                'webhook_url' => route('webhooks.cutluy'),
             ],
             'paymentMethods' => PaymentMethod::query()
                 ->orderBy('sort')
@@ -60,6 +69,26 @@ class SiteSettingsController extends Controller
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Site settings saved.']);
+
+        return back();
+    }
+
+    public function updateCutluy(UpdateCutluySettingsRequest $request): RedirectResponse
+    {
+        $settings = PlatformSetting::current();
+
+        foreach (['api_key' => 'cutluy_api_key', 'webhook_secret' => 'cutluy_webhook_secret'] as $field => $column) {
+            if ($request->boolean('clear_'.$field)) {
+                $settings->{$column} = null;
+            } elseif ($request->filled($field)) {
+                $settings->{$column} = $request->string($field)->trim()->toString();
+            }
+        }
+
+        $settings->cutluy_base_url = $request->filled('base_url') ? rtrim($request->string('base_url')->toString(), '/') : null;
+        $settings->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'CutLuy settings saved.']);
 
         return back();
     }
@@ -107,5 +136,24 @@ class SiteSettingsController extends Controller
         if ($oldLogo !== null && $oldLogo !== $method->logo_path) {
             Storage::disk('public')->delete($oldLogo);
         }
+    }
+
+    /**
+     * What the form may know about a secret: where it comes from and its
+     * last four characters, never the value itself.
+     *
+     * @return array{source: 'admin'|'env'|null, ends_with: string|null}
+     */
+    private function secretState(?string $saved, string $environment): array
+    {
+        if (filled($saved)) {
+            return ['source' => 'admin', 'ends_with' => substr((string) $saved, -4)];
+        }
+
+        if ($environment !== '') {
+            return ['source' => 'env', 'ends_with' => substr($environment, -4)];
+        }
+
+        return ['source' => null, 'ends_with' => null];
     }
 }
