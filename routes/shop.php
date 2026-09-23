@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialControll
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
+use App\Http\Controllers\Billing\PlanAvailabilityController;
 use App\Http\Controllers\Billing\PlanController;
 use App\Http\Controllers\Billing\PlanPaymentController;
 use App\Http\Controllers\BrandController;
@@ -109,6 +110,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('telegram', [AdminDashboardController::class, 'updateTelegram'])->name('telegram.update');
         Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
         Route::put('plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
+        Route::patch('plans/{plan}/availability', PlanAvailabilityController::class)->name('plans.availability');
         Route::post('stores/{store}/suspend', [StoreSuspensionController::class, 'store'])->name('stores.suspend');
         Route::delete('stores/{store}/suspend', [StoreSuspensionController::class, 'destroy'])->name('stores.restore');
     });

@@ -9,11 +9,11 @@ import {
 } from '@/components/form-sheet';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SheetClose } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 
 export type AdminPlan = {
     id: number;
@@ -123,34 +123,43 @@ export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
                                 name="is_default"
                                 value={isDefault ? '1' : '0'}
                             />
-                            <div className="grid gap-3 rounded-2xl border p-4">
-                                <div className="flex items-center gap-3">
-                                    <Checkbox
+                            <div className="grid divide-y rounded-2xl border">
+                                <div className="flex items-center justify-between gap-4 p-4">
+                                    <Label
+                                        htmlFor={`active-${key}`}
+                                        className="grid gap-1"
+                                    >
+                                        Available to vendors
+                                        <span className="text-xs font-normal text-muted-foreground">
+                                            Hidden plans cannot be chosen.
+                                        </span>
+                                    </Label>
+                                    <Switch
                                         id={`active-${key}`}
                                         checked={active}
-                                        onCheckedChange={(checked) =>
-                                            setActive(checked === true)
-                                        }
+                                        onCheckedChange={setActive}
                                     />
-                                    <Label htmlFor={`active-${key}`}>
-                                        Vendors can choose this plan
-                                    </Label>
                                 </div>
-                                <InputError message={errors.is_active} />
-                                <div className="flex items-center gap-3">
-                                    <Checkbox
+                                <div className="flex items-center justify-between gap-4 p-4">
+                                    <Label
+                                        htmlFor={`default-${key}`}
+                                        className="grid gap-1"
+                                    >
+                                        Default plan
+                                        <span className="text-xs font-normal text-muted-foreground">
+                                            New stores start on it. It must be
+                                            free.
+                                        </span>
+                                    </Label>
+                                    <Switch
                                         id={`default-${key}`}
                                         checked={isDefault}
-                                        onCheckedChange={(checked) =>
-                                            setIsDefault(checked === true)
-                                        }
+                                        onCheckedChange={setIsDefault}
                                     />
-                                    <Label htmlFor={`default-${key}`}>
-                                        New stores start on this plan
-                                    </Label>
                                 </div>
-                                <InputError message={errors.is_default} />
                             </div>
+                            <InputError message={errors.is_active} />
+                            <InputError message={errors.is_default} />
                         </FormSheetBody>
                         <FormSheetFooter>
                             <SheetClose asChild>
