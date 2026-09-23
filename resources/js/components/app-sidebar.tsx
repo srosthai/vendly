@@ -1,8 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BookOpen,
     CreditCard,
-    FolderGit2,
     LayoutGrid,
     MessageSquare,
     Package,
@@ -13,9 +11,8 @@ import {
     Tags,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { WorkspaceCard } from '@/components/workspace-card';
 import {
     Sidebar,
     SidebarContent,
@@ -26,61 +23,80 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import admin from '@/routes/admin';
+import vendor from '@/routes/vendor';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+type NavGroup = { label?: string; items: NavItem[] };
+
+const overview: NavItem = {
+    title: 'Dashboard',
+    href: dashboard(),
+    icon: LayoutGrid,
+};
+
+const vendorGroups: NavGroup[] = [
+    { items: [overview] },
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
+        label: 'Catalog',
+        items: [
+            { title: 'Products', href: vendor.products(), icon: Package },
+            { title: 'Categories', href: vendor.categories(), icon: Shapes },
+            { title: 'Brands', href: vendor.brands(), icon: Tag },
+        ],
+    },
+    {
+        label: 'Store',
+        items: [
+            { title: 'Store', href: vendor.store(), icon: Store },
+            { title: 'Telegram', href: vendor.telegram(), icon: Send },
+            { title: 'Plan', href: vendor.plan(), icon: CreditCard },
+        ],
     },
 ];
 
-const vendorNavItems: NavItem[] = [
-    { title: 'Store', href: '/vendor/store', icon: Store },
-    { title: 'Products', href: '/vendor/products', icon: Package },
-    { title: 'Categories', href: '/vendor/categories', icon: Shapes },
-    { title: 'Brands', href: '/vendor/brands', icon: Tag },
-    { title: 'Plan', href: '/vendor/plan', icon: CreditCard },
-    { title: 'Telegram', href: '/vendor/telegram', icon: Send },
-];
-
-const adminNavItems: NavItem[] = [
-    { title: 'Vendors', href: '/admin/vendors', icon: Store },
-    { title: 'Plans', href: '/admin/plans', icon: Tags },
-    { title: 'Payments', href: '/admin/payments', icon: CreditCard },
-    { title: 'Requests', href: '/admin/requests', icon: MessageSquare },
-    { title: 'Telegram', href: '/admin/telegram', icon: Send },
-];
-
-const footerNavItems: NavItem[] = [
+const adminGroups: NavGroup[] = [
+    { items: [overview] },
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
+        label: 'Sellers',
+        items: [
+            { title: 'Vendors', href: admin.vendors(), icon: Store },
+            { title: 'Plans', href: admin.plans(), icon: Tags },
+            { title: 'Payments', href: admin.payments(), icon: CreditCard },
+        ],
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        label: 'Messages',
+        items: [
+            {
+                title: 'Requests',
+                href: admin.requests(),
+                icon: MessageSquare,
+            },
+            { title: 'Telegram', href: admin.telegram(), icon: Send },
+        ],
     },
 ];
 
 export function AppSidebar() {
     const { auth } = usePage().props;
-    const items =
+    const groups =
         auth.user?.is_admin === true
-            ? adminNavItems
+            ? adminGroups
             : auth.hasStore
-              ? vendorNavItems
-              : mainNavItems;
+              ? vendorGroups
+              : [{ items: [overview] }];
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar collapsible="icon" variant="floating">
+            <SidebarHeader className="p-3">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="hover:bg-transparent"
+                        >
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
@@ -89,13 +105,18 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
-                <NavMain items={items} />
+            <SidebarContent className="gap-1">
+                {groups.map((group, index) => (
+                    <NavMain
+                        key={group.label ?? index}
+                        label={group.label}
+                        items={group.items}
+                    />
+                ))}
             </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
+            <SidebarFooter className="p-3 group-data-[collapsible=icon]:hidden">
+                <WorkspaceCard />
             </SidebarFooter>
         </Sidebar>
     );
