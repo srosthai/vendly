@@ -2,6 +2,7 @@
 
 namespace App\Services\Cutluy;
 
+use App\Models\PlatformSetting;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -9,10 +10,10 @@ class CutluySignature
 {
     public function assertValid(string $header, string $rawBody): void
     {
-        $secret = config('services.cutluy.webhook_secret');
+        $secret = PlatformSetting::current()->cutluyWebhookSecret();
 
-        if (! is_string($secret) || $secret === '') {
-            Log::error('CutLuy webhook refused: CUTLUY_WEBHOOK_SECRET is not set.');
+        if ($secret === '') {
+            Log::error('CutLuy webhook refused: no webhook secret is set in Site settings or CUTLUY_WEBHOOK_SECRET.');
 
             throw new HttpException(401, 'CutLuy webhooks are not configured.');
         }
