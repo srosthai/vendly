@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property int $id
+ * @property string|null $admin_chat_id
+ * @property string|null $bot_username
+ * @property string|null $mini_app_short_name
+ */
+#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name'])]
+class PlatformSetting extends Model
+{
+    public static function current(): self
+    {
+        $setting = static::query()->first();
+
+        if ($setting instanceof self) {
+            return $setting;
+        }
+
+        return static::query()->create([]);
+    }
+
+    public function adminChatId(): string
+    {
+        if (is_string($this->admin_chat_id) && $this->admin_chat_id !== '') {
+            return $this->admin_chat_id;
+        }
+
+        return (string) config('services.telegram.admin_chat_id');
+    }
+
+    public function botUsername(): string
+    {
+        if (is_string($this->bot_username) && $this->bot_username !== '') {
+            return $this->bot_username;
+        }
+
+        return (string) config('services.telegram.bot_username');
+    }
+}

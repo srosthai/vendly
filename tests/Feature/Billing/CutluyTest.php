@@ -225,7 +225,7 @@ test('a paid price under one cent is rejected', function () {
     $admin->is_admin = true;
     $admin->save();
 
-    $this->actingAs($admin)->post(route('plans.store'), [
+    $this->actingAs($admin)->post(route('admin.plans.store'), [
         'name' => 'Tiny',
         'price' => '0.001',
         'product_limit' => 5,

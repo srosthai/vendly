@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\TelegramAuthController;
@@ -52,7 +53,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('s/{store:slug}/cart/send', [InquiryController::class, 'cart'])->name('inquiries.cart');
     Route::post('plans/{plan}/payments', [PlanPaymentController::class, 'store'])->name('plans.payments.store');
 
-    Route::middleware('admin')->group(function () {
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('vendors', [AdminDashboardController::class, 'vendors'])->name('vendors');
+        Route::get('plans', [AdminDashboardController::class, 'plans'])->name('plans');
+        Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
+        Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
+        Route::put('telegram', [AdminDashboardController::class, 'updateTelegram'])->name('telegram.update');
         Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
         Route::put('plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
         Route::post('stores/{store}/suspend', [StoreSuspensionController::class, 'store'])->name('stores.suspend');

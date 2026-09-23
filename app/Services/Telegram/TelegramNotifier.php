@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Jobs\SendTelegramMessage;
 use App\Models\Inquiry;
+use App\Models\PlatformSetting;
 use App\Models\Store;
 use App\Support\Money;
 
@@ -12,7 +13,7 @@ class TelegramNotifier
     public function newStore(Store $store): void
     {
         $this->dispatch(
-            (string) config('services.telegram.admin_chat_id'),
+            PlatformSetting::current()->adminChatId(),
             "New store — {$store->name}\n".route('stores.show', $store),
             null,
             'admin',
@@ -25,7 +26,7 @@ class TelegramNotifier
         $plan = $store->subscription?->plan->name ?? 'plan';
         $text = "Plan paid — {$store->name}\n{$plan}";
 
-        $this->dispatch((string) config('services.telegram.admin_chat_id'), $text, null, 'admin');
+        $this->dispatch(PlatformSetting::current()->adminChatId(), $text, null, 'admin');
         $this->dispatch((string) $store->telegram_chat_id, $text, null, 'vendor');
     }
 
@@ -33,14 +34,14 @@ class TelegramNotifier
     {
         $text = "Plan expired — {$store->name}\nNew products cannot be published until the plan is renewed.";
 
-        $this->dispatch((string) config('services.telegram.admin_chat_id'), $text, null, 'admin');
+        $this->dispatch(PlatformSetting::current()->adminChatId(), $text, null, 'admin');
         $this->dispatch((string) $store->telegram_chat_id, $text, null, 'vendor');
     }
 
     public function paymentsUnavailable(string $error): void
     {
         $this->dispatch(
-            (string) config('services.telegram.admin_chat_id'),
+            PlatformSetting::current()->adminChatId(),
             'CutLuy payments are unavailable ('.$error.').',
             null,
             'admin',
@@ -63,7 +64,7 @@ class TelegramNotifier
         $contact = $inquiry->contact !== null ? ' ('.$inquiry->contact.')' : '';
         $text = "New request — {$store->name}\nFrom: {$inquiry->customer_name}{$contact}\n{$lines}\nTotal: ".Money::format($total);
 
-        $this->dispatch((string) config('services.telegram.admin_chat_id'), $text, $inquiry->id, 'admin');
+        $this->dispatch(PlatformSetting::current()->adminChatId(), $text, $inquiry->id, 'admin');
 
         if ($store->telegram_chat_id !== null && $store->telegram_chat_id !== '') {
             $this->dispatch($store->telegram_chat_id, $text, $inquiry->id, 'vendor');
