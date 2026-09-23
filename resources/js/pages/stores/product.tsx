@@ -27,6 +27,7 @@ type ProductProps = {
     description: string | null;
     price_cents: number;
     sold_out: boolean;
+    telegram_url: string | null;
     images: string[];
 };
 
@@ -96,16 +97,19 @@ function Gallery({ product }: { product: ProductProps }) {
 
 /**
  * Add to cart and Buy. On a phone they sit in a bar fixed above the safe
- * area; on a wide screen they sit in the summary column.
+ * area; on a wide screen they sit in the summary column. On the web, Buy
+ * opens this product in the Telegram mini app, where the request is sent.
  */
 function Actions({
     store,
     product,
     authenticated,
+    inTelegram,
 }: {
     store: StoreProps;
     product: ProductProps;
     authenticated: boolean;
+    inTelegram: boolean;
 }) {
     const args = { store: store.slug, product: product.id };
 
@@ -133,7 +137,18 @@ function Actions({
                         </>
                     )}
                 </Form>
-                {authenticated ? (
+                {!inTelegram && product.telegram_url ? (
+                    <Button asChild size="lg" className="flex-1">
+                        <a
+                            href={product.telegram_url}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            <Send />
+                            Buy in Telegram
+                        </a>
+                    </Button>
+                ) : authenticated ? (
                     <Form
                         {...InquiryController.product.form(args)}
                         options={{ preserveScroll: true }}
@@ -186,6 +201,8 @@ export default function Product({
     product: ProductProps;
 }) {
     const miniApp = useTelegramMiniApp(authenticated);
+    const inTelegram = embedded || miniApp.inTelegram;
+    const buyInTelegram = !inTelegram && product.telegram_url !== null;
 
     useEffect(() => {
         if (!status) {
@@ -261,17 +278,18 @@ export default function Product({
                                     store={store}
                                     product={product}
                                     authenticated={authenticated}
+                                    inTelegram={inTelegram}
                                 />
                                 <p className="text-sm text-muted-foreground">
-                                    Buy sends this product to the store on
-                                    Telegram. You agree on payment and delivery
-                                    with the seller there.
+                                    {buyInTelegram
+                                        ? 'Buy opens this product in the Vendly mini app in Telegram, where you send it to the store. You agree on payment and delivery with the seller there.'
+                                        : 'Buy sends this product to the store on Telegram. You agree on payment and delivery with the seller there.'}
                                 </p>
                             </>
                         )}
                     </div>
                 </div>
-                <StorefrontFooter hidden={embedded || miniApp.inTelegram} />
+                <StorefrontFooter hidden={inTelegram} />
             </main>
         </>
     );

@@ -79,6 +79,9 @@ class Product extends Model
         return $this->hasOne(ProductImage::class)->ofMany(['sort' => 'min', 'id' => 'min']);
     }
 
+    /**
+     * @return HasMany<ProductImage, $this>
+     */
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort')->orderBy('id');

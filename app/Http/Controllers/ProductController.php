@@ -8,6 +8,7 @@ use App\Actions\Catalog\PublishProduct;
 use App\Actions\Catalog\SaveProduct;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Requests\SaveProductRequest;
+use App\Models\PlatformSetting;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Store;
@@ -94,6 +95,7 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'price_cents' => $product->price_cents,
                 'sold_out' => $product->isSoldOut(),
+                'telegram_url' => PlatformSetting::current()->miniAppProductLink($product->id),
                 'images' => $product->images->sortBy([['sort', 'asc'], ['id', 'asc']])->values()->map(fn (ProductImage $image): string => $image->url())->all(),
             ],
         ]);

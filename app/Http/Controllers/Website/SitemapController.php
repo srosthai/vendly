@@ -14,7 +14,7 @@ class SitemapController extends Controller
      */
     public function sitemap(): Response
     {
-        $pages = collect(['home', 'features', 'how-it-works', 'pricing'])
+        $pages = collect(['home', 'features', 'how-it-works', 'pricing', 'stores.index'])
             ->when(Testimonial::query()->whereNotNull('published_at')->exists(), fn ($pages) => $pages->push('testimonials'))
             ->map(fn (string $name): array => ['url' => route($name), 'updated' => null]);
 

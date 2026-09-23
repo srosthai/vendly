@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Website;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
+use App\Models\Product;
 use App\Models\Store;
 use App\Models\Testimonial;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,6 +59,43 @@ class MarketingController extends Controller
                 ->orderBy('price_cents')
                 ->orderBy('id')
                 ->get(['id', 'name', 'price_cents', 'product_limit', 'is_default']),
+        ]);
+    }
+
+    /**
+     * Every store with something to sell, newest first, searchable by name.
+     */
+    public function stores(Request $request): Response
+    {
+        $search = trim($request->string('search')->toString());
+
+        $stores = Store::query()
+            ->whereNull('suspended_at')
+            ->whereHas('products', fn ($products) => $products->published())
+            ->when($search !== '', fn ($query) => $query->whereLike('name', '%'.$search.'%'))
+            ->withCount(['products as published_products_count' => fn ($products) => $products->published()])
+            ->with(['products' => fn ($products) => $products->published()->with('coverImage')->latest()->orderByDesc('id')->limit(3)])
+            ->latest()
+            ->orderByDesc('id');
+
+        return $this->page('marketing/stores', [
+            'title' => 'Stores',
+            'description' => 'Browse the shops selling on Vendly. Open a store to see its products, then buy through Telegram.',
+        ], [
+            'search' => $search,
+            'stores' => Inertia::scroll(fn () => $stores->paginate(18)->withQueryString()->through(fn (Store $store): array => [
+                'name' => $store->name,
+                'description' => $store->description,
+                'logo' => $store->logoUrl(),
+                'url' => route('stores.show', $store),
+                'products_count' => $store->published_products_count ?? 0,
+                'joined_at' => $store->created_at?->toIso8601String(),
+                'previews' => $store->products
+                    ->map(fn (Product $product): ?string => $product->coverImage?->url())
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ])),
         ]);
     }
 

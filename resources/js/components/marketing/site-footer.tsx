@@ -21,6 +21,7 @@ import {
     register,
     testimonials,
 } from '@/routes';
+import { index as storesIndex } from '@/routes/stores';
 
 export type SiteFooterData = {
     company_name: string;
@@ -150,6 +151,11 @@ export function SiteFooter() {
                     <li>
                         <Link href={pricing()} className={linkClass}>
                             Pricing
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href={storesIndex()} className={linkClass}>
+                            Stores
                         </Link>
                     </li>
                     {showTestimonials ? (

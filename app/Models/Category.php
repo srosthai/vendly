@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -22,5 +23,13 @@ class Category extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
     }
 }
