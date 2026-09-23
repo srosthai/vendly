@@ -13,7 +13,7 @@ beforeEach(function () {
     ]);
 });
 
-test('google sign-in asks for the environment keys when they are missing', function () {
+test('google sign-in is refused when no keys are set', function () {
     config([
         'services.google.client_id' => null,
         'services.google.client_secret' => null,

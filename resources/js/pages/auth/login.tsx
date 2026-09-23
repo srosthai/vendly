@@ -17,9 +17,14 @@ import { request } from '@/routes/password';
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    googleSignIn?: boolean;
 };
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({
+    status,
+    canResetPassword,
+    googleSignIn = false,
+}: Props) {
     return (
         <>
             <Head title="Log in" />
@@ -33,14 +38,17 @@ export default function Login({ status, canResetPassword }: Props) {
                 </p>
             ) : null}
 
-            <Button variant="outline" className="w-full" asChild>
-                <a href={GoogleAuthController.redirect.url()}>
-                    <GoogleMark />
-                    Continue with Google
-                </a>
-            </Button>
-
-            <OrSeparator label="or use your email" />
+            {googleSignIn ? (
+                <>
+                    <Button variant="outline" className="w-full" asChild>
+                        <a href={GoogleAuthController.redirect.url()}>
+                            <GoogleMark />
+                            Continue with Google
+                        </a>
+                    </Button>
+                    <OrSeparator label="or use your email" />
+                </>
+            ) : null}
 
             <Form
                 {...store.form()}

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\PlatformSetting;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -60,6 +61,7 @@ class FortifyServiceProvider extends ServiceProvider
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
                 'status' => $request->session()->get('status'),
+                'googleSignIn' => PlatformSetting::current()->googleSignInReady(),
             ]);
         });
 

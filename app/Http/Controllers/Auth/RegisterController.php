@@ -6,6 +6,7 @@ use App\Actions\Auth\CompleteRegistration;
 use App\Actions\Auth\StartRegistration;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\StartRegistrationRequest;
+use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,7 @@ class RegisterController extends Controller
             'step' => 'details',
             'email' => '',
             'status' => $request->session()->get('status'),
+            'googleSignIn' => PlatformSetting::current()->googleSignInReady(),
         ]);
     }
 

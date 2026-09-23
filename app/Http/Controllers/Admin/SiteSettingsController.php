@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SavePaymentMethodRequest;
 use App\Http\Requests\Admin\UpdateCutluySettingsRequest;
+use App\Http\Requests\Admin\UpdateGoogleSettingsRequest;
 use App\Http\Requests\Admin\UpdateSiteSettingsRequest;
 use App\Models\PaymentMethod;
 use App\Models\PlatformSetting;
@@ -15,8 +16,8 @@ use Inertia\Response;
 
 /**
  * What the public website footer shows (contact details, social links, and
- * the payment methods listed under "We accept"), and the CutLuy credentials
- * plan payments use.
+ * the payment methods listed under "We accept"), the CutLuy credentials plan
+ * payments use, and Google sign-in.
  */
 class SiteSettingsController extends Controller
 {
@@ -41,6 +42,14 @@ class SiteSettingsController extends Controller
                 'base_url' => $settings->cutluy_base_url ?? '',
                 'default_base_url' => (string) config('services.cutluy.base_url'),
                 'webhook_url' => route('webhooks.cutluy'),
+            ],
+            'google' => [
+                'enabled' => $settings->google_enabled ?? true,
+                'client_id' => $settings->google_client_id ?? '',
+                'env_client_id' => filled(config('services.google.client_id')),
+                'client_secret' => $this->secretState($settings->google_client_secret, (string) config('services.google.client_secret')),
+                'redirect_url' => $settings->googleRedirectUrl(),
+                'ready' => $settings->googleSignInReady(),
             ],
             'paymentMethods' => PaymentMethod::query()
                 ->orderBy('sort')
@@ -89,6 +98,25 @@ class SiteSettingsController extends Controller
         $settings->save();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'CutLuy settings saved.']);
+
+        return back();
+    }
+
+    public function updateGoogle(UpdateGoogleSettingsRequest $request): RedirectResponse
+    {
+        $settings = PlatformSetting::current();
+        $settings->google_enabled = $request->boolean('enabled');
+        $settings->google_client_id = $request->filled('client_id') ? $request->string('client_id')->trim()->toString() : null;
+
+        if ($request->boolean('clear_client_secret')) {
+            $settings->google_client_secret = null;
+        } elseif ($request->filled('client_secret')) {
+            $settings->google_client_secret = $request->string('client_secret')->trim()->toString();
+        }
+
+        $settings->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Google sign-in settings saved.']);
 
         return back();
     }

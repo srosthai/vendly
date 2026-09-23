@@ -24,6 +24,7 @@ type Props = {
     step: 'details' | 'code';
     email: string;
     status?: string;
+    googleSignIn?: boolean;
 };
 
 const resendWait = 60;
@@ -78,6 +79,7 @@ export default function Register({
     step,
     email,
     status,
+    googleSignIn = false,
 }: Props) {
     const [code, setCode] = useState('');
 
@@ -94,13 +96,21 @@ export default function Register({
             ) : null}
             {step === 'details' ? (
                 <>
-                    <Button variant="outline" className="w-full" asChild>
-                        <a href={GoogleAuthController.redirect.url()}>
-                            <GoogleMark />
-                            Continue with Google
-                        </a>
-                    </Button>
-                    <OrSeparator label="or use your email" />
+                    {googleSignIn ? (
+                        <>
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                asChild
+                            >
+                                <a href={GoogleAuthController.redirect.url()}>
+                                    <GoogleMark />
+                                    Continue with Google
+                                </a>
+                            </Button>
+                            <OrSeparator label="or use your email" />
+                        </>
+                    ) : null}
                     <Form
                         {...RegisterController.store.form()}
                         resetOnSuccess={['password', 'password_confirmation']}

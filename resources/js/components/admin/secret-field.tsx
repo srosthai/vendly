@@ -31,15 +31,8 @@ export function SecretField({
     const id = `secret-${name}`;
 
     return (
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
             <Label htmlFor={id}>{label}</Label>
-            <p className="text-sm text-muted-foreground" id={`${id}-state`}>
-                {state.source === 'admin'
-                    ? `Saved here, ending in ••••${state.ends_with}.`
-                    : state.source === 'env'
-                      ? `From the server environment, ending in ••••${state.ends_with}. A value saved here takes over.`
-                      : 'Not set yet.'}
-            </p>
             <PasswordInput
                 id={id}
                 name={name}
@@ -52,6 +45,13 @@ export function SecretField({
                         : 'Leave empty to keep the current value'
                 }
             />
+            <p className="text-sm text-muted-foreground" id={`${id}-state`}>
+                {state.source === 'admin'
+                    ? `Saved here, ending in ••••${state.ends_with}.`
+                    : state.source === 'env'
+                      ? `From the server environment, ending in ••••${state.ends_with}. A value saved here takes over.`
+                      : 'Not set yet.'}
+            </p>
             {state.source === 'admin' ? (
                 <label className="flex items-center gap-2 text-sm">
                     <Checkbox
