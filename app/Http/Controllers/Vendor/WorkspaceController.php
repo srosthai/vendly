@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Vendor;
 
 use App\Actions\Dashboard\DailyCounts;
+use App\Actions\Dashboard\DashboardCharts;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\SubscriptionStatus;
@@ -40,13 +41,13 @@ class WorkspaceController extends Controller
      * One dashboard route, three overviews: the admin sees the platform, a
      * vendor sees their store, and a customer sees the requests they sent.
      */
-    public function home(Request $request, DailyCounts $daily): Response
+    public function home(Request $request, DailyCounts $daily, DashboardCharts $charts): Response
     {
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 
         if ($user->is_admin) {
-            return $this->adminOverview($daily);
+            return $this->adminOverview($daily, $charts);
         }
 
         $store = $this->optionalStore($request);
@@ -77,6 +78,7 @@ class WorkspaceController extends Controller
         $recentRequests = $store->inquiries()->where('created_at', '>=', $weekAgo)->pluck('created_at');
 
         return Inertia::render('vendor/overview', [
+            'charts' => $charts->vendor($store),
             'store' => [
                 'name' => $store->name,
                 'web_url' => route('stores.show', $store),
@@ -113,7 +115,7 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    private function adminOverview(DailyCounts $daily): Response
+    private function adminOverview(DailyCounts $daily, DashboardCharts $charts): Response
     {
         $twoWeeksAgo = now()->subDays(6)->startOfDay();
         $paid = SubscriptionPayment::query()
@@ -122,6 +124,7 @@ class WorkspaceController extends Controller
             ->get(['amount_cents', 'paid_at']);
 
         return Inertia::render('admin/overview', [
+            'charts' => $charts->admin(),
             'stats' => [
                 'vendors' => Store::query()->count(),
                 'new_vendors' => Store::query()->where('created_at', '>=', $twoWeeksAgo)->count(),

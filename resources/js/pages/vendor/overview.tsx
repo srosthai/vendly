@@ -7,6 +7,10 @@ import {
     Plus,
     Send,
 } from 'lucide-react';
+import { AreaChart } from '@/components/charts/area-chart';
+import { BarList } from '@/components/charts/bar-list';
+import { ChartCard, Delta } from '@/components/charts/chart-card';
+import { DonutChart } from '@/components/charts/donut-chart';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
@@ -45,11 +49,26 @@ type RecentRequest = {
     sent_at: string | null;
 };
 
+type Charts = {
+    days: string[];
+    requests: { values: number[]; total: number; previous: number };
+    products_by_status: { key: string; value: number }[];
+    top_products: { name: string; value: number }[];
+};
+
+const productSlices: Record<string, { label: string; color: string }> = {
+    published: { label: 'Published', color: 'var(--primary)' },
+    sold_out: { label: 'Sold out', color: 'var(--warning)' },
+    draft: { label: 'Draft', color: 'var(--muted-foreground)' },
+};
+
 export default function VendorOverview({
     store,
     stats,
+    charts,
     recentRequests,
 }: {
+    charts: Charts;
     store: {
         name: string;
         web_url: string;
@@ -145,6 +164,67 @@ export default function VendorOverview({
                         }
                     />
                 </div>
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <ChartCard
+                        title="Requests"
+                        description="Buy and cart requests, last 30 days."
+                        value={charts.requests.total}
+                        delta={
+                            <Delta
+                                current={charts.requests.total}
+                                previous={charts.requests.previous}
+                            />
+                        }
+                        className="lg:col-span-2"
+                    >
+                        <AreaChart
+                            label="Requests per day, last 30 days"
+                            days={charts.days}
+                            values={charts.requests.values}
+                        />
+                    </ChartCard>
+                    <ChartCard
+                        title="Products"
+                        description="Everything in your catalog."
+                    >
+                        {charts.products_by_status.length === 0 ? (
+                            <p className="py-6 text-sm text-muted-foreground">
+                                No products yet.
+                            </p>
+                        ) : (
+                            <DonutChart
+                                label="Products by status"
+                                centerLabel="products"
+                                slices={charts.products_by_status.map(
+                                    (row) => ({
+                                        key: row.key,
+                                        value: row.value,
+                                        label:
+                                            productSlices[row.key]?.label ??
+                                            row.key,
+                                        color:
+                                            productSlices[row.key]?.color ??
+                                            'var(--muted-foreground)',
+                                    }),
+                                )}
+                            />
+                        )}
+                    </ChartCard>
+                </div>
+
+                {charts.top_products.length > 0 ? (
+                    <ChartCard
+                        title="Most requested"
+                        description="Products customers asked for most, last 30 days."
+                    >
+                        <BarList
+                            label="Most requested products"
+                            items={charts.top_products}
+                            unit={['requested', 'requested']}
+                        />
+                    </ChartCard>
+                ) : null}
 
                 <div className="grid gap-4 lg:grid-cols-3">
                     <Card className="gap-0 overflow-hidden p-0 lg:col-span-2">

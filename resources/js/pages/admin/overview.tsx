@@ -1,5 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { CreditCard, MessageSquare, Store, WalletCards } from 'lucide-react';
+import { AreaChart } from '@/components/charts/area-chart';
+import { BarChart } from '@/components/charts/bar-chart';
+import { ChartCard, Delta } from '@/components/charts/chart-card';
+import { DonutChart } from '@/components/charts/donut-chart';
+import type { Slice } from '@/components/charts/donut-chart';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
@@ -19,7 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { formatDate } from '@/lib/format';
+import { dollars, formatDate } from '@/lib/format';
 import { dashboard } from '@/routes';
 import admin from '@/routes/admin';
 
@@ -33,6 +38,42 @@ type Stats = {
     undelivered: number;
 };
 
+type Series = { values: number[]; total: number; previous: number };
+
+type Charts = {
+    days: string[];
+    revenue: Series;
+    vendors: Series;
+    payments_by_status: { key: string; value: number }[];
+    delivery: { key: string; value: number }[];
+};
+
+const paymentSlices: Record<string, { label: string; color: string }> = {
+    paid: { label: 'Paid', color: 'var(--success)' },
+    pending: { label: 'Pending', color: 'var(--primary)' },
+    scanned: { label: 'Opened', color: 'var(--highlight)' },
+    expired: { label: 'Expired', color: 'var(--muted-foreground)' },
+    failed: { label: 'Failed', color: 'var(--destructive)' },
+};
+
+const deliverySlices: Record<string, { label: string; color: string }> = {
+    delivered: { label: 'Reached the vendor', color: 'var(--success)' },
+    admin_only: { label: 'Admin copy only', color: 'var(--highlight)' },
+    failed: { label: 'Not delivered', color: 'var(--destructive)' },
+};
+
+function slices(
+    rows: { key: string; value: number }[],
+    names: Record<string, { label: string; color: string }>,
+): Slice[] {
+    return rows.map((row) => ({
+        key: row.key,
+        value: row.value,
+        label: names[row.key]?.label ?? row.key,
+        color: names[row.key]?.color ?? 'var(--muted-foreground)',
+    }));
+}
+
 type RecentPayment = {
     id: number;
     store: string | null;
@@ -44,9 +85,11 @@ type RecentPayment = {
 
 export default function AdminOverview({
     stats,
+    charts,
     recentPayments,
 }: {
     stats: Stats;
+    charts: Charts;
     recentPayments: RecentPayment[];
 }) {
     return (
@@ -94,6 +137,78 @@ export default function AdminOverview({
                         }
                         tone={stats.undelivered > 0 ? 'warning' : 'default'}
                     />
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <ChartCard
+                        title="Paid to Vendly"
+                        description="Plan payments marked paid, last 30 days."
+                        value={dollars(charts.revenue.total)}
+                        delta={
+                            <Delta
+                                current={charts.revenue.total}
+                                previous={charts.revenue.previous}
+                            />
+                        }
+                    >
+                        <AreaChart
+                            label="Paid to Vendly per day, last 30 days"
+                            days={charts.days}
+                            values={charts.revenue.values}
+                            format={(cents) => dollars(cents)}
+                        />
+                    </ChartCard>
+                    <ChartCard
+                        title="New vendors"
+                        description="Stores opened, last 30 days."
+                        value={charts.vendors.total}
+                        delta={
+                            <Delta
+                                current={charts.vendors.total}
+                                previous={charts.vendors.previous}
+                            />
+                        }
+                    >
+                        <BarChart
+                            label="New vendors per day, last 30 days"
+                            days={charts.days}
+                            values={charts.vendors.values}
+                        />
+                    </ChartCard>
+                    <ChartCard
+                        title="Payments by status"
+                        description="Payments started in the last 30 days."
+                    >
+                        {charts.payments_by_status.length === 0 ? (
+                            <p className="py-6 text-sm text-muted-foreground">
+                                No payments in the last 30 days.
+                            </p>
+                        ) : (
+                            <DonutChart
+                                label="Payments by status"
+                                centerLabel="payments"
+                                slices={slices(
+                                    charts.payments_by_status,
+                                    paymentSlices,
+                                )}
+                            />
+                        )}
+                    </ChartCard>
+                    <ChartCard
+                        title="Request delivery"
+                        description="Where requests from the last 30 days ended up."
+                    >
+                        {charts.delivery.length === 0 ? (
+                            <p className="py-6 text-sm text-muted-foreground">
+                                No requests in the last 30 days.
+                            </p>
+                        ) : (
+                            <DonutChart
+                                label="Request delivery"
+                                centerLabel="requests"
+                                slices={slices(charts.delivery, deliverySlices)}
+                            />
+                        )}
+                    </ChartCard>
                 </div>
                 <Card className="gap-0 overflow-hidden p-0">
                     <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
