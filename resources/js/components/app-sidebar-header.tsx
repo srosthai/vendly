@@ -1,61 +1,34 @@
-import { Form, usePage } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { GlobalSearch } from '@/components/global-search';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
-import admin from '@/routes/admin';
-import vendor from '@/routes/vendor';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 /**
- * Search goes where the person manages things: a vendor searches their
- * products, an admin searches vendors. Customers have nothing to search here.
+ * Admins search the whole back office and vendors their own store.
+ * Customers have nothing to search here.
  */
 function WorkspaceSearch() {
     const { auth, workspace } = usePage().props;
-    const target =
-        auth.user?.is_admin === true
-            ? { url: admin.vendors().url, label: 'Search vendors' }
-            : workspace?.kind === 'vendor'
-              ? { url: vendor.products().url, label: 'Search products' }
-              : null;
 
-    if (target === null) {
-        return null;
+    if (auth.user?.is_admin === true) {
+        return <GlobalSearch placeholder="Search the back office" />;
     }
 
-    return (
-        <Form
-            action={target.url}
-            method="get"
-            role="search"
-            className="relative hidden w-full max-w-xs sm:block"
-        >
-            <Search
-                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-            />
-            <label htmlFor="workspace-search" className="sr-only">
-                {target.label}
-            </label>
-            <Input
-                id="workspace-search"
-                name="search"
-                type="search"
-                placeholder={target.label}
-                className="rounded-full bg-background pl-10"
-            />
-        </Form>
-    );
+    if (workspace?.kind === 'vendor') {
+        return <GlobalSearch placeholder="Search your store" />;
+    }
+
+    return null;
 }
 
 export function AppSidebarHeader({

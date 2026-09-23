@@ -19,6 +19,7 @@ use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\MiniAppController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
@@ -61,6 +62,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('s/{store:slug}/products/{product}/buy', [InquiryController::class, 'product'])->name('inquiries.product');
         Route::post('s/{store:slug}/cart/send', [InquiryController::class, 'cart'])->name('inquiries.cart');
     });
+
+    Route::get('search', SearchController::class)
+        ->middleware('throttle:60,1')
+        ->name('search');
 
     Route::middleware('vendor')->group(function () {
         Route::get('vendor/store', [WorkspaceController::class, 'store'])->name('vendor.store');
