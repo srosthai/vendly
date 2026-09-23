@@ -3,31 +3,38 @@
 namespace App\Services\Cutluy;
 
 use App\Exceptions\CutluyRequestException;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Sleep;
+use Throwable;
 
 class CutluyClient
 {
+    public const MaxRetryAfterSeconds = 60;
+
     /**
+     * Sends one create request. It never waits or retries inside the web
+     * request: a 429 is reported with its Retry-After so the caller can
+     * queue the single delayed retry.
+     *
      * @param  array<string, mixed>  $metadata
      * @return array{id: string, status: string, checkout_url: string, qr_string: string}
+     *
+     * @throws CutluyRequestException
      */
     public function createPayment(float $amount, string $referenceId, array $metadata, string $idempotencyKey): array
     {
-        $payload = [
-            'amount' => $amount,
-            'reference_id' => $referenceId,
-            'metadata' => $metadata,
-            'idempotency_key' => $idempotencyKey,
-        ];
-
-        $response = $this->request()->post('/v1/payments', $payload);
-
-        if ($response->status() === 429) {
-            Sleep::sleep($this->retryAfter($response));
-            $response = $this->request()->post('/v1/payments', $payload);
+        try {
+            $response = $this->request()->post('/v1/payments', [
+                'amount' => $amount,
+                'reference_id' => $referenceId,
+                'metadata' => $metadata,
+                'idempotency_key' => $idempotencyKey,
+            ]);
+        } catch (ConnectionException) {
+            throw new CutluyRequestException(0, 'connection_failed');
         }
 
         return $this->payment($response);
@@ -38,16 +45,13 @@ class CutluyClient
      */
     private function payment(Response $response): array
     {
-        if (in_array($response->status(), [401, 402, 403, 429], true)) {
+        if (! $response->successful()) {
             throw new CutluyRequestException(
                 $response->status(),
-                (string) $response->json('error', 'request_failed'),
+                (string) $response->json('error', $response->serverError() ? 'server_error' : 'request_failed'),
                 (string) $response->json('message', ''),
+                $response->status() === 429 ? $this->retryAfter($response) : 0,
             );
-        }
-
-        if (! $response->successful()) {
-            $response->throw();
         }
 
         /** @var array{id?: string, status?: string, checkout_url?: string, qr_string?: string} $json */
@@ -61,11 +65,26 @@ class CutluyClient
         ];
     }
 
+    /**
+     * Retry-After is either whole seconds or an HTTP date. The wait is kept
+     * between 1 and {@see self::MaxRetryAfterSeconds} seconds.
+     */
     private function retryAfter(Response $response): int
     {
-        $seconds = (int) $response->header('Retry-After');
+        $header = trim($response->header('Retry-After'));
+        $seconds = 1;
 
-        return $seconds > 0 ? $seconds : 1;
+        if (ctype_digit($header)) {
+            $seconds = (int) $header;
+        } elseif ($header !== '') {
+            try {
+                $seconds = (int) ceil(now()->diffInSeconds(CarbonImmutable::parse($header), false));
+            } catch (Throwable) {
+                $seconds = 1;
+            }
+        }
+
+        return max(1, min(self::MaxRetryAfterSeconds, $seconds));
     }
 
     private function request(): PendingRequest

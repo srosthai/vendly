@@ -1,18 +1,25 @@
 <?php
 
+use App\Actions\Billing\ApplyCutluyEvent;
+use App\Actions\Billing\CreatePlanPayment;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\SubscriptionStatus;
 use App\Jobs\ApplyCutluyWebhook;
+use App\Jobs\RetryCutluyPayment;
+use App\Jobs\SendTelegramMessage;
+use App\Models\CutluyEvent;
 use App\Models\Plan;
 use App\Models\Product;
 use App\Models\Store;
+use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Sleep;
 use Illuminate\Testing\TestResponse;
 
 beforeEach(function () {
@@ -149,93 +156,234 @@ test('scanned does not raise the product limit and completed does only once', fu
     expect($store->fresh()->subscription->ends_at?->equalTo($endsAt))->toBeTrue();
 });
 
-test('cutluy client errors do not start a plan', function (int $status, string $error) {
-    Http::preventStrayRequests();
-    Http::fake([
-        'cutluy.com/*' => Http::response(['error' => $error, 'message' => 'secret detail'], $status),
-    ]);
-
-    $vendor = User::factory()->create();
-    $store = openStore($vendor, 'Smile Tea '.$status);
-    $freeId = $store->subscription->plan_id;
-    $paid = Plan::query()->create([
-        'name' => 'Starter '.$status,
+function starterPlan(string $name = 'Starter'): Plan
+{
+    return Plan::query()->create([
+        'name' => $name,
         'price_cents' => 500,
         'product_limit' => 100,
         'is_active' => true,
         'is_default' => false,
     ]);
+}
 
-    $this->actingAs($vendor)
-        ->postJson(route('plans.payments.store', $paid))
-        ->assertInvalid(['plan']);
+function createdCutluyPayment(string $id = 'pay_429'): array
+{
+    return [
+        'id' => $id,
+        'status' => 'pending',
+        'checkout_url' => 'https://cutluy.com/pay/'.$id,
+        'qr_string' => '000201',
+    ];
+}
 
-    expect($store->fresh()->subscription->plan_id)->toBe($freeId);
-
-    Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer ck_test_key'));
-})->with([
-    [401, 'unauthorized'],
-    [402, 'quota_exceeded'],
-    [403, 'account_suspended'],
-]);
-
-test('a rate limit waits for retry-after once', function () {
+test('a rate limit asks the vendor to wait and queues one delayed retry', function () {
     Http::preventStrayRequests();
-    Sleep::fake();
+    Queue::fake();
     Http::fakeSequence()
         ->push(['error' => 'rate_limited', 'message' => 'slow'], 429, ['Retry-After' => '3'])
-        ->push([
-            'id' => 'pay_429',
-            'status' => 'pending',
-            'checkout_url' => 'https://cutluy.com/pay/pay_429',
-            'qr_string' => '000201',
-        ], 201);
+        ->push(createdCutluyPayment(), 201);
 
     $vendor = User::factory()->create();
     openStore($vendor, 'Rate Tea');
-    $paid = Plan::query()->create([
-        'name' => 'Starter',
-        'price_cents' => 500,
-        'product_limit' => 100,
-        'is_active' => true,
-        'is_default' => false,
-    ]);
+    $paid = starterPlan();
 
     $this->actingAs($vendor)
         ->postJson(route('plans.payments.store', $paid))
-        ->assertOk()
-        ->assertJsonPath('status', 'pending');
+        ->assertInvalid(['plan' => 'Try again in 3 seconds.']);
 
-    Sleep::assertSleptTimes(1);
-    Http::assertSentCount(2);
+    Http::assertSentCount(1);
+    Queue::assertPushed(RetryCutluyPayment::class, fn (RetryCutluyPayment $job): bool => $job->delay !== null);
+    Queue::assertNotPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_contains($job->text, 'unavailable'));
+
+    Queue::pushed(RetryCutluyPayment::class)->first()->handle(app(CreatePlanPayment::class));
+
+    $payment = SubscriptionPayment::query()->sole();
+    expect($payment->cutluy_id)->toBe('pay_429');
     Http::assertSent(fn (Request $request): bool => $request['idempotency_key'] === $request['reference_id']
+        && $request['reference_id'] === $payment->public_id
         && $request['amount'] === 5.0);
 });
 
-test('a second rate limit stops', function () {
+test('a second rate limit stops without another retry', function () {
     Http::preventStrayRequests();
-    Sleep::fake();
+    Queue::fake();
     Http::fakeSequence()
-        ->push(['error' => 'rate_limited', 'message' => 'slow'], 429, ['Retry-After' => '2'])
-        ->push(['error' => 'rate_limited', 'message' => 'slow'], 429, ['Retry-After' => '9']);
+        ->push(['error' => 'rate_limited'], 429, ['Retry-After' => '2'])
+        ->push(['error' => 'rate_limited'], 429, ['Retry-After' => '9']);
 
     $vendor = User::factory()->create();
     $store = openStore($vendor, 'Stop Tea');
     $freeId = $store->subscription->plan_id;
-    $paid = Plan::query()->create([
-        'name' => 'Starter stop',
-        'price_cents' => 500,
-        'product_limit' => 100,
-        'is_active' => true,
-        'is_default' => false,
-    ]);
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', starterPlan()))->assertInvalid(['plan']);
+
+    Queue::pushed(RetryCutluyPayment::class)->first()->handle(app(CreatePlanPayment::class));
+
+    Queue::assertPushed(RetryCutluyPayment::class, 1);
+    Queue::assertNotPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_contains($job->text, 'unavailable'));
+    expect($store->fresh()->subscription->plan_id)->toBe($freeId)
+        ->and(SubscriptionPayment::query()->sole()->cutluy_id)->toBeNull();
+});
+
+test('retry-after is capped and understands http dates', function (string $header, int $seconds) {
+    Http::preventStrayRequests();
+    Queue::fake();
+    $this->freezeTime();
+    Http::fake(['cutluy.com/*' => Http::response(['error' => 'rate_limited'], 429, ['Retry-After' => $header])]);
+
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Date Tea');
 
     $this->actingAs($vendor)
-        ->postJson(route('plans.payments.store', $paid))
-        ->assertInvalid(['plan']);
+        ->postJson(route('plans.payments.store', starterPlan()))
+        ->assertInvalid(['plan' => 'Try again in '.$seconds.' seconds.']);
+})->with([
+    'a long wait' => ['600', 60],
+    'an http date' => [fn (): string => now()->addSeconds(20)->toRfc7231String(), 20],
+    'garbage' => ['soon', 1],
+]);
 
-    Sleep::assertSleptTimes(1);
+test('cutluy outages never show the raw error and tell the admin', function (?int $status) {
+    Http::preventStrayRequests();
+    Queue::fake();
+    Http::fake([
+        'cutluy.com/*' => $status === null
+            ? fn () => throw new ConnectionException('Could not resolve host')
+            : Http::response(['error' => 'server_error', 'message' => 'secret detail'], $status),
+    ]);
+
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Down Tea');
+    $freeId = $store->subscription->plan_id;
+
+    $this->actingAs($vendor)
+        ->postJson(route('plans.payments.store', starterPlan()))
+        ->assertInvalid(['plan' => 'Payments are unavailable.'])
+        ->assertDontSee('secret detail');
+
+    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_contains($job->text, 'CutLuy payments are unavailable'));
     expect($store->fresh()->subscription->plan_id)->toBe($freeId);
+})->with([
+    'unauthorized' => [401],
+    'quota exceeded' => [402],
+    'account suspended' => [403],
+    'server error' => [500],
+    'no connection' => [null],
+]);
+
+test('trying again reuses the same local payment and idempotency key', function () {
+    Http::preventStrayRequests();
+    Queue::fake();
+    Http::fakeSequence()
+        ->push(['error' => 'server_error'], 503)
+        ->push(createdCutluyPayment('pay_again'), 201);
+
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Again Tea');
+    $paid = starterPlan();
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertInvalid(['plan']);
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk();
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk()->assertJsonPath('checkout_url', 'https://cutluy.com/pay/pay_again');
+
+    $payment = SubscriptionPayment::query()->sole();
+    $keys = collect(Http::recorded())->map(fn (array $pair): string => $pair[0]['idempotency_key'])->unique()->values()->all();
+
+    expect($keys)->toBe([$payment->public_id])
+        ->and($payment->cutluy_id)->toBe('pay_again');
+    Http::assertSentCount(2);
+});
+
+test('completed adds a month on top of a future end date and reactivates an expired plan', function () {
+    Http::preventStrayRequests();
+    $this->freezeSecond();
+    $store = openStore(User::factory()->create(), 'Renew Tea');
+    $payment = pendingStarterPayment($store);
+
+    $subscription = $store->subscription;
+    $subscription->plan_id = $payment->plan_id;
+    $subscription->ends_at = now()->addDays(10);
+    $subscription->status = SubscriptionStatus::Expired;
+    $subscription->save();
+
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
+
+    expect($subscription->fresh())
+        ->status->toBe(SubscriptionStatus::Active)
+        ->ends_at->toEqual(now()->addDays(10)->addMonth());
+});
+
+test('an event that arrives before the cutluy id is stored still applies', function () {
+    Http::preventStrayRequests();
+    $store = openStore(User::factory()->create(), 'Early Tea');
+    $payment = pendingStarterPayment($store);
+    $payment->update(['cutluy_id' => null]);
+
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
+
+    expect($payment->fresh())
+        ->cutluy_id->toBe('pay_123')
+        ->status->toBe(PaymentStatus::Paid);
+});
+
+test('an event for an unknown payment is not recorded so a retry can apply it', function () {
+    expect(fn () => app(ApplyCutluyEvent::class)->handle('payment.completed', json_decode(cutluyDelivery('payment.completed', ['id' => 'pay_unknown', 'reference_id' => 'subpay_unknown']), true)))
+        ->toThrow(RuntimeException::class);
+
+    expect(CutluyEvent::query()->count())->toBe(0);
+});
+
+test('a renewal that lands during the expiry scan keeps the plan active', function () {
+    Http::preventStrayRequests();
+    $store = openStore(User::factory()->create(), 'Race Tea');
+    $subscription = $store->subscription;
+    $subscription->ends_at = now()->subDay();
+    $subscription->save();
+
+    $renewed = false;
+    Subscription::retrieved(function (Subscription $candidate) use (&$renewed): void {
+        if ($renewed) {
+            return;
+        }
+
+        $renewed = true;
+        DB::table('subscriptions')->where('id', $candidate->id)->update(['ends_at' => now()->addMonth()]);
+    });
+
+    $this->artisan('subscriptions:expire')->assertSuccessful();
+
+    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active);
+});
+
+test('expiry tells the vendor and the admin', function () {
+    Queue::fake();
+    config(['services.telegram.admin_chat_id' => '9']);
+    $store = openStore(User::factory()->create(), 'Ended Tea');
+    config(['services.telegram.admin_chat_id' => '9']);
+    $store->update(['telegram_chat_id' => '77']);
+    $subscription = $store->subscription;
+    $subscription->ends_at = now()->subDay();
+    $subscription->save();
+
+    $this->artisan('subscriptions:expire')->assertSuccessful();
+
+    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => $job->chatId === '9');
+    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => $job->chatId === '77');
+});
+
+test('payment creation is rate limited per vendor', function () {
+    Http::preventStrayRequests();
+    Http::fake(['cutluy.com/*' => Http::response(createdCutluyPayment(), 201)]);
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Busy Tea');
+    $paid = starterPlan();
+
+    for ($attempt = 0; $attempt < 10; $attempt++) {
+        $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk();
+    }
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertTooManyRequests();
 });
 
 test('expired plans block new publishes and keep old products visible', function () {
