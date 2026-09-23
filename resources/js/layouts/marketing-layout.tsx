@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import AppLogo from '@/components/app-logo';
 import { SiteFooter } from '@/components/marketing/site-footer';
-import { ThemeSwitch } from '@/components/theme-switch';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -99,7 +99,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                         })}
                     </nav>
                     <div className="ml-auto flex items-center gap-1.5">
-                        <ThemeSwitch />
+                        <ThemeToggle />
                         {auth.user ? (
                             <Button
                                 asChild

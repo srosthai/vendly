@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
-import { ThemeSwitch } from '@/components/theme-switch';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
 type StoreIdentity = {
@@ -68,7 +68,7 @@ export function StoreHeader({
                     <span className="truncate font-semibold">{store.name}</span>
                 </Link>
                 <div className="flex items-center gap-2">
-                    <ThemeSwitch />
+                    <ThemeToggle />
                     {cart}
                 </div>
             </header>
@@ -92,7 +92,7 @@ export function StoreHeader({
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                <ThemeSwitch />
+                <ThemeToggle />
                 {cart}
             </div>
         </header>

@@ -2,7 +2,7 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
-import { ThemeSwitch } from '@/components/theme-switch';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +44,7 @@ export default function CreateStore({
     return (
         <>
             <Head title="Start selling" />
-            <ThemeSwitch className="absolute top-4 right-4" />
+            <ThemeToggle className="absolute top-4 right-4" />
             <main className="mx-auto flex min-h-svh w-full max-w-lg flex-col justify-center gap-8 px-6 py-16">
                 <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
