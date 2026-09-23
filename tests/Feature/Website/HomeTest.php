@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Plan;
+use App\Models\Store;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 test('the home page offers sign in and start selling', function () {
     $this->get(route('home'))
@@ -40,4 +42,95 @@ test('start selling requires an account and creates one store', function () {
     $this->actingAs($user)
         ->get(route('selling.create'))
         ->assertRedirect(route('dashboard'));
+});
+
+function freePlan(): void
+{
+    Plan::query()->create([
+        'name' => 'Free',
+        'price_cents' => 0,
+        'product_limit' => 10,
+        'is_active' => true,
+        'is_default' => true,
+    ]);
+}
+
+test('a vendor can choose the store link and it works on the web', function () {
+    freePlan();
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)
+        ->post(route('stores.store'), ['name' => 'Smile Tea', 'slug' => 'smile'])
+        ->assertRedirect(route('stores.show', 'smile'));
+
+    $this->get('/s/smile')->assertOk();
+});
+
+test('a khmer-only store name opens a store with a generated link', function () {
+    freePlan();
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)->post(route('stores.store'), ['name' => 'ហាងតែ'])->assertRedirect();
+
+    expect($vendor->store->slug)->toStartWith('store-')
+        ->and($vendor->store->name)->toBe('ហាងតែ');
+});
+
+test('store links must be short, well formed, free, and not reserved', function (string $slug, string $message) {
+    freePlan();
+    $taken = User::factory()->create();
+    $this->actingAs($taken)->post(route('stores.store'), ['name' => 'Taken', 'slug' => 'taken-tea']);
+    auth()->logout();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('stores.store'), ['name' => 'Smile Tea', 'slug' => $slug])
+        ->assertInvalid(['slug' => $message]);
+})->with([
+    'too long' => [str_repeat('a', 65), 'must not be greater than 64'],
+    'too short' => ['ab', 'must be at least 3'],
+    'uppercase and spaces' => ['Smile Tea', 'lowercase letters'],
+    'reserved' => ['admin', 'reserved'],
+    'taken' => ['taken-tea', 'already uses that link'],
+]);
+
+test('a long store name gets a link Telegram accepts', function () {
+    freePlan();
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)->post(route('stores.store'), ['name' => str_repeat('Green tea house ', 10)])->assertRedirect();
+
+    expect(strlen($vendor->store->slug))->toBeLessThanOrEqual(64);
+});
+
+test('a name that turns into a reserved link gets another one', function () {
+    freePlan();
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)->post(route('stores.store'), ['name' => 'Admin'])->assertRedirect();
+
+    expect($vendor->store->slug)->toBe('admin-shop');
+});
+
+test('a slug race ends in a validation error, not a server error', function () {
+    freePlan();
+    $vendor = User::factory()->create();
+
+    Store::creating(function (Store $store): void {
+        if ($store->slug === 'raced') {
+            DB::table('stores')->insert([
+                'user_id' => User::factory()->create()->id,
+                'name' => 'First',
+                'slug' => 'raced',
+                'currency' => 'USD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    });
+
+    $this->actingAs($vendor)
+        ->post(route('stores.store'), ['name' => 'Second', 'slug' => 'raced'])
+        ->assertInvalid(['slug' => 'already uses that link']);
+
+    expect($vendor->store()->exists())->toBeFalse();
 });

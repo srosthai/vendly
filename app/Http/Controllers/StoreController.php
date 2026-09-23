@@ -25,6 +25,7 @@ class StoreController extends Controller
             $user,
             $request->string('name')->toString(),
             $request->string('description')->toString() ?: null,
+            $request->string('slug')->toString() ?: null,
         );
 
         return redirect()->route('stores.show', $store);

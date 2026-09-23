@@ -24,6 +24,22 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Store extends Model
 {
     /**
+     * Telegram's startapp value is at most 64 characters, so store slugs are too.
+     */
+    public const MaxSlugLength = 64;
+
+    /**
+     * Words that would read like a Vendly page rather than a shop.
+     *
+     * @var list<string>
+     */
+    public const ReservedSlugs = [
+        'admin', 'api', 'app', 'auth', 'cart', 'dashboard', 'help', 'login', 'logout',
+        'm', 'register', 'settings', 'shop', 'start-selling', 'store', 'stores',
+        'support', 'telegram', 'vendly', 'vendor', 'webhooks',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
