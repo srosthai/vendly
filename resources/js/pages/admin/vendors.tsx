@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
+import { SimplePagination } from '@/components/simple-pagination';
+import type { Paginated } from '@/components/simple-pagination';
 import { Card } from '@/components/ui/card';
 import {
     Table,
@@ -20,7 +22,7 @@ type Vendor = {
     suspended: boolean;
 };
 
-export default function Vendors({ vendors }: { vendors: Vendor[] }) {
+export default function Vendors({ vendors }: { vendors: Paginated<Vendor> }) {
     return (
         <>
             <Head title="Vendors" />
@@ -28,7 +30,7 @@ export default function Vendors({ vendors }: { vendors: Vendor[] }) {
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Vendors
                 </h1>
-                {vendors.length === 0 ? (
+                {vendors.data.length === 0 ? (
                     <p className="text-muted-foreground">No stores yet.</p>
                 ) : (
                     <>
@@ -44,7 +46,7 @@ export default function Vendors({ vendors }: { vendors: Vendor[] }) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {vendors.map((vendor) => (
+                                    {vendors.data.map((vendor) => (
                                         <VendorRow
                                             key={vendor.id}
                                             vendor={vendor}
@@ -54,12 +56,13 @@ export default function Vendors({ vendors }: { vendors: Vendor[] }) {
                             </Table>
                         </div>
                         <div className="flex flex-col gap-3 md:hidden">
-                            {vendors.map((vendor) => (
+                            {vendors.data.map((vendor) => (
                                 <Card key={vendor.id} className="gap-3 p-4">
                                     <VendorDetails vendor={vendor} />
                                 </Card>
                             ))}
                         </div>
+                        <SimplePagination page={vendors} />
                     </>
                 )}
             </div>

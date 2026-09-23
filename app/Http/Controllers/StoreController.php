@@ -10,7 +10,6 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,11 +37,10 @@ class StoreController extends Controller
         $category = $request->string('category')->toString();
         $products = $store->products()
             ->published()
-            ->with('images')
+            ->with('coverImage')
             ->when($category !== '', fn ($query) => $query->whereHas('category', fn ($categories) => $categories->where('slug', $category)))
             ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->get();
+            ->orderByDesc('id');
 
         return Inertia::render('stores/show', [
             'store' => [
@@ -55,14 +53,14 @@ class StoreController extends Controller
             'embedded' => $request->session()->get('mini_app') === true,
             'authenticated' => $request->user() !== null,
             'cart' => $cart->for($request, $store),
-            'products' => $products->map(fn (Product $product): array => [
+            'products' => Inertia::scroll(fn () => $products->paginate(24)->withQueryString()->through(fn (Product $product): array => [
                 'id' => $product->id,
                 'name' => $product->name,
                 'price_cents' => $product->price_cents,
                 'sold_out' => $product->isSoldOut(),
-                'image' => $product->images->first() !== null ? Storage::disk('public')->url($product->images->first()->path) : null,
+                'image' => $product->coverImage?->url(),
                 'url' => route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug]),
-            ])->values(),
+            ])),
         ]);
     }
 }

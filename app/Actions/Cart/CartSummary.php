@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class CartSummary
 {
@@ -36,7 +35,7 @@ class CartSummary
         $cart = Cart::query()
             ->whereBelongsTo($user)
             ->whereBelongsTo($store)
-            ->with('items.product.images')
+            ->with('items.product.coverImage')
             ->first();
 
         if ($cart === null) {
@@ -71,7 +70,7 @@ class CartSummary
             ->where('store_id', $store->id)
             ->published()
             ->whereIn('id', array_map('intval', array_keys($items)))
-            ->with('images')
+            ->with('coverImage')
             ->get()
             ->keyBy('id');
 
@@ -95,14 +94,12 @@ class CartSummary
      */
     private function line(Product $product, int $quantity): array
     {
-        $image = $product->images->sortBy('sort')->first();
-
         return [
             'id' => $product->id,
             'name' => $product->name,
             'quantity' => $quantity,
             'price_cents' => $product->price_cents,
-            'image' => $image === null ? null : Storage::disk('public')->url($image->path),
+            'image' => $product->coverImage?->url(),
         ];
     }
 }

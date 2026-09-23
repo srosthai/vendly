@@ -415,7 +415,7 @@ test('expired plans block new publishes and keep old products visible', function
 
     $this->get(route('stores.show', $store))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->has('products', 1)->where('products.0.name', $published->name));
+        ->assertInertia(fn ($page) => $page->has('products.data', 1)->where('products.data.0.name', $published->name));
 
     $this->actingAs($vendor)
         ->post(route('products.publish', $draft))

@@ -1,4 +1,6 @@
 import { Head } from '@inertiajs/react';
+import { SimplePagination } from '@/components/simple-pagination';
+import type { Paginated } from '@/components/simple-pagination';
 import { Card } from '@/components/ui/card';
 import {
     Table,
@@ -25,7 +27,11 @@ const labels: Record<string, string> = {
     failed: 'Failed',
 };
 
-export default function Payments({ payments }: { payments: Payment[] }) {
+export default function Payments({
+    payments,
+}: {
+    payments: Paginated<Payment>;
+}) {
     return (
         <>
             <Head title="Payments" />
@@ -38,7 +44,7 @@ export default function Payments({ payments }: { payments: Payment[] }) {
                         Opened in a banking app is not paid.
                     </p>
                 </div>
-                {payments.length === 0 ? (
+                {payments.data.length === 0 ? (
                     <p className="text-muted-foreground">No payments yet.</p>
                 ) : (
                     <>
@@ -53,7 +59,7 @@ export default function Payments({ payments }: { payments: Payment[] }) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {payments.map((payment) => (
+                                    {payments.data.map((payment) => (
                                         <TableRow key={payment.id}>
                                             <TableCell>
                                                 {payment.store}
@@ -77,7 +83,7 @@ export default function Payments({ payments }: { payments: Payment[] }) {
                             </Table>
                         </div>
                         <div className="flex flex-col gap-3 md:hidden">
-                            {payments.map((payment) => (
+                            {payments.data.map((payment) => (
                                 <Card key={payment.id} className="gap-1 p-4">
                                     <p className="font-medium">
                                         {payment.store}
@@ -94,6 +100,7 @@ export default function Payments({ payments }: { payments: Payment[] }) {
                                 </Card>
                             ))}
                         </div>
+                        <SimplePagination page={payments} />
                     </>
                 )}
             </div>

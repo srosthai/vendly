@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -68,6 +69,16 @@ class Product extends Model
     /**
      * @return HasMany<ProductImage, $this>
      */
+    /**
+     * The first photo by sort, loaded on its own for cards and cart lines.
+     *
+     * @return HasOne<ProductImage, $this>
+     */
+    public function coverImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->ofMany(['sort' => 'min', 'id' => 'min']);
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort')->orderBy('id');
