@@ -23,7 +23,7 @@ export default function ConfirmPassword() {
                 }}
                 label="Confirm with passkey"
                 loadingLabel="Confirming..."
-                separator="Or confirm with password"
+                separator="or confirm with your password"
             />
 
             <Form {...store.form()} resetOnSuccess={['password']}>

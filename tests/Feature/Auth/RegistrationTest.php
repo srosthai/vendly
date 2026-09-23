@@ -161,3 +161,41 @@ test('code checks are rate limited', function () {
 
     $this->post(route('auth.register.verify'), ['code' => $code])->assertTooManyRequests();
 });
+
+test('a new code replaces the old one and keeps the details', function () {
+    $oldCode = startRegistration($this, password: 'owner-password');
+    Notification::fake();
+
+    $this->from(route('auth.register.code'))
+        ->post(route('auth.register.resend'))
+        ->assertRedirect(route('auth.register.code'))
+        ->assertSessionHas('status', 'We sent a new code.');
+
+    $newCode = null;
+    Notification::assertSentOnDemand(RegistrationCode::class, function (RegistrationCode $notification) use (&$newCode): bool {
+        $newCode = $notification->code;
+
+        return true;
+    });
+
+    if ($newCode !== $oldCode) {
+        $this->post(route('auth.register.verify'), ['code' => $oldCode])->assertInvalid(['code']);
+    }
+
+    $this->post(route('auth.register.verify'), ['code' => $newCode])->assertRedirect();
+
+    $this->post(route('logout'));
+    $this->post(route('login.store'), ['email' => 'test@example.com', 'password' => 'owner-password'])->assertRedirect(route('dashboard', absolute: false));
+});
+
+test('asking for a new code after the wait expired starts registration again', function () {
+    startRegistration($this);
+    Notification::fake();
+    $this->travel(11)->minutes();
+
+    $this->post(route('auth.register.resend'))
+        ->assertRedirect(route('register'))
+        ->assertSessionHas('status', 'Your code expired. Enter your details again.');
+
+    Notification::assertNothingSent();
+});
