@@ -60,6 +60,7 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
         $action->handle($product);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $product->name.' is published.']);
 
         return back();
     }

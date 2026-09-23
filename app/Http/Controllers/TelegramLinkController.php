@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Actions\Telegram\LinkStoreTelegram;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
+use App\Models\PlatformSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class TelegramLinkController extends Controller
 {
@@ -15,7 +17,12 @@ class TelegramLinkController extends Controller
     public function store(Request $request, LinkStoreTelegram $links): JsonResponse|RedirectResponse
     {
         $store = $this->vendorStore($request);
-        abort_if(! is_string(config('services.telegram.bot_username')) || config('services.telegram.bot_username') === '', 422);
+
+        if (PlatformSetting::current()->botUsername() === '') {
+            throw ValidationException::withMessages([
+                'telegram' => 'The Vendly bot is not set up yet. Ask the Vendly admin to add the bot username.',
+            ]);
+        }
 
         $url = $links->start($store);
 

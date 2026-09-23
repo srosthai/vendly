@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Store;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
 
 class StoreSuspensionController extends Controller
 {
@@ -12,6 +13,7 @@ class StoreSuspensionController extends Controller
         $this->authorize('suspend', $store);
         $store->suspended_at = now();
         $store->save();
+        Inertia::flash('toast', ['type' => 'success', 'message' => $store->name.' is suspended.']);
 
         return back();
     }
@@ -21,6 +23,7 @@ class StoreSuspensionController extends Controller
         $this->authorize('suspend', $store);
         $store->suspended_at = null;
         $store->save();
+        Inertia::flash('toast', ['type' => 'success', 'message' => $store->name.' is restored.']);
 
         return back();
     }

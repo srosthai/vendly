@@ -4,7 +4,9 @@ import ProductController from '@/actions/App/Http/Controllers/ProductController'
 import ProductImageController from '@/actions/App/Http/Controllers/ProductImageController';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -106,7 +108,10 @@ function Photos({ product }: { product: EditableProduct }) {
                             className="size-full object-cover"
                         />
                         {index === 0 ? (
-                            <Badge className="absolute top-2 left-2">
+                            <Badge
+                                variant="solid"
+                                className="absolute top-2 left-2"
+                            >
                                 Cover
                             </Badge>
                         ) : null}
@@ -165,147 +170,168 @@ export default function ProductForm({
     return (
         <>
             <Head title={title} />
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {title}
-                        </h1>
-                        {product ? (
-                            <Badge variant="secondary">
-                                {product.status === 'published'
-                                    ? 'Published'
-                                    : 'Draft'}
-                            </Badge>
-                        ) : null}
-                    </div>
-                    <div className="flex gap-2">
-                        {product?.url ? (
-                            <Button variant="outline" size="sm" asChild>
-                                <a href={product.url}>View in store</a>
-                            </Button>
-                        ) : null}
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href={vendorProducts()}>All products</Link>
-                        </Button>
-                    </div>
-                </div>
-                <Form
-                    {...action}
-                    encType="multipart/form-data"
-                    options={{ preserveScroll: true }}
-                    resetOnSuccess={['images[]']}
-                    className="grid gap-4"
-                >
-                    {({ processing, errors }) => (
+            <div className="flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title={title}
+                    description={
+                        product
+                            ? 'Changes show in your store as soon as you save.'
+                            : 'New products start as drafts. Publish when it is ready.'
+                    }
+                    actions={
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    required
-                                    defaultValue={product?.name}
-                                />
-                                <InputError message={errors.name} />
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="price">Price (USD)</Label>
-                                    <Input
-                                        id="price"
-                                        name="price"
-                                        required
-                                        inputMode="decimal"
-                                        placeholder="2.50"
-                                        defaultValue={product?.price}
-                                    />
-                                    <InputError message={errors.price} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="stock">Stock</Label>
-                                    <Input
-                                        id="stock"
-                                        name="stock"
-                                        type="number"
-                                        min={0}
-                                        placeholder="Leave empty to not track"
-                                        defaultValue={product?.stock ?? ''}
-                                    />
-                                    <InputError message={errors.stock} />
-                                </div>
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <OptionalSelect
-                                    id="category_id"
-                                    name="category_id"
-                                    label="Category"
-                                    options={categories}
-                                    defaultValue={product?.category_id ?? null}
-                                    error={errors.category_id}
-                                />
-                                <OptionalSelect
-                                    id="brand_id"
-                                    name="brand_id"
-                                    label="Brand"
-                                    options={brands}
-                                    defaultValue={product?.brand_id ?? null}
-                                    error={errors.brand_id}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    name="description"
-                                    rows={5}
-                                    defaultValue={product?.description}
-                                />
-                                <InputError message={errors.description} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="images">
-                                    {product ? 'Add photos' : 'Photos'}
-                                </Label>
-                                <Input
-                                    id="images"
-                                    name="images[]"
-                                    type="file"
-                                    multiple
-                                    accept="image/jpeg,image/png,image/webp"
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    JPEG, PNG, or WebP, up to 2 MB each and 8 at
-                                    a time.
-                                </p>
-                                <InputError
-                                    message={
-                                        errors.images ??
-                                        Object.entries(errors).find(([key]) =>
-                                            key.startsWith('images.'),
-                                        )?.[1]
-                                    }
-                                />
-                            </div>
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="justify-self-start"
-                            >
-                                {processing && <Spinner />}
-                                {product ? 'Save product' : 'Save as draft'}
+                            {product?.url ? (
+                                <Button variant="outline" asChild>
+                                    <a href={product.url}>View in store</a>
+                                </Button>
+                            ) : null}
+                            <Button variant="ghost" asChild>
+                                <Link href={vendorProducts()}>
+                                    All products
+                                </Link>
                             </Button>
                         </>
-                    )}
-                </Form>
+                    }
+                >
+                    {product ? (
+                        <Badge
+                            variant={
+                                product.status === 'published'
+                                    ? 'success'
+                                    : 'secondary'
+                            }
+                        >
+                            {product.status === 'published'
+                                ? 'Published'
+                                : 'Draft'}
+                        </Badge>
+                    ) : null}
+                </PageHeader>
+                <Card className="p-5 sm:p-6">
+                    <Form
+                        {...action}
+                        encType="multipart/form-data"
+                        options={{ preserveScroll: true }}
+                        resetOnSuccess={['images[]']}
+                        className="grid gap-4"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        required
+                                        defaultValue={product?.name}
+                                    />
+                                    <InputError message={errors.name} />
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="price">
+                                            Price (USD)
+                                        </Label>
+                                        <Input
+                                            id="price"
+                                            name="price"
+                                            required
+                                            inputMode="decimal"
+                                            placeholder="2.50"
+                                            defaultValue={product?.price}
+                                        />
+                                        <InputError message={errors.price} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="stock">Stock</Label>
+                                        <Input
+                                            id="stock"
+                                            name="stock"
+                                            type="number"
+                                            min={0}
+                                            placeholder="Leave empty to not track"
+                                            defaultValue={product?.stock ?? ''}
+                                        />
+                                        <InputError message={errors.stock} />
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <OptionalSelect
+                                        id="category_id"
+                                        name="category_id"
+                                        label="Category"
+                                        options={categories}
+                                        defaultValue={
+                                            product?.category_id ?? null
+                                        }
+                                        error={errors.category_id}
+                                    />
+                                    <OptionalSelect
+                                        id="brand_id"
+                                        name="brand_id"
+                                        label="Brand"
+                                        options={brands}
+                                        defaultValue={product?.brand_id ?? null}
+                                        error={errors.brand_id}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="description">
+                                        Description
+                                    </Label>
+                                    <Textarea
+                                        id="description"
+                                        name="description"
+                                        rows={5}
+                                        defaultValue={product?.description}
+                                    />
+                                    <InputError message={errors.description} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="images">
+                                        {product ? 'Add photos' : 'Photos'}
+                                    </Label>
+                                    <Input
+                                        id="images"
+                                        name="images[]"
+                                        type="file"
+                                        multiple
+                                        accept="image/jpeg,image/png,image/webp"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        JPEG, PNG, or WebP, up to 2 MB each and
+                                        8 at a time.
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.images ??
+                                            Object.entries(errors).find(
+                                                ([key]) =>
+                                                    key.startsWith('images.'),
+                                            )?.[1]
+                                        }
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="justify-self-start"
+                                >
+                                    {processing && <Spinner />}
+                                    {product ? 'Save product' : 'Save as draft'}
+                                </Button>
+                            </>
+                        )}
+                    </Form>
+                </Card>
                 {product ? (
                     <>
-                        <section className="flex flex-col gap-3">
-                            <h2 className="text-lg font-medium">Photos</h2>
+                        <Card className="gap-4 p-5 sm:p-6">
+                            <h2 className="text-lg font-semibold">Photos</h2>
                             <Photos product={product} />
-                        </section>
-                        <section className="flex flex-col items-start gap-2 border-t pt-6">
-                            <h2 className="text-lg font-medium">
+                        </Card>
+                        <Card className="items-start gap-2 border-destructive/30 p-5 sm:p-6">
+                            <h2 className="text-lg font-semibold">
                                 Delete product
                             </h2>
                             <p className="text-sm text-muted-foreground">
@@ -319,10 +345,14 @@ export default function ProductForm({
                                     product.id,
                                 )}
                             />
-                        </section>
+                        </Card>
                     </>
                 ) : null}
             </div>
         </>
     );
 }
+
+ProductForm.layout = {
+    breadcrumbs: [{ title: 'Products', href: vendorProducts() }],
+};

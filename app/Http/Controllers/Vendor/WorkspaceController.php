@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers\Vendor;
 
+use App\Actions\Dashboard\DailyCounts;
+use App\Enums\PaymentStatus;
+use App\Enums\ProductStatus;
+use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Controllers\Controller;
+use App\Models\Inquiry;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Store;
+use App\Models\Subscription;
+use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,17 +27,127 @@ class WorkspaceController extends Controller
 {
     use ResolvesVendorStore;
 
-    public function home(Request $request): Response
+    /**
+     * One dashboard route, three overviews: the admin sees the platform, a
+     * vendor sees their store, and a customer sees the requests they sent.
+     */
+    public function home(Request $request, DailyCounts $daily): Response
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        if ($user->is_admin) {
+            return $this->adminOverview($daily);
+        }
+
         $store = $this->optionalStore($request);
 
-        return Inertia::render('dashboard', [
-            'store' => $store === null ? null : [
+        if ($store === null) {
+            return Inertia::render('dashboard', [
+                'requests' => Inquiry::query()
+                    ->whereBelongsTo($user, 'customer')
+                    ->with(['store', 'items'])
+                    ->latest()
+                    ->orderByDesc('id')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn (Inquiry $inquiry): array => [
+                        'id' => $inquiry->id,
+                        'reference' => $inquiry->reference(),
+                        'store' => $inquiry->store->name,
+                        'store_url' => $inquiry->store->isSuspended() ? null : route('stores.show', $inquiry->store),
+                        'lines' => $inquiry->items->count(),
+                        'total' => Money::format($this->inquiryTotal($inquiry)),
+                        'sent_at' => $inquiry->created_at?->toIso8601String(),
+                    ]),
+            ]);
+        }
+
+        $subscription = $store->subscription;
+        $weekAgo = now()->subDays(6)->startOfDay();
+        $recentRequests = $store->inquiries()->where('created_at', '>=', $weekAgo)->pluck('created_at');
+
+        return Inertia::render('vendor/overview', [
+            'store' => [
                 'name' => $store->name,
-                'published' => $store->products()->published()->count(),
-                'limit' => $store->subscription?->plan->product_limit,
+                'web_url' => route('stores.show', $store),
+                'telegram_url' => PlatformSetting::current()->miniAppLink($store->slug),
+                'telegram_connected' => filled($store->telegram_chat_id),
             ],
+            'stats' => [
+                'published' => $store->products()->published()->count(),
+                'drafts' => $store->products()->where('status', ProductStatus::Draft)->count(),
+                'limit' => (int) ($subscription?->plan->product_limit ?? 0),
+                'plan' => $subscription?->plan->name,
+                'free' => $subscription?->plan->isFree() ?? true,
+                'ends_at' => $subscription?->ends_at?->toIso8601String(),
+                'can_publish' => $subscription?->allowsPublishing() ?? false,
+                'requests_this_week' => $recentRequests->count(),
+                'requests_trend' => $daily->handle($recentRequests->map(fn ($at): array => ['at' => $at])),
+            ],
+            'recentRequests' => $store->inquiries()
+                ->with('items')
+                ->latest()
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get()
+                ->map(fn (Inquiry $inquiry): array => [
+                    'id' => $inquiry->id,
+                    'reference' => $inquiry->reference(),
+                    'customer' => $inquiry->customer_name,
+                    'contact' => $inquiry->contact,
+                    'lines' => $inquiry->items->map(fn ($item): string => $item->quantity.' × '.$item->name)->all(),
+                    'total' => Money::format($this->inquiryTotal($inquiry)),
+                    'sent_at' => $inquiry->created_at?->toIso8601String(),
+                ]),
         ]);
+    }
+
+    private function adminOverview(DailyCounts $daily): Response
+    {
+        $twoWeeksAgo = now()->subDays(6)->startOfDay();
+        $paid = SubscriptionPayment::query()
+            ->where('status', PaymentStatus::Paid)
+            ->where('paid_at', '>=', now()->startOfMonth()->min($twoWeeksAgo))
+            ->get(['amount_cents', 'paid_at']);
+
+        return Inertia::render('admin/overview', [
+            'stats' => [
+                'vendors' => Store::query()->count(),
+                'new_vendors' => Store::query()->where('created_at', '>=', $twoWeeksAgo)->count(),
+                'suspended' => Store::query()->whereNotNull('suspended_at')->count(),
+                'paid_plans' => Subscription::query()
+                    ->where('status', SubscriptionStatus::Active)
+                    ->whereHas('plan', fn ($plan) => $plan->where('price_cents', '>', 0))
+                    ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+                    ->count(),
+                'revenue_this_month' => Money::format((int) $paid->where('paid_at', '>=', now()->startOfMonth())->sum('amount_cents')),
+                'revenue_trend' => $daily->handle($paid->map(fn (SubscriptionPayment $payment): array => [
+                    'at' => $payment->paid_at,
+                    'amount' => $payment->amount_cents,
+                ])),
+                'undelivered' => Inquiry::query()->whereNull('admin_notified_at')->count(),
+            ],
+            'recentPayments' => SubscriptionPayment::query()
+                ->with(['store', 'plan'])
+                ->latest()
+                ->orderByDesc('id')
+                ->limit(6)
+                ->get()
+                ->map(fn (SubscriptionPayment $payment): array => [
+                    'id' => $payment->id,
+                    'store' => $payment->store?->name,
+                    'plan' => $payment->plan?->name,
+                    'amount' => Money::format($payment->amount_cents),
+                    'status' => $payment->status->value,
+                    'created_at' => $payment->created_at?->toIso8601String(),
+                ]),
+        ]);
+    }
+
+    private function inquiryTotal(Inquiry $inquiry): int
+    {
+        return (int) $inquiry->items->sum(fn ($item): int => $item->price_cents * $item->quantity);
     }
 
     public function store(Request $request): Response
@@ -58,6 +176,7 @@ class WorkspaceController extends Controller
         $store->name = strip_tags($validated['name']);
         $store->description = isset($validated['description']) ? strip_tags($validated['description']) : null;
         $store->save();
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Store saved.']);
 
         return back();
     }

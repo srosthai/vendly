@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { useCallback, useEffect, useState } from 'react';
 import PlanPaymentController from '@/actions/App/Http/Controllers/Billing/PlanPaymentController';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,7 +14,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
+import { dollars, formatDate } from '@/lib/format';
+import vendor from '@/routes/vendor';
 
 type Payment = {
     public_id: string;
@@ -44,18 +48,6 @@ const statusLabel: Record<string, string> = {
 
 const finalStatuses = ['paid', 'expired', 'failed'];
 
-function dollars(cents: number): string {
-    return `$${(cents / 100).toFixed(2)}`;
-}
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
-}
-
 export default function Plan({
     usage,
     plans,
@@ -74,10 +66,6 @@ export default function Plan({
     const [open, setOpen] = useState(flashedPayment !== null);
     const [qr, setQr] = useState<string | null>(null);
     const http = useHttp<Record<string, never>, Payment>();
-    const width =
-        usage.limit === 0
-            ? 0
-            : Math.min(100, Math.round((usage.published / usage.limit) * 100));
     const expired = usage.status === 'expired';
 
     useEffect(() => {
@@ -142,54 +130,61 @@ export default function Plan({
         <>
             <Head title="Plan" />
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <div>
+                <PageHeader
+                    title="Plan"
+                    description="Your plan sets how many products can be published. Drafts never count."
+                />
+                <Card className="gap-4 p-5 sm:p-6">
                     <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {usage.plan ?? 'Plan'}
-                        </h1>
+                        <h2 className="text-lg font-semibold">
+                            {usage.plan ?? 'No plan'}
+                        </h2>
                         {expired ? (
-                            <Badge variant="destructive">Expired</Badge>
-                        ) : null}
+                            <Badge variant="destructive">Ended</Badge>
+                        ) : (
+                            <Badge variant="success">Active</Badge>
+                        )}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                         {usage.published} of {usage.limit} published
                         {usage.ends_at
                             ? expired
                                 ? `. Ended ${formatDate(usage.ends_at)}.`
-                                : `. Renews by payment before ${formatDate(usage.ends_at)}.`
+                                : `. Paid until ${formatDate(usage.ends_at)}.`
                             : usage.free
                               ? '. Free plan, no end date.'
                               : '.'}
                     </p>
-                    <div
-                        role="progressbar"
+                    <Progress
+                        value={usage.published}
+                        max={usage.limit}
                         aria-label="Published products"
-                        aria-valuemin={0}
-                        aria-valuemax={usage.limit}
-                        aria-valuenow={usage.published}
-                        className="mt-3 h-2 w-full max-w-sm overflow-hidden rounded-full bg-muted"
-                    >
-                        <div
-                            className="h-full bg-primary"
-                            style={{ width: `${width}%` }}
-                        />
-                    </div>
+                        className="max-w-md"
+                    />
                     {!usage.can_publish ? (
-                        <p className="mt-3 text-sm text-destructive">
+                        <p className="text-sm text-destructive" role="alert">
                             {expired
                                 ? 'Your plan has ended, so new products cannot be published. Published products stay visible. Pay for a plan to publish again.'
                                 : 'Publishing is paused for this store.'}
                         </p>
                     ) : null}
-                </div>
+                </Card>
+                <h2 className="text-lg font-semibold">Paid plans</h2>
                 <div className="grid gap-3 md:grid-cols-2">
                     {plans.map((plan) => (
-                        <Card key={plan.id} className="gap-4 p-4">
+                        <Card key={plan.id} className="gap-4 p-5">
                             <div>
-                                <h2 className="font-medium">{plan.name}</h2>
+                                <h3 className="font-semibold">{plan.name}</h3>
+                                <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">
+                                    {dollars(plan.price_cents)}
+                                    <span className="text-sm font-normal text-muted-foreground">
+                                        {' '}
+                                        / month
+                                    </span>
+                                </p>
                                 <p className="text-sm text-muted-foreground">
-                                    {dollars(plan.price_cents)} / month ·{' '}
-                                    {plan.product_limit} products
+                                    Up to {plan.product_limit} published
+                                    products
                                 </p>
                             </div>
                             <Form
@@ -288,3 +283,7 @@ export default function Plan({
         </>
     );
 }
+
+Plan.layout = {
+    breadcrumbs: [{ title: 'Plan', href: vendor.plan() }],
+};

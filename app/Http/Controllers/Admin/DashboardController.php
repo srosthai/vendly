@@ -67,6 +67,8 @@ class DashboardController extends Controller
                 'plan' => $payment->plan?->name,
                 'amount_cents' => $payment->amount_cents,
                 'status' => $payment->status->value,
+                'created_at' => $payment->created_at?->toIso8601String(),
+                'paid_at' => $payment->paid_at?->toIso8601String(),
             ]),
         ]);
     }
@@ -103,6 +105,7 @@ class DashboardController extends Controller
         ]);
 
         PlatformSetting::current()->update($validated);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Telegram settings saved.']);
 
         return back();
     }

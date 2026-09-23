@@ -1,6 +1,9 @@
 import { Form } from '@inertiajs/react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -91,7 +94,9 @@ export function NamedList({
     description,
     items,
     routes,
+    icon: Icon,
 }: {
+    icon: LucideIcon;
     title: string;
     noun: string;
     description: string;
@@ -101,46 +106,43 @@ export function NamedList({
     const lowerNoun = noun.toLowerCase();
 
     return (
-        <div className="flex max-w-2xl flex-col gap-6 p-4 md:p-6">
-            <div>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                    {title}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    {description}
-                </p>
-            </div>
-            <Form
-                {...routes.store}
-                options={{ preserveScroll: true }}
-                resetOnSuccess
-                className="flex flex-col gap-2 sm:flex-row sm:items-start"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid flex-1 gap-2">
-                            <Label htmlFor="new-name" className="sr-only">
-                                New {lowerNoun} name
-                            </Label>
-                            <Input
-                                id="new-name"
-                                name="name"
-                                required
-                                placeholder={`New ${lowerNoun} name`}
-                            />
-                            <InputError message={errors.name} />
-                        </div>
-                        <Button type="submit" disabled={processing}>
-                            {processing && <Spinner />}
-                            Add {lowerNoun}
-                        </Button>
-                    </>
-                )}
-            </Form>
+        <div className="flex max-w-3xl flex-col gap-6 p-4 md:p-6">
+            <PageHeader title={title} description={description} />
+            <Card className="p-4 sm:p-5">
+                <Form
+                    {...routes.store}
+                    options={{ preserveScroll: true }}
+                    resetOnSuccess
+                    className="flex flex-col gap-2 sm:flex-row sm:items-start"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="grid flex-1 gap-2">
+                                <Label htmlFor="new-name" className="sr-only">
+                                    New {lowerNoun} name
+                                </Label>
+                                <Input
+                                    id="new-name"
+                                    name="name"
+                                    required
+                                    placeholder={`New ${lowerNoun} name`}
+                                />
+                                <InputError message={errors.name} />
+                            </div>
+                            <Button type="submit" disabled={processing}>
+                                {processing && <Spinner />}
+                                Add {lowerNoun}
+                            </Button>
+                        </>
+                    )}
+                </Form>
+            </Card>
             {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    No {title.toLowerCase()} yet. Add the first one above.
-                </p>
+                <EmptyState
+                    icon={Icon}
+                    title={`No ${title.toLowerCase()} yet`}
+                    description={`Add the first ${lowerNoun} above.`}
+                />
             ) : (
                 <Card className="gap-0 divide-y p-0">
                     {items.map((item) => (
@@ -148,7 +150,9 @@ export function NamedList({
                             key={item.id}
                             className="flex items-center justify-between gap-3 px-4 py-2"
                         >
-                            <span className="truncate">{item.name}</span>
+                            <span className="truncate font-medium">
+                                {item.name}
+                            </span>
                             <div className="flex shrink-0 gap-1">
                                 <RenameDialog
                                     record={item}
