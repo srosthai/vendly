@@ -220,7 +220,7 @@ test('the saved theme is applied on the first render with a matching browser bar
 
     expect(str_contains($response->getContent(), 'class="dark"'))->toBe($dark);
 })->with([
-    'dark' => ['dark', true, '#060f22'],
+    'dark' => ['dark', true, '#0b0b0c'],
     'light' => ['light', false, '#f4f7fc'],
     'system' => ['system', false, '#f4f7fc'],
 ]);

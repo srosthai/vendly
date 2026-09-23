@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="{{ ($appearance ?? 'system') === 'dark' ? '#060f22' : '#f4f7fc' }}">
+        <meta name="theme-color" content="{{ ($appearance ?? 'system') === 'dark' ? '#0b0b0c' : '#f4f7fc' }}">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -15,7 +15,7 @@
 
                     if (prefersDark) {
                         document.documentElement.classList.add('dark');
-                        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#060f22');
+                        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b0b0c');
                     }
                 }
             })();
@@ -28,7 +28,7 @@
             }
 
             html.dark {
-                background-color: #060f22;
+                background-color: #0b0b0c;
             }
         </style>
 
