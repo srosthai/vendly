@@ -136,3 +136,41 @@ test('telegram link requests are rate limited', function () {
 
     $this->actingAs($vendor)->postJson(route('telegram.link'))->assertTooManyRequests();
 });
+
+test('a vendor searches their own products', function () {
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Smile Tea');
+    Product::factory()->for($store)->create(['name' => 'Jasmine pearls']);
+    Product::factory()->for($store)->create(['name' => 'Oolong']);
+    Product::factory()->for(openStore(User::factory()->create(), 'Other Tea'))->create(['name' => 'Jasmine green']);
+
+    $this->actingAs($vendor)
+        ->get(route('vendor.products', ['search' => 'jasmine']))
+        ->assertInertia(fn ($page) => $page
+            ->where('search', 'jasmine')
+            ->has('products.data', 1)
+            ->where('products.data.0.name', 'Jasmine pearls'));
+});
+
+test('the sidebar card shows plan room for a vendor and undelivered requests for an admin', function () {
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Smile Tea', 10);
+    Product::factory()->for($store)->count(3)->create();
+
+    $this->actingAs($vendor)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('workspace.kind', 'vendor')
+            ->where('workspace.published', 3)
+            ->where('workspace.limit', 10));
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.vendors', ['search' => 'smile']))
+        ->assertInertia(fn ($page) => $page
+            ->where('workspace.kind', 'admin')
+            ->has('vendors.data', 1));
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page->where('workspace', null));
+});

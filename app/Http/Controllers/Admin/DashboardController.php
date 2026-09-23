@@ -14,10 +14,16 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function vendors(): Response
+    public function vendors(Request $request): Response
     {
+        $search = trim($request->string('search')->toString());
+
         $stores = Store::query()
             ->with(['owner', 'subscription.plan'])
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->whereLike('name', '%'.$search.'%')
+                ->orWhereLike('slug', '%'.$search.'%')
+                ->orWhereHas('owner', fn ($owner) => $owner->whereLike('email', '%'.$search.'%'))))
             ->withCount(['products as published_count' => fn ($query) => $query->published()])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -25,6 +31,7 @@ class DashboardController extends Controller
             ->withQueryString();
 
         return Inertia::render('admin/vendors', [
+            'search' => $search,
             'vendors' => $stores->through(fn (Store $store): array => [
                 'id' => $store->id,
                 'name' => $store->name,

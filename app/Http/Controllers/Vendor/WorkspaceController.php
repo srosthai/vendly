@@ -68,14 +68,26 @@ class WorkspaceController extends Controller
         $limit = (int) ($store->subscription?->plan->product_limit ?? 0);
         $published = $store->products()->published()->count();
 
+        $search = trim($request->string('search')->toString());
+
         return Inertia::render('vendor/products', [
             'usage' => ['published' => $published, 'limit' => $limit],
-            'products' => $store->products()->orderByDesc('created_at')->orderByDesc('id')->get()->map(fn (Product $product): array => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'price_cents' => $product->price_cents,
-                'status' => $product->status->value,
-            ])->values(),
+            'search' => $search,
+            'products' => $store->products()
+                ->with('coverImage')
+                ->when($search !== '', fn ($query) => $query->whereLike('name', '%'.$search.'%'))
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate(25)
+                ->withQueryString()
+                ->through(fn (Product $product): array => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'price_cents' => $product->price_cents,
+                    'status' => $product->status->value,
+                    'stock' => $product->stock,
+                    'image' => $product->coverImage?->url(),
+                ]),
         ]);
     }
 

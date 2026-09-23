@@ -12,3 +12,16 @@ export type NavItem = {
     icon?: LucideIcon | null;
     isActive?: boolean;
 };
+
+export type Workspace =
+    | { kind: 'admin'; undelivered: number }
+    | {
+          kind: 'vendor';
+          store: string;
+          plan: string | null;
+          free: boolean;
+          published: number;
+          limit: number;
+          can_publish: boolean;
+          suspended: boolean;
+      };

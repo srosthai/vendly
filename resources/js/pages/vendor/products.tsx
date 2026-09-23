@@ -1,12 +1,14 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { Package, Plus } from 'lucide-react';
 import ProductController from '@/actions/App/Http/Controllers/ProductController';
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
+import { SimplePagination } from '@/components/simple-pagination';
+import type { Paginated } from '@/components/simple-pagination';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ConfirmDeleteDialog } from '@/components/vendor/confirm-delete-dialog';
-import {
-    edit as editProduct,
-    create as createProduct,
-} from '@/routes/vendor/products';
+import { Progress } from '@/components/ui/progress';
 import {
     Table,
     TableBody,
@@ -15,21 +17,63 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ConfirmDeleteDialog } from '@/components/vendor/confirm-delete-dialog';
+import vendor from '@/routes/vendor';
+import {
+    create as createProduct,
+    edit as editProduct,
+} from '@/routes/vendor/products';
 
 type ProductRow = {
     id: number;
     name: string;
     price_cents: number;
     status: string;
+    stock: number | null;
+    image: string | null;
 };
+
+function dollars(cents: number): string {
+    return `$${(cents / 100).toFixed(2)}`;
+}
+
+function Thumbnail({ product }: { product: ProductRow }) {
+    return (
+        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground">
+            {product.image ? (
+                <img
+                    src={product.image}
+                    alt=""
+                    className="size-full object-cover"
+                />
+            ) : (
+                <Package className="size-4" aria-hidden="true" />
+            )}
+        </span>
+    );
+}
+
+function StatusBadge({ product }: { product: ProductRow }) {
+    if (product.stock === 0) {
+        return <Badge variant="warning">Sold out</Badge>;
+    }
+
+    return product.status === 'published' ? (
+        <Badge variant="success">Published</Badge>
+    ) : (
+        <Badge variant="secondary">Draft</Badge>
+    );
+}
 
 export default function Products({
     usage,
     products,
+    search,
     errors = {},
 }: {
     usage: { published: number; limit: number };
-    products: ProductRow[];
+    products: Paginated<ProductRow>;
+    search: string;
     errors?: { status?: string };
 }) {
     const full = usage.published >= usage.limit;
@@ -38,68 +82,122 @@ export default function Products({
         <>
             <Head title="Products" />
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Products
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                <PageHeader
+                    title="Products"
+                    description="Drafts stay private. Publish a product to show it in your store."
+                    actions={
+                        <Button asChild>
+                            <Link href={createProduct()}>
+                                <Plus />
+                                New product
+                            </Link>
+                        </Button>
+                    }
+                />
+                <Card className="gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
                             {usage.published} of {usage.limit} published
                         </p>
+                        <p className="text-sm text-muted-foreground">
+                            {full
+                                ? 'Your plan is full. Upgrade to publish more.'
+                                : `${usage.limit - usage.published} more can go live on this plan.`}
+                        </p>
                     </div>
-                    <Button asChild>
-                        <Link href={createProduct()}>New product</Link>
-                    </Button>
-                </div>
+                    <Progress
+                        value={usage.published}
+                        max={usage.limit}
+                        aria-label="Published products"
+                        className="sm:max-w-xs"
+                    />
+                    {full ? (
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={vendor.plan()}>Upgrade plan</Link>
+                        </Button>
+                    ) : null}
+                </Card>
                 {errors.status ? (
-                    <p className="text-sm text-destructive">{errors.status}</p>
-                ) : null}
-                {full ? (
-                    <p className="text-sm text-muted-foreground">
-                        This plan is full.
+                    <p className="text-sm text-destructive" role="alert">
+                        {errors.status}
                     </p>
                 ) : null}
-                {products.length === 0 ? (
-                    <p className="text-muted-foreground">
-                        No products yet. Create the first one.
-                    </p>
+                {products.data.length === 0 ? (
+                    search !== '' ? (
+                        <EmptyState
+                            icon={Package}
+                            title={`No products match "${search}"`}
+                            description="Check the spelling, or clear the search to see every product."
+                            action={
+                                <Button asChild variant="outline">
+                                    <Link href={vendor.products()}>
+                                        Clear search
+                                    </Link>
+                                </Button>
+                            }
+                        />
+                    ) : (
+                        <EmptyState
+                            icon={Package}
+                            title="No products yet"
+                            description="Add your first product. It starts as a draft, so you can check it before customers see it."
+                            action={
+                                <Button asChild>
+                                    <Link href={createProduct()}>
+                                        <Plus />
+                                        New product
+                                    </Link>
+                                </Button>
+                            }
+                        />
+                    )
                 ) : (
                     <>
-                        <div className="hidden md:block">
+                        <Card className="hidden gap-0 overflow-hidden p-0 md:flex">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="pl-5">
+                                            Product
+                                        </TableHead>
                                         <TableHead>Price</TableHead>
+                                        <TableHead>Stock</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead />
+                                        <TableHead className="pr-5">
+                                            <span className="sr-only">
+                                                Actions
+                                            </span>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {products.map((product) => (
+                                    {products.data.map((product) => (
                                         <TableRow key={product.id}>
-                                            <TableCell>
+                                            <TableCell className="pl-5">
                                                 <Link
                                                     href={editProduct(
                                                         product.id,
                                                     )}
-                                                    className="font-medium underline-offset-4 hover:underline"
+                                                    className="flex items-center gap-3 font-medium hover:underline"
                                                 >
+                                                    <Thumbnail
+                                                        product={product}
+                                                    />
                                                     {product.name}
                                                 </Link>
                                             </TableCell>
-                                            <TableCell>
-                                                $
-                                                {(
-                                                    product.price_cents / 100
-                                                ).toFixed(2)}
+                                            <TableCell className="tabular-nums">
+                                                {dollars(product.price_cents)}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground tabular-nums">
+                                                {product.stock ?? 'Not tracked'}
                                             </TableCell>
                                             <TableCell>
-                                                {product.status === 'published'
-                                                    ? 'Published'
-                                                    : 'Draft'}
+                                                <StatusBadge
+                                                    product={product}
+                                                />
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="pr-5 text-right">
                                                 <RowActions
                                                     product={product}
                                                     full={full}
@@ -109,28 +207,30 @@ export default function Products({
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </Card>
                         <div className="flex flex-col gap-3 md:hidden">
-                            {products.map((product) => (
+                            {products.data.map((product) => (
                                 <Card key={product.id} className="gap-3 p-4">
                                     <Link
                                         href={editProduct(product.id)}
-                                        className="font-medium underline-offset-4 hover:underline"
+                                        className="flex items-center gap-3"
                                     >
-                                        {product.name}
+                                        <Thumbnail product={product} />
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate font-medium">
+                                                {product.name}
+                                            </span>
+                                            <span className="text-sm text-muted-foreground tabular-nums">
+                                                {dollars(product.price_cents)}
+                                            </span>
+                                        </span>
+                                        <StatusBadge product={product} />
                                     </Link>
-                                    <p className="text-sm text-muted-foreground">
-                                        $
-                                        {(product.price_cents / 100).toFixed(2)}{' '}
-                                        ·{' '}
-                                        {product.status === 'published'
-                                            ? 'Published'
-                                            : 'Draft'}
-                                    </p>
                                     <RowActions product={product} full={full} />
                                 </Card>
                             ))}
                         </div>
+                        <SimplePagination page={products} />
                     </>
                 )}
             </div>
@@ -141,10 +241,23 @@ export default function Products({
 function RowActions({ product, full }: { product: ProductRow; full: boolean }) {
     return (
         <div className="flex flex-wrap items-center justify-end gap-1">
-            <Publish
-                product={product}
-                disabled={full && product.status !== 'published'}
-            />
+            {product.status !== 'published' ? (
+                <Form
+                    {...ProductController.publish.form(product.id)}
+                    options={{ preserveScroll: true }}
+                >
+                    {({ processing }) => (
+                        <Button
+                            type="submit"
+                            size="sm"
+                            disabled={processing || full}
+                            title={full ? 'Your plan is full' : undefined}
+                        >
+                            Publish
+                        </Button>
+                    )}
+                </Form>
+            ) : null}
             <Button variant="ghost" size="sm" asChild>
                 <Link href={editProduct(product.id)}>Edit</Link>
             </Button>
@@ -154,34 +267,5 @@ function RowActions({ product, full }: { product: ProductRow; full: boolean }) {
                 action={ProductController.destroy.form(product.id)}
             />
         </div>
-    );
-}
-
-function Publish({
-    product,
-    disabled,
-}: {
-    product: ProductRow;
-    disabled: boolean;
-}) {
-    if (product.status === 'published') {
-        return null;
-    }
-
-    return (
-        <Form
-            {...ProductController.publish.form(product.id)}
-            options={{ preserveScroll: true }}
-        >
-            {({ processing }) => (
-                <Button
-                    type="submit"
-                    size="sm"
-                    disabled={processing || disabled}
-                >
-                    Publish
-                </Button>
-            )}
-        </Form>
     );
 }
