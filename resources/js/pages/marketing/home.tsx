@@ -122,13 +122,15 @@ export default function Home({
                                 : 'Open a store in a minute.'}
                         </p>
                     </div>
-                    <div className="relative flex justify-center py-6">
-                        <div
-                            aria-hidden="true"
-                            className="absolute inset-x-10 top-10 bottom-10 rounded-full bg-primary/15 blur-3xl"
-                        />
-                        <PhoneMockup className="hero-phone relative" />
-                        <RequestMessage className="hero-message absolute right-0 bottom-16 hidden sm:block lg:-right-4" />
+                    <div className="relative flex justify-center py-4 lg:justify-end">
+                        <div className="relative w-full max-w-[548px]">
+                            <div
+                                aria-hidden="true"
+                                className="absolute top-1/2 right-0 size-[380px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--primary)_22%,transparent),transparent)] sm:right-[-50px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--primary)_16%,transparent),transparent)]"
+                            />
+                            <PhoneMockup className="hero-phone relative mx-auto sm:mr-0 sm:ml-auto" />
+                            <RequestMessage className="hero-message absolute bottom-10 left-0 hidden w-72 sm:block" />
+                        </div>
                     </div>
                 </div>
                 <RecentlyJoined stores={recentStores} />
