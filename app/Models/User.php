@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -37,6 +39,24 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /**
+     * Deleting a user cascades to their store's rows in the database, which
+     * fires no model events, so the store's image files are removed here.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            $paths = ProductImage::query()
+                ->whereHas('product.store', fn ($query) => $query->where('user_id', $user->id))
+                ->pluck('path')
+                ->all();
+
+            if ($paths !== []) {
+                DB::afterCommit(fn () => Storage::disk('public')->delete($paths));
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.

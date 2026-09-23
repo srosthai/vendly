@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -83,9 +84,50 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function createProduct(): Response
+    public function createProduct(Request $request): Response
     {
-        return Inertia::render('vendor/product-form');
+        return Inertia::render('vendor/product-form', [
+            'product' => null,
+            ...$this->catalogOptions($this->vendorStore($request)),
+        ]);
+    }
+
+    public function editProduct(Request $request, Product $product): Response
+    {
+        $this->authorize('update', $product);
+        $product->load('images');
+
+        return Inertia::render('vendor/product-form', [
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description ?? '',
+                'price' => number_format($product->price_cents / 100, 2, '.', ''),
+                'stock' => $product->stock,
+                'category_id' => $product->category_id,
+                'brand_id' => $product->brand_id,
+                'status' => $product->status->value,
+                'url' => $product->isPublished()
+                    ? route('stores.products.show', ['store' => $product->store, 'productSlug' => $product->slug])
+                    : null,
+                'images' => $product->images->sortBy('sort')->values()->map(fn (ProductImage $image): array => [
+                    'id' => $image->id,
+                    'url' => $image->url(),
+                ])->all(),
+            ],
+            ...$this->catalogOptions($this->vendorStore($request)),
+        ]);
+    }
+
+    /**
+     * @return array{categories: mixed, brands: mixed}
+     */
+    private function catalogOptions(Store $store): array
+    {
+        return [
+            'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['id', 'name']),
+            'brands' => $store->brands()->orderBy('name')->orderBy('id')->get(['id', 'name']),
+        ];
     }
 
     public function categories(Request $request): Response
