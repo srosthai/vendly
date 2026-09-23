@@ -2,6 +2,7 @@
 
 namespace App\Actions\Telegram;
 
+use App\Models\PlatformSetting;
 use App\Models\Store;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -13,7 +14,7 @@ class LinkStoreTelegram
         $token = Str::random(40);
         Cache::put($this->key($token), $store->id, now()->addMinutes(15));
 
-        $username = (string) config('services.telegram.bot_username');
+        $username = PlatformSetting::current()->botUsername();
 
         return 'https://t.me/'.$username.'?start=link_'.$token;
     }
