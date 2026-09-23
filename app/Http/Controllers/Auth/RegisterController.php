@@ -58,6 +58,17 @@ class RegisterController extends Controller
         return redirect()->route('auth.register.code')->with('status', 'We sent a registration code.');
     }
 
+    public function resend(Request $request, StartRegistration $action): RedirectResponse
+    {
+        $email = $request->session()->get('register_email');
+
+        if (! is_string($email) || $email === '' || ! $action->resend($email)) {
+            return redirect()->route('register')->with('status', 'Your code expired. Enter your details again.');
+        }
+
+        return back()->with('status', 'We sent a new code.');
+    }
+
     public function verify(Request $request, CompleteRegistration $action): RedirectResponse
     {
         $email = $request->session()->get('register_email');

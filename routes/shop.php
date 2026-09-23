@@ -27,6 +27,9 @@ Route::middleware('guest')->group(function () {
     Route::post('register/code', [RegisterController::class, 'store'])
         ->middleware('throttle:email-code')
         ->name('auth.register.store');
+    Route::post('register/code/resend', [RegisterController::class, 'resend'])
+        ->middleware('throttle:email-code')
+        ->name('auth.register.resend');
     Route::post('register/code/verify', [RegisterController::class, 'verify'])
         ->middleware('throttle:register-verify')
         ->name('auth.register.verify');

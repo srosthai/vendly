@@ -1,8 +1,10 @@
 import { Form, Head } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GoogleAuthController from '@/actions/App/Http/Controllers/Auth/GoogleAuthController';
 import RegisterController from '@/actions/App/Http/Controllers/Auth/RegisterController';
+import { GoogleMark } from '@/components/auth/google-mark';
+import { OrSeparator } from '@/components/auth/or-separator';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -15,7 +17,7 @@ import {
 } from '@/components/ui/input-otp';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { login } from '@/routes';
+import { login, register } from '@/routes';
 
 type Props = {
     passwordRules: string;
@@ -23,6 +25,53 @@ type Props = {
     email: string;
     status?: string;
 };
+
+const resendWait = 60;
+
+/**
+ * A new code can be asked for once a minute. The countdown restarts after
+ * each send, so the button never promises something the server refuses.
+ */
+function ResendCode() {
+    const [secondsLeft, setSecondsLeft] = useState(resendWait);
+
+    useEffect(() => {
+        if (secondsLeft <= 0) {
+            return;
+        }
+
+        const timer = window.setTimeout(
+            () => setSecondsLeft((seconds) => seconds - 1),
+            1000,
+        );
+
+        return () => window.clearTimeout(timer);
+    }, [secondsLeft]);
+
+    return (
+        <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+            <Form
+                {...RegisterController.resend.form()}
+                options={{ preserveScroll: true }}
+                onSuccess={() => setSecondsLeft(resendWait)}
+            >
+                {({ processing }) => (
+                    <Button
+                        type="submit"
+                        variant="link"
+                        disabled={processing || secondsLeft > 0}
+                        className="h-auto p-0"
+                    >
+                        {secondsLeft > 0
+                            ? `Send a new code in ${secondsLeft}s`
+                            : 'Send a new code'}
+                    </Button>
+                )}
+            </Form>
+            <TextLink href={register()}>Use a different email</TextLink>
+        </div>
+    );
+}
 
 export default function Register({
     passwordRules,
@@ -36,7 +85,10 @@ export default function Register({
         <>
             <Head title="Register" />
             {status ? (
-                <p className="text-center text-sm text-muted-foreground">
+                <p
+                    role="status"
+                    className="rounded-xl bg-success/10 px-4 py-3 text-center text-sm font-medium text-success"
+                >
                     {status}
                 </p>
             ) : null}
@@ -44,9 +96,11 @@ export default function Register({
                 <>
                     <Button variant="outline" className="w-full" asChild>
                         <a href={GoogleAuthController.redirect.url()}>
+                            <GoogleMark />
                             Continue with Google
                         </a>
                     </Button>
+                    <OrSeparator label="or use your email" />
                     <Form
                         {...RegisterController.store.form()}
                         resetOnSuccess={['password', 'password_confirmation']}
@@ -115,10 +169,10 @@ export default function Register({
                                     {processing && <Spinner />}
                                     Email me a code
                                 </Button>
-                                <div className="text-center text-sm text-muted-foreground">
+                                <p className="text-center text-sm text-muted-foreground">
                                     Already have an account?{' '}
                                     <TextLink href={login()}>Log in</TextLink>
-                                </div>
+                                </p>
                             </>
                         )}
                     </Form>
@@ -132,7 +186,11 @@ export default function Register({
                         <>
                             <input type="hidden" name="code" value={code} />
                             <p className="text-center text-sm text-muted-foreground">
-                                Code sent to {email}
+                                Enter the six-digit code we sent to{' '}
+                                <span className="font-medium text-foreground">
+                                    {email}
+                                </span>
+                                .
                             </p>
                             <div className="flex justify-center">
                                 <InputOTP
@@ -152,7 +210,10 @@ export default function Register({
                                     </InputOTPGroup>
                                 </InputOTP>
                             </div>
-                            <InputError message={errors.code} />
+                            <InputError
+                                message={errors.code ?? errors.email}
+                                className="text-center"
+                            />
                             <Button
                                 type="submit"
                                 className="w-full"
@@ -165,11 +226,12 @@ export default function Register({
                     )}
                 </Form>
             )}
+            {step === 'code' ? <ResendCode /> : null}
         </>
     );
 }
 
 Register.layout = {
-    title: 'Create an account',
-    description: 'We email a code before the account is created.',
+    title: 'Create your Vendly account',
+    description: 'We email you a code to check the address before the account is made.',
 };
