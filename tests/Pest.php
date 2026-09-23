@@ -1,5 +1,9 @@
 <?php
 
+use App\Actions\Stores\CreateStore;
+use App\Models\Plan;
+use App\Models\Store;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +48,21 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function openStore(User $user, string $name, int $limit = 10): Store
 {
-    // ..
+    config(['services.telegram.bot_token' => null]);
+
+    Plan::query()->firstOrCreate(
+        ['is_default' => true],
+        [
+            'name' => 'Free',
+            'price_cents' => 0,
+            'product_limit' => $limit,
+            'is_active' => true,
+        ],
+    );
+
+    Plan::query()->where('is_default', true)->update(['product_limit' => $limit]);
+
+    return app(CreateStore::class)->handle($user, $name);
 }
