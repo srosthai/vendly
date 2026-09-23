@@ -2,14 +2,11 @@
 
 namespace App\Providers;
 
-use App\Listeners\MergeSessionCart;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -39,7 +36,6 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         $this->configureRateLimiting();
-        Event::listen(Login::class, MergeSessionCart::class);
 
         Date::use(CarbonImmutable::class);
 
@@ -66,6 +62,15 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('register-verify', function (Request $request): Limit {
             return Limit::perMinute(10)->by(Str::lower((string) $request->session()->get('register_email')).'|'.$request->ip());
+        });
+
+        RateLimiter::for('inquiries', function (Request $request): Limit {
+            return Limit::perMinute(5)
+                ->by($request->user()?->getAuthIdentifier().'|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => back()->with(
+                    'status',
+                    'Too many requests. Try again in '.($headers['Retry-After'] ?? 60).' seconds.',
+                ));
         });
 
         RateLimiter::for('telegram-auth', function (Request $request): Limit {

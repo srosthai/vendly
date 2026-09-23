@@ -45,7 +45,7 @@ class CartSummary
         $lines = [];
 
         foreach ($cart->items as $item) {
-            if ($item->product === null) {
+            if ($item->product === null || ! $item->product->isPublished()) {
                 continue;
             }
 
@@ -73,6 +73,7 @@ class CartSummary
 
         $products = Product::query()
             ->where('store_id', $store->id)
+            ->published()
             ->whereIn('id', array_map('intval', array_keys($items)))
             ->get()
             ->keyBy('id');

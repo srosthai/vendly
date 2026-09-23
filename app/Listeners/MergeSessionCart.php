@@ -13,6 +13,10 @@ class MergeSessionCart
 {
     public function __construct(private GuestCart $guestCart) {}
 
+    /**
+     * Move the guest's session carts onto the account. Only published, in-stock
+     * products of stores that are not suspended come across.
+     */
     public function handle(Login $event): void
     {
         $user = $event->user;
@@ -21,10 +25,34 @@ class MergeSessionCart
             return;
         }
 
-        foreach ($this->guestCart->pullAll() as $storeId => $items) {
-            $store = Store::query()->find((int) $storeId);
+        $guestCarts = $this->guestCart->pullAll();
 
-            if ($store === null || $store->isSuspended()) {
+        if ($guestCarts === []) {
+            return;
+        }
+
+        $stores = Store::query()
+            ->whereIn('id', array_map('intval', array_keys($guestCarts)))
+            ->whereNull('suspended_at')
+            ->get()
+            ->keyBy('id');
+
+        $productIds = array_merge(...array_map(
+            fn (array $items): array => array_map('intval', array_keys($items)),
+            array_values($guestCarts),
+        ));
+
+        $products = Product::query()
+            ->whereIn('id', $productIds)
+            ->whereIn('store_id', $stores->keys())
+            ->published()
+            ->get()
+            ->keyBy('id');
+
+        foreach ($guestCarts as $storeId => $items) {
+            $store = $stores->get((int) $storeId);
+
+            if (! $store instanceof Store) {
                 continue;
             }
 
@@ -34,12 +62,9 @@ class MergeSessionCart
             ]);
 
             foreach ($items as $productId => $quantity) {
-                $product = Product::query()
-                    ->whereKey((int) $productId)
-                    ->where('store_id', $store->id)
-                    ->first();
+                $product = $products->get((int) $productId);
 
-                if ($product === null || $product->isSoldOut()) {
+                if (! $product instanceof Product || $product->store_id !== $store->id || $product->isSoldOut()) {
                     continue;
                 }
 

@@ -14,7 +14,7 @@ class AddToCart
 
     public function handle(Store $store, Product $product, int $quantity, ?User $user): void
     {
-        if ($store->isSuspended() || $product->store_id !== $store->id || $product->isSoldOut()) {
+        if ($store->isSuspended() || $product->store_id !== $store->id || ! $product->isPublished() || $product->isSoldOut()) {
             throw ValidationException::withMessages([
                 'product' => 'This product cannot be added.',
             ]);

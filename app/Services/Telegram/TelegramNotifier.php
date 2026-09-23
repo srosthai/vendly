@@ -48,7 +48,11 @@ class TelegramNotifier
         );
     }
 
-    public function inquiry(Inquiry $inquiry): void
+    /**
+     * A single product ends with its own link. A cart ends with its total and
+     * then the store link, as in the plan's message shape.
+     */
+    public function inquiry(Inquiry $inquiry, bool $fromCart = false): void
     {
         $inquiry->loadMissing(['store', 'items.product']);
         $store = $inquiry->store;
@@ -63,6 +67,10 @@ class TelegramNotifier
         $total = (int) $inquiry->items->sum(fn ($item): int => $item->price_cents * $item->quantity);
         $contact = $inquiry->contact !== null ? ' ('.$inquiry->contact.')' : '';
         $text = "New request — {$store->name}\nFrom: {$inquiry->customer_name}{$contact}\n{$lines}\nTotal: ".Money::format($total);
+
+        if ($fromCart) {
+            $text .= "\n".route('stores.show', $store);
+        }
 
         $this->dispatch(PlatformSetting::current()->adminChatId(), $text, $inquiry->id, 'admin');
 
