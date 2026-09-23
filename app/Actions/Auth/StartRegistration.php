@@ -2,7 +2,7 @@
 
 namespace App\Actions\Auth;
 
-use App\Notifications\EmailSignInCode;
+use App\Notifications\RegistrationCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -19,14 +19,22 @@ class StartRegistration
             'name' => $name,
             'password' => Hash::make($password),
             'hash' => Hash::make($code),
-            'attempts' => 0,
         ], now()->addMinutes(10));
 
-        Notification::route('mail', $email)->notify(new EmailSignInCode($code, 'registration'));
+        Notification::route('mail', $email)->notify(new RegistrationCode($code));
     }
 
     public function key(string $email): string
     {
         return 'registration:'.hash('sha256', Str::lower($email));
+    }
+
+    /**
+     * Wrong codes are counted per email for ten minutes. Sending a new code
+     * does not reset the count, so a resend never buys more guesses.
+     */
+    public function attemptsKey(string $email): string
+    {
+        return 'registration-attempts:'.hash('sha256', Str::lower($email));
     }
 }

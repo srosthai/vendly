@@ -64,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by(Str::transliterate(Str::lower($request->string('email')->toString()).'|'.$request->ip()));
         });
 
+        RateLimiter::for('register-verify', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(Str::lower((string) $request->session()->get('register_email')).'|'.$request->ip());
+        });
+
         RateLimiter::for('telegram-auth', function (Request $request): Limit {
             return Limit::perMinute(10)->by($request->ip() ?? 'telegram');
         });

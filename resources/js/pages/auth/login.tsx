@@ -1,3 +1,4 @@
+import GoogleAuthController from '@/actions/App/Http/Controllers/Auth/GoogleAuthController';
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -25,7 +26,9 @@ export default function Login({ status, canResetPassword }: Props) {
             <PasskeyVerify />
 
             <Button variant="outline" className="w-full" asChild>
-                <a href="/auth/google/redirect">Continue with Google</a>
+                <a href={GoogleAuthController.redirect.url()}>
+                    Continue with Google
+                </a>
             </Button>
 
             <Form

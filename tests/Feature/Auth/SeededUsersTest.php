@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Database\Seeders\UserSeeder;
 
 test('seeded accounts can sign in for admin, vendor, and customer', function () {
     $this->seed();
@@ -39,4 +40,12 @@ test('seeded accounts can sign in for admin, vendor, and customer', function () 
     $this->get(route('dashboard'))->assertOk();
     $this->get(route('vendor.products'))->assertForbidden();
     $this->get(route('admin.vendors'))->assertForbidden();
+});
+
+test('seeded accounts are never created outside local and testing', function () {
+    app()->detectEnvironment(fn (): string => 'production');
+
+    app(UserSeeder::class)->run();
+
+    expect(User::query()->count())->toBe(0);
 });

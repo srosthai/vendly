@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
@@ -25,19 +24,17 @@ use Illuminate\Support\Facades\Route;
 Route::post('webhooks/cutluy', CutluyWebhookController::class)->name('webhooks.cutluy');
 Route::post('webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
 
-Route::get('sign-in', [EmailCodeController::class, 'create'])->name('auth.sign-in');
-Route::get('register/code', [RegisterController::class, 'code'])->name('auth.register.code');
-Route::post('register/code', [RegisterController::class, 'store'])
-    ->middleware('throttle:email-code')
-    ->name('auth.register.store');
-Route::post('register/code/verify', [RegisterController::class, 'verify'])->name('auth.register.verify');
-Route::get('sign-in/code', [EmailCodeController::class, 'code'])->name('auth.sign-in.code');
-
-Route::middleware('throttle:email-code')->group(function () {
-    Route::post('auth/email-code', [EmailCodeController::class, 'store'])->name('auth.email-code.store');
+Route::middleware('guest')->group(function () {
+    Route::get('register', [RegisterController::class, 'create'])->name('register');
+    Route::get('register/code', [RegisterController::class, 'code'])->name('auth.register.code');
+    Route::post('register/code', [RegisterController::class, 'store'])
+        ->middleware('throttle:email-code')
+        ->name('auth.register.store');
+    Route::post('register/code/verify', [RegisterController::class, 'verify'])
+        ->middleware('throttle:register-verify')
+        ->name('auth.register.verify');
 });
 
-Route::post('auth/email-code/verify', [EmailCodeController::class, 'verify'])->name('auth.email-code.verify');
 Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
 Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 Route::post('auth/telegram', [TelegramAuthController::class, 'store'])

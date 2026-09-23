@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useState } from 'react';
+import GoogleAuthController from '@/actions/App/Http/Controllers/Auth/GoogleAuthController';
+import RegisterController from '@/actions/App/Http/Controllers/Auth/RegisterController';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -41,11 +43,12 @@ export default function Register({
             {step === 'details' ? (
                 <>
                     <Button variant="outline" className="w-full" asChild>
-                        <a href="/auth/google/redirect">Continue with Google</a>
+                        <a href={GoogleAuthController.redirect.url()}>
+                            Continue with Google
+                        </a>
                     </Button>
                     <Form
-                        action="/register/code"
-                        method="post"
+                        {...RegisterController.store.form()}
                         resetOnSuccess={['password', 'password_confirmation']}
                         className="flex flex-col gap-6"
                     >
@@ -122,8 +125,7 @@ export default function Register({
                 </>
             ) : (
                 <Form
-                    action="/register/code/verify"
-                    method="post"
+                    {...RegisterController.verify.form()}
                     className="flex flex-col gap-6"
                 >
                     {({ processing, errors }) => (

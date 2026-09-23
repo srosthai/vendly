@@ -5,9 +5,9 @@ namespace App\Notifications;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class EmailSignInCode extends Notification
+class RegistrationCode extends Notification
 {
-    public function __construct(public string $code, public string $purpose = 'sign-in') {}
+    public function __construct(public string $code) {}
 
     /**
      * @return array<int, string>
@@ -19,11 +19,9 @@ class EmailSignInCode extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $label = $this->purpose === 'registration' ? 'registration code' : 'sign-in code';
-
         return (new MailMessage)
-            ->subject('Your '.$label)
-            ->line('Your '.$label.' is '.$this->code.'.')
+            ->subject('Your registration code')
+            ->line('Your registration code is '.$this->code.'.')
             ->line('This code expires in 10 minutes.');
     }
 }
