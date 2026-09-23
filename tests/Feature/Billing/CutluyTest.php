@@ -501,3 +501,92 @@ function cutluyCall(string $raw, string $event, ?string $signature = null, ?int 
         'CONTENT_TYPE' => 'application/json',
     ], $raw);
 }
+
+test('the payment dialog reads its status and refresh applies a paid payment once', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Status Tea');
+    $payment = pendingStarterPayment($store);
+    Http::fake(['cutluy.com/v1/payments/pay_123' => Http::response([
+        'id' => 'pay_123',
+        'status' => 'paid',
+        'amount' => '5.00',
+        'currency' => 'USD',
+        'reference_id' => 'subpay_test',
+    ])]);
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', $payment->public_id))
+        ->assertOk()
+        ->assertJsonPath('status', 'pending');
+    Http::assertNothingSent();
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', ['publicId' => $payment->public_id, 'refresh' => 1]))
+        ->assertOk()
+        ->assertJsonPath('status', 'paid')
+        ->assertJsonPath('notice', null);
+
+    Http::assertSentCount(1);
+    expect($store->fresh()->subscription->plan_id)->toBe($payment->plan_id);
+
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
+    expect($store->fresh()->subscription->ends_at?->lessThan(now()->addMonth()->addDay()))->toBeTrue();
+});
+
+test('refresh shows a scanned payment as opened, never paid', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Scan Tea');
+    $freeId = $store->subscription->plan_id;
+    $payment = pendingStarterPayment($store);
+    Http::fake(['cutluy.com/*' => Http::response(['id' => 'pay_123', 'status' => 'scanned', 'amount' => '5.00', 'currency' => 'USD', 'reference_id' => 'subpay_test'])]);
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', ['publicId' => $payment->public_id, 'refresh' => 1]))
+        ->assertJsonPath('status', 'scanned');
+
+    expect($store->fresh()->subscription->plan_id)->toBe($freeId);
+});
+
+test('refresh stops on a rate limit and tells the vendor how long to wait', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    $payment = pendingStarterPayment(openStore($vendor, 'Busy Status Tea'));
+    Http::fake(['cutluy.com/*' => Http::response(['error' => 'rate_limited'], 429, ['Retry-After' => '7'])]);
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', ['publicId' => $payment->public_id, 'refresh' => 1]))
+        ->assertOk()
+        ->assertJsonPath('status', 'pending')
+        ->assertJsonPath('notice', 'CutLuy is busy. Try again in 7 seconds.');
+
+    Http::assertSentCount(1);
+});
+
+test('a vendor cannot read another store\'s payment', function () {
+    $payment = pendingStarterPayment(openStore(User::factory()->create(), 'Owner Tea'));
+    $other = User::factory()->create();
+    openStore($other, 'Other Tea');
+
+    $this->actingAs($other)
+        ->getJson(route('vendor.plan.payments.show', $payment->public_id))
+        ->assertNotFound();
+});
+
+test('the plan page shows an expired plan before a publish fails', function () {
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Late Plan Tea');
+    $subscription = $store->subscription;
+    $subscription->status = SubscriptionStatus::Expired;
+    $subscription->ends_at = now()->subDay();
+    $subscription->save();
+
+    $this->actingAs($vendor)
+        ->get(route('vendor.plan'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('usage.status', 'expired')
+            ->where('usage.can_publish', false)
+            ->where('usage.ends_at', $subscription->ends_at->toIso8601String()));
+});

@@ -116,8 +116,12 @@ class WorkspaceController extends Controller
                 'published' => $store->products()->published()->count(),
                 'limit' => (int) ($subscription?->plan->product_limit ?? 0),
                 'plan' => $subscription?->plan->name,
+                'free' => $subscription?->plan->isFree() ?? true,
+                'status' => $subscription?->status->value,
+                'ends_at' => $subscription?->ends_at?->toIso8601String(),
+                'can_publish' => $subscription?->allowsPublishing() ?? false,
             ],
-            'plans' => Plan::query()->where('is_active', true)->where('price_cents', '>', 0)->orderBy('price_cents')->get(['id', 'name', 'price_cents', 'product_limit']),
+            'plans' => Plan::query()->where('is_active', true)->where('price_cents', '>', 0)->orderBy('price_cents')->orderBy('id')->get(['id', 'name', 'price_cents', 'product_limit']),
             'payment' => $request->session()->get('payment'),
         ]);
     }
