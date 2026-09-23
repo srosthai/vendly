@@ -1,4 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
+import type { AdminPlan } from '@/components/admin/plan-form-dialog';
+import { PlanFormDialog } from '@/components/admin/plan-form-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,16 +16,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-type Plan = {
-    id: number;
-    name: string;
-    price_cents: number;
-    product_limit: number;
-    is_active: boolean;
-    is_default: boolean;
-};
-
-export default function Plans({ plans }: { plans: Plan[] }) {
+export default function Plans({ plans }: { plans: AdminPlan[] }) {
     return (
         <>
             <Head title="Plans" />
@@ -51,6 +44,11 @@ export default function Plans({ plans }: { plans: Plan[] }) {
                                         <TableHead>Price</TableHead>
                                         <TableHead>Products</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">
+                                            <span className="sr-only">
+                                                Actions
+                                            </span>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -73,6 +71,9 @@ export default function Plans({ plans }: { plans: Plan[] }) {
                                                       ? 'Active'
                                                       : 'Hidden'}
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <PlanFormDialog plan={plan} />
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -80,7 +81,7 @@ export default function Plans({ plans }: { plans: Plan[] }) {
                         </div>
                         <div className="flex flex-col gap-3 md:hidden">
                             {plans.map((plan) => (
-                                <Card key={plan.id} className="gap-1 p-4">
+                                <Card key={plan.id} className="gap-2 p-4">
                                     <p className="font-medium">{plan.name}</p>
                                     <p className="text-sm text-muted-foreground">
                                         ${(plan.price_cents / 100).toFixed(2)} ·{' '}
@@ -91,6 +92,9 @@ export default function Plans({ plans }: { plans: Plan[] }) {
                                               ? 'Active'
                                               : 'Hidden'}
                                     </p>
+                                    <div>
+                                        <PlanFormDialog plan={plan} />
+                                    </div>
                                 </Card>
                             ))}
                         </div>
