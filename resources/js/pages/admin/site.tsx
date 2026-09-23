@@ -2,10 +2,14 @@ import { Form, Head } from '@inertiajs/react';
 import { CreditCard } from 'lucide-react';
 import SiteSettingsController from '@/actions/App/Http/Controllers/Admin/SiteSettingsController';
 import { PaymentMethodSheet } from '@/components/admin/payment-method-sheet';
+import { SecretField } from '@/components/admin/secret-field';
+import type { SecretState } from '@/components/admin/secret-field';
+import { CopyField } from '@/components/copy-field';
 import type { AdminPaymentMethod } from '@/components/admin/payment-method-sheet';
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -57,11 +61,21 @@ const networks: { key: string; label: string; placeholder: string }[] = [
     },
 ];
 
+type CutluySettings = {
+    api_key: SecretState;
+    webhook_secret: SecretState;
+    base_url: string;
+    default_base_url: string;
+    webhook_url: string;
+};
+
 export default function Site({
     settings,
+    cutluy,
     paymentMethods,
 }: {
     settings: Settings;
+    cutluy: CutluySettings;
     paymentMethods: AdminPaymentMethod[];
 }) {
     return (
@@ -70,7 +84,7 @@ export default function Site({
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <PageHeader
                     title="Site settings"
-                    description="What the public website footer shows. Empty fields are hidden."
+                    description="What the public website footer shows, and the services Vendly connects to. Empty footer fields are hidden."
                 />
                 <Form
                     {...SiteSettingsController.update.form()}
@@ -258,6 +272,88 @@ export default function Site({
                             ))}
                         </ul>
                     )}
+                </Card>
+
+                <Card className="gap-5 p-5 sm:p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <CardTitle>Payments (CutLuy)</CardTitle>
+                            <CardDescription className="mt-1">
+                                Plan payments use these credentials. Values
+                                saved here replace the server environment.
+                            </CardDescription>
+                        </div>
+                        {cutluy.api_key.source !== null &&
+                        cutluy.webhook_secret.source !== null ? (
+                            <Badge variant="success">Ready</Badge>
+                        ) : (
+                            <Badge variant="secondary">Not set up</Badge>
+                        )}
+                    </div>
+                    <Form
+                        {...SiteSettingsController.updateCutluy.form()}
+                        options={{ preserveScroll: true }}
+                        resetOnSuccess
+                        className="grid gap-5"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <div className="grid gap-5 lg:grid-cols-2">
+                                    <SecretField
+                                        name="api_key"
+                                        label="API key"
+                                        placeholder="Paste your CutLuy API key"
+                                        state={cutluy.api_key}
+                                        error={errors.api_key}
+                                    />
+                                    <SecretField
+                                        name="webhook_secret"
+                                        label="Webhook secret"
+                                        placeholder="Paste the webhook signing secret"
+                                        state={cutluy.webhook_secret}
+                                        error={errors.webhook_secret}
+                                    />
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cutluy-base-url">
+                                            API address
+                                        </Label>
+                                        <Input
+                                            id="cutluy-base-url"
+                                            name="base_url"
+                                            inputMode="url"
+                                            defaultValue={cutluy.base_url}
+                                            placeholder={
+                                                cutluy.default_base_url
+                                            }
+                                        />
+                                        <p className="text-sm text-muted-foreground">
+                                            Leave empty to use{' '}
+                                            {cutluy.default_base_url}.
+                                        </p>
+                                        <InputError message={errors.base_url} />
+                                    </div>
+                                    <div className="grid content-start gap-2">
+                                        <CopyField
+                                            label="Webhook address"
+                                            value={cutluy.webhook_url}
+                                        />
+                                        <p className="text-sm text-muted-foreground">
+                                            Paste this into CutLuy so paid plans
+                                            start on their own.
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="justify-self-start"
+                                >
+                                    {processing && <Spinner />}
+                                    Save CutLuy settings
+                                </Button>
+                            </>
+                        )}
+                    </Form>
                 </Card>
             </div>
         </>

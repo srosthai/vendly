@@ -85,8 +85,8 @@ class DashboardController extends Controller
             ],
             'secrets' => [
                 'bot_token' => filled(config('services.telegram.bot_token')),
-                'cutluy_key' => filled(config('services.cutluy.key')),
-                'cutluy_webhook' => filled(config('services.cutluy.webhook_secret')),
+                'cutluy_key' => $settings->cutluyApiKey() !== '',
+                'cutluy_webhook' => $settings->cutluyWebhookSecret() !== '',
                 'telegram_webhook' => filled(config('services.telegram.webhook_secret')),
             ],
             'testResult' => request()->session()->get('telegram_test'),

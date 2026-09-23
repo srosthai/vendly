@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,8 +17,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $email
  * @property string|null $footer_text
  * @property array<string, string>|null $social_links
+ * @property string|null $cutluy_api_key
+ * @property string|null $cutluy_webhook_secret
+ * @property string|null $cutluy_base_url
  */
-#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links'])]
+#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links', 'cutluy_api_key', 'cutluy_webhook_secret', 'cutluy_base_url'])]
+#[Hidden(['cutluy_api_key', 'cutluy_webhook_secret'])]
 class PlatformSetting extends Model
 {
     /**
@@ -34,6 +39,8 @@ class PlatformSetting extends Model
     {
         return [
             'social_links' => 'array',
+            'cutluy_api_key' => 'encrypted',
+            'cutluy_webhook_secret' => 'encrypted',
         ];
     }
 
@@ -119,5 +126,26 @@ class PlatformSetting extends Model
     public function miniAppProductLink(int $productId): ?string
     {
         return $this->miniAppLink('p_'.$productId);
+    }
+
+    /**
+     * The CutLuy API key: the one saved by the admin, or the environment's.
+     */
+    public function cutluyApiKey(): string
+    {
+        return $this->cutluy_api_key ?: (string) config('services.cutluy.key');
+    }
+
+    /**
+     * The secret CutLuy signs webhooks with: the admin's, or the environment's.
+     */
+    public function cutluyWebhookSecret(): string
+    {
+        return $this->cutluy_webhook_secret ?: (string) config('services.cutluy.webhook_secret');
+    }
+
+    public function cutluyBaseUrl(): string
+    {
+        return rtrim($this->cutluy_base_url ?: (string) config('services.cutluy.base_url'), '/');
     }
 }
