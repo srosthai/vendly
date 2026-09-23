@@ -292,16 +292,17 @@ In the mini app, Telegram’s theme colors override the existing CSS variables. 
 
 ## Issue sequence
 
-Implementation is six GitHub issues, merged in this order. Each one is usable on its own and names the issue it depends on. This file is `docs/plan.md`.
+The build is seven system issues. Code comes first. Each site follows from that backend. The responsive pass is last, and it checks desktop and mobile on every site. The behavior sections under the table are the rules those issues must include. This file is `docs/plan.md`.
 
 | Order | Issue | Depends on |
 | --- | --- | --- |
-| 1 | [#2 Accounts: email code, Google, and Telegram sign-in](https://github.com/srosthai/vendly/issues/2) | — |
-| 2 | [#3 Store and the free plan](https://github.com/srosthai/vendly/issues/3) | #2 |
-| 3 | [#4 Catalog within the plan limit](https://github.com/srosthai/vendly/issues/4) | #3 |
-| 4 | [#5 Storefront cart](https://github.com/srosthai/vendly/issues/5) | #4 |
-| 5 | [#6 Telegram buy requests and the mini app](https://github.com/srosthai/vendly/issues/6) | #5 |
-| 6 | [#7 Plan payment with CutLuy](https://github.com/srosthai/vendly/issues/7) | #4, and #6 for the paid notice |
+| 1 | [#8 Code implement](https://github.com/srosthai/vendly/issues/8) | — |
+| 2 | [#9 Frontend website](https://github.com/srosthai/vendly/issues/9) | #8 |
+| 3 | [#10 Admin dashboard](https://github.com/srosthai/vendly/issues/10) | #8 |
+| 4 | [#11 Vendor dashboard](https://github.com/srosthai/vendly/issues/11) | #8 |
+| 5 | [#12 Vendor frontend](https://github.com/srosthai/vendly/issues/12) | #8 |
+| 6 | [#13 Customer site](https://github.com/srosthai/vendly/issues/13) | #8, #12 |
+| 7 | [#14 Responsive: desktop and mobile](https://github.com/srosthai/vendly/issues/14) | #9, #10, #11, #12, #13 |
 
 ### 1. Accounts
 
@@ -373,7 +374,7 @@ Depends on: Catalog within the plan limit. Telegram messages for “plan paid”
 
 ## Build order
 
-Build the six issues in order. Each one is shippable on its own, including its screens. Stay on Inertia React pages, shadcn components, Wayfinder actions, Form Requests, policies, queued jobs, and Pest.
+Build [#8](https://github.com/srosthai/vendly/issues/8) first. The site issues can start once the routes they need exist. [#14](https://github.com/srosthai/vendly/issues/14) is the last pass, at 1280px and at 390px. Stay on Inertia React pages, shadcn components, Wayfinder actions, Form Requests, policies, queued jobs, and Pest.
 
 ### Later, only after v1 is in use
 
