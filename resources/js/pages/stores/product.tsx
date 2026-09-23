@@ -40,7 +40,7 @@ export default function Product({
     return (
         <>
             <Head title={product.name} />
-            <main className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 md:grid-cols-2 md:px-6">
+            <main className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 pb-28 md:grid-cols-2 md:px-6 md:pb-8">
                 <div className="flex aspect-[4/5] items-center justify-center bg-muted">
                     {product.image ? (
                         <img
