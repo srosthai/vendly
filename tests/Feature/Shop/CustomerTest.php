@@ -154,3 +154,64 @@ test('a cart request ends with the store link', function () {
 
     Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_ends_with($job->text, route('stores.show', $store)));
 });
+
+test('a guest can change a cart quantity and remove a line', function () {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $jasmine = Product::factory()->for($store)->create();
+    $oolong = Product::factory()->for($store)->create();
+
+    $this->post(route('cart.store', [$store, $jasmine]))->assertRedirect();
+    $this->post(route('cart.store', [$store, $oolong]))->assertRedirect();
+
+    $this->patch(route('cart.update', [$store, $jasmine]), ['quantity' => 4])->assertRedirect();
+    $this->delete(route('cart.destroy', [$store, $oolong]))->assertRedirect();
+
+    $this->get(route('stores.show', $store))
+        ->assertInertia(fn ($page) => $page
+            ->where('cart.count', 4)
+            ->where('cart.total_cents', $jasmine->price_cents * 4)
+            ->has('cart.items', 1)
+            ->where('cart.items.0.id', $jasmine->id));
+});
+
+test('a customer can change a cart quantity and remove a line', function () {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $jasmine = Product::factory()->for($store)->create();
+    $customer = User::factory()->create();
+
+    $this->actingAs($customer)->post(route('cart.store', [$store, $jasmine]))->assertRedirect();
+    $this->actingAs($customer)->patch(route('cart.update', [$store, $jasmine]), ['quantity' => 3])->assertRedirect();
+
+    $cart = Cart::query()->whereBelongsTo($customer)->sole();
+    expect($cart->items()->sole()->quantity)->toBe(3);
+
+    $this->actingAs($customer)->delete(route('cart.destroy', [$store, $jasmine]))->assertRedirect();
+    expect($cart->items()->count())->toBe(0);
+});
+
+test('a cart quantity must be between 1 and 99', function (int $quantity) {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $jasmine = Product::factory()->for($store)->create();
+
+    $this->post(route('cart.store', [$store, $jasmine]))->assertRedirect();
+    $this->patch(route('cart.update', [$store, $jasmine]), ['quantity' => $quantity])->assertInvalid(['quantity']);
+
+    expect(session('guest-carts')[(string) $store->id][(string) $jasmine->id])->toBe(1);
+})->with([0, 100]);
+
+test('a cart line from another store cannot be changed, and a product not in the cart is not added', function () {
+    $tea = openStore(User::factory()->create(), 'Smile Tea');
+    $cake = openStore(User::factory()->create(), 'Cake Corner');
+    $jasmine = Product::factory()->for($tea)->create();
+    $sponge = Product::factory()->for($cake)->create();
+    $customer = User::factory()->create();
+
+    $this->actingAs($customer)->post(route('cart.store', [$tea, $jasmine]))->assertRedirect();
+
+    $this->actingAs($customer)->patch(route('cart.update', [$tea, $sponge]), ['quantity' => 5])->assertNotFound();
+    $this->actingAs($customer)->delete(route('cart.destroy', [$tea, $sponge]))->assertNotFound();
+    $this->actingAs($customer)->patch(route('cart.update', [$cake, $sponge]), ['quantity' => 5])->assertRedirect();
+
+    expect(Cart::query()->whereBelongsTo($customer)->whereBelongsTo($cake)->exists())->toBeFalse()
+        ->and(Cart::query()->whereBelongsTo($customer)->whereBelongsTo($tea)->sole()->items()->sole()->quantity)->toBe(1);
+});
