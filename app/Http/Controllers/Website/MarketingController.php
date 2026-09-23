@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Website;
 
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
+use App\Models\PlatformSetting;
 use App\Models\Store;
 use App\Models\Testimonial;
 use Illuminate\Support\Collection;
@@ -80,6 +81,7 @@ class MarketingController extends Controller
             ...$props,
             'meta' => [...$meta, 'url' => url()->current()],
             'showTestimonials' => Testimonial::query()->whereNotNull('published_at')->exists(),
+            'site' => PlatformSetting::current()->footer(),
         ]);
     }
 

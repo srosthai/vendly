@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     CreditCard,
+    Globe,
     LayoutGrid,
     MessageSquare,
     Package,
@@ -80,6 +81,11 @@ const adminGroups: NavGroup[] = [
     {
         label: 'Website',
         items: [
+            {
+                title: 'Site settings',
+                href: admin.site(),
+                icon: Globe,
+            },
             {
                 title: 'Testimonials',
                 href: admin.testimonials(),
