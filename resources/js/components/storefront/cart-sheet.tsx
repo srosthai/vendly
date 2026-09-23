@@ -177,7 +177,7 @@ export function CartSheet({
                     <ShoppingBag />
                     Cart
                     {cart.count > 0 ? (
-                        <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground tabular-nums">
+                        <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-sm text-primary-foreground tabular-nums">
                             {cart.count}
                         </span>
                     ) : null}

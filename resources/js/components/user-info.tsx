@@ -30,7 +30,7 @@ export function UserInfo({
             >
                 <span className="truncate font-medium">{user.name}</span>
                 {showEmail && (
-                    <span className="truncate text-xs text-muted-foreground">
+                    <span className="truncate text-sm text-muted-foreground">
                         {user.email}
                     </span>
                 )}

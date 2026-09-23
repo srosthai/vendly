@@ -93,7 +93,7 @@ export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
                                             : ''
                                     }
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     Use 0 for a free plan. A paid price is at
                                     least $0.01.
                                 </p>
@@ -130,7 +130,7 @@ export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
                                         className="grid gap-1"
                                     >
                                         Available to vendors
-                                        <span className="text-xs font-normal text-muted-foreground">
+                                        <span className="text-sm font-normal text-muted-foreground">
                                             Hidden plans cannot be chosen.
                                         </span>
                                     </Label>
@@ -146,7 +146,7 @@ export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
                                         className="grid gap-1"
                                     >
                                         Default plan
-                                        <span className="text-xs font-normal text-muted-foreground">
+                                        <span className="text-sm font-normal text-muted-foreground">
                                             New stores start on it. It must be
                                             free.
                                         </span>

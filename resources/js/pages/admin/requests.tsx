@@ -62,7 +62,7 @@ function DeliveryBadge({
                 </Badge>
             </div>
             {delivery.error ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                     {delivery.error}
                 </p>
             ) : null}
