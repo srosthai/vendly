@@ -3,33 +3,45 @@
 namespace App\Actions\Dashboard;
 
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
 
 class DailyCounts
 {
     /**
      * Bucket timestamps (and optional amounts) into the last $days days,
-     * oldest first, so a trend line always has one point per day.
+     * oldest first, so a trend line always has one point per day. Rows
+     * without a time are skipped.
      *
-     * @param  Collection<int, array{at: CarbonInterface, amount?: int}>  $rows
+     * @param  iterable<array{at: CarbonInterface|null, amount?: int}>  $rows
      * @return list<int>
      */
-    public function handle(Collection $rows, int $days = 7): array
+    public function handle(iterable $rows, int $days = 7): array
     {
-        $buckets = [];
-
-        for ($offset = $days - 1; $offset >= 0; $offset--) {
-            $buckets[now()->subDays($offset)->toDateString()] = 0;
-        }
+        $buckets = array_fill_keys($this->days($days), 0);
 
         foreach ($rows as $row) {
-            $day = $row['at']->toDateString();
+            $day = $row['at']?->toDateString();
 
-            if (array_key_exists($day, $buckets)) {
+            if ($day !== null && array_key_exists($day, $buckets)) {
                 $buckets[$day] += $row['amount'] ?? 1;
             }
         }
 
         return array_values($buckets);
+    }
+
+    /**
+     * The dates of the last $days days, oldest first, as Y-m-d.
+     *
+     * @return list<string>
+     */
+    public function days(int $days = 7): array
+    {
+        $dates = [];
+
+        for ($offset = $days - 1; $offset >= 0; $offset--) {
+            $dates[] = now()->subDays($offset)->toDateString();
+        }
+
+        return $dates;
     }
 }
