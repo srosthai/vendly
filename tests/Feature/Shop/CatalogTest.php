@@ -220,8 +220,12 @@ test('saving a new product opens its edit page and renaming keeps its link', fun
 
     $this->actingAs($vendor)
         ->get(route('vendor.products.edit', $product))
+        ->assertRedirect(route('vendor.products', ['edit' => $product->id]));
+
+    $this->actingAs($vendor)
+        ->get(route('vendor.products', ['edit' => $product->id]))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('vendor/product-form')->where('product.price', '2.50'));
+        ->assertInertia(fn ($page) => $page->component('vendor/products')->where('editing.price', '2.50'));
 
     $this->actingAs($vendor)->put(route('products.update', $product), [
         'name' => 'Jasmine pearls',

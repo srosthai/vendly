@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 /**
  * A create or edit form in a drawer: from the right on a wide screen, and
  * from the bottom on a phone. The body scrolls and the footer with the save
- * button stays in view.
+ * button stays in view. `wide` gives long forms more room on a wide screen.
  */
 export function FormSheet({
     open,
@@ -21,6 +21,7 @@ export function FormSheet({
     trigger,
     title,
     description,
+    wide = false,
     children,
 }: {
     open: boolean;
@@ -28,6 +29,7 @@ export function FormSheet({
     trigger?: ReactNode;
     title: string;
     description?: string;
+    wide?: boolean;
     children: ReactNode;
 }) {
     const isMobile = useIsMobile();
@@ -41,7 +43,9 @@ export function FormSheet({
                     'gap-0 p-0 data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:ease-[cubic-bezier(0.32,0.72,0,1)]',
                     isMobile
                         ? 'max-h-[92dvh] rounded-t-3xl'
-                        : 'w-full sm:max-w-md',
+                        : wide
+                          ? 'w-full sm:max-w-2xl'
+                          : 'w-full sm:max-w-md',
                 )}
             >
                 {isMobile ? (

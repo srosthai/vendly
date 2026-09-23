@@ -8,6 +8,10 @@ use App\Enums\ProductStatus;
 use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Vendor\NamedListRequest;
+use App\Http\Requests\Vendor\ProductListRequest;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Inquiry;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
@@ -18,8 +22,11 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Support\Money;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -200,23 +207,36 @@ class WorkspaceController extends Controller
         return back();
     }
 
-    public function products(Request $request): Response
+    public function products(ProductListRequest $request): Response
     {
         $store = $this->vendorStore($request);
         $limit = (int) ($store->subscription?->plan->product_limit ?? 0);
         $published = $store->products()->published()->count();
+        $filters = $request->filters();
 
-        $search = trim($request->string('search')->toString());
+        $products = $store->products()
+            ->with(['coverImage', 'category', 'brand'])
+            ->when($filters['search'] !== '', fn ($query) => $query->whereLike('name', $request->searchPattern()))
+            ->when($filters['status'] === 'published', fn ($query) => $query->published())
+            ->when($filters['status'] === 'draft', fn ($query) => $query->where('status', ProductStatus::Draft))
+            ->when($filters['status'] === 'sold_out', fn ($query) => $query->where('stock', 0))
+            ->when($filters['category'] !== 'all', fn ($query) => $query->where('category_id', (int) $filters['category']))
+            ->when($filters['brand'] !== 'all', fn ($query) => $query->where('brand_id', (int) $filters['brand']));
+
+        match ($filters['sort']) {
+            'name' => $products->orderBy('name')->orderBy('id'),
+            'price_low' => $products->orderBy('price_cents')->orderBy('id'),
+            'price_high' => $products->orderByDesc('price_cents')->orderByDesc('id'),
+            'stock' => $products->orderByRaw('stock is null')->orderBy('stock')->orderBy('id'),
+            default => $products->orderByDesc('created_at')->orderByDesc('id'),
+        };
 
         return Inertia::render('vendor/products', [
             'usage' => ['published' => $published, 'limit' => $limit],
-            'search' => $search,
-            'products' => $store->products()
-                ->with('coverImage')
-                ->when($search !== '', fn ($query) => $query->whereLike('name', '%'.$search.'%'))
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->paginate(25)
+            'filters' => $filters,
+            ...$this->catalogOptions($store),
+            'products' => $products
+                ->paginate(ProductListRequest::PerPage)
                 ->withQueryString()
                 ->through(fn (Product $product): array => [
                     'id' => $product->id,
@@ -225,43 +245,68 @@ class WorkspaceController extends Controller
                     'status' => $product->status->value,
                     'stock' => $product->stock,
                     'image' => $product->coverImage?->url(),
+                    'category' => $product->category?->name,
+                    'brand' => $product->brand?->name,
                 ]),
+            'creating' => $request->boolean('create'),
+            'editing' => $this->editableProduct($store, $request->query('edit')),
         ]);
     }
 
-    public function createProduct(Request $request): Response
+    /**
+     * The old create page now opens the products list with the sheet open.
+     */
+    public function createProduct(): RedirectResponse
     {
-        return Inertia::render('vendor/product-form', [
-            'product' => null,
-            ...$this->catalogOptions($this->vendorStore($request)),
-        ]);
+        return redirect()->route('vendor.products', ['create' => 1]);
     }
 
-    public function editProduct(Request $request, Product $product): Response
+    /**
+     * The old edit page now opens the products list with this product's
+     * sheet open.
+     */
+    public function editProduct(Product $product): RedirectResponse
     {
         $this->authorize('update', $product);
-        $product->load('images');
 
-        return Inertia::render('vendor/product-form', [
-            'product' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'description' => $product->description ?? '',
-                'price' => number_format($product->price_cents / 100, 2, '.', ''),
-                'stock' => $product->stock,
-                'category_id' => $product->category_id,
-                'brand_id' => $product->brand_id,
-                'status' => $product->status->value,
-                'url' => $product->isPublished()
-                    ? route('stores.products.show', ['store' => $product->store, 'productSlug' => $product->slug])
-                    : null,
-                'images' => $product->images->sortBy('sort')->values()->map(fn (ProductImage $image): array => [
-                    'id' => $image->id,
-                    'url' => $image->url(),
-                ])->all(),
-            ],
-            ...$this->catalogOptions($this->vendorStore($request)),
-        ]);
+        return redirect()->route('vendor.products', ['edit' => $product->id]);
+    }
+
+    /**
+     * Everything the product sheet needs to edit one of the store's
+     * products, or null when the id is missing or not the store's.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function editableProduct(Store $store, mixed $id): ?array
+    {
+        if (! is_string($id) || ! ctype_digit($id)) {
+            return null;
+        }
+
+        $product = $store->products()->with('images')->find((int) $id);
+
+        if (! $product instanceof Product) {
+            return null;
+        }
+
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description ?? '',
+            'price' => number_format($product->price_cents / 100, 2, '.', ''),
+            'stock' => $product->stock,
+            'category_id' => $product->category_id,
+            'brand_id' => $product->brand_id,
+            'status' => $product->status->value,
+            'url' => $product->isPublished()
+                ? route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug])
+                : null,
+            'images' => $product->images->sortBy('sort')->values()->map(fn (ProductImage $image): array => [
+                'id' => $image->id,
+                'url' => $image->url(),
+            ])->all(),
+        ];
     }
 
     /**
@@ -275,21 +320,54 @@ class WorkspaceController extends Controller
         ];
     }
 
-    public function categories(Request $request): Response
+    public function categories(NamedListRequest $request): Response
     {
         $store = $this->vendorStore($request);
+        $filters = $request->filters();
 
         return Inertia::render('vendor/categories', [
-            'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['id', 'name']),
+            'filters' => $filters,
+            'categories' => $this->namedList($store->categories()->getQuery(), $request, fn ($query) => $query->orderBy('sort')->orderBy('id')),
         ]);
     }
 
-    public function brands(Request $request): Response
+    public function brands(NamedListRequest $request): Response
     {
         $store = $this->vendorStore($request);
+        $filters = $request->filters();
 
         return Inertia::render('vendor/brands', [
-            'brands' => $store->brands()->orderBy('name')->orderBy('id')->get(['id', 'name']),
+            'filters' => $filters,
+            'brands' => $this->namedList($store->brands()->getQuery(), $request, fn ($query) => $query->orderBy('name')->orderBy('id')),
+        ]);
+    }
+
+    /**
+     * A searchable, sortable, paged list of categories or brands with how
+     * many products use each.
+     *
+     * @param  Builder<Category>|Builder<Brand>  $query
+     * @param  Closure(Builder<Category>|Builder<Brand>): mixed  $defaultOrder
+     * @return LengthAwarePaginator<int, array{id: int, name: string, products_count: int}>
+     */
+    private function namedList(Builder $query, NamedListRequest $request, Closure $defaultOrder): LengthAwarePaginator
+    {
+        $filters = $request->filters();
+
+        $query->withCount('products')
+            ->when($filters['search'] !== '', fn ($query) => $query->whereLike('name', $request->searchPattern()));
+
+        match ($filters['sort']) {
+            'name' => $query->orderBy('name')->orderBy('id'),
+            'products' => $query->orderByDesc('products_count')->orderBy('name'),
+            'newest' => $query->orderByDesc('created_at')->orderByDesc('id'),
+            default => $defaultOrder($query),
+        };
+
+        return $query->paginate(NamedListRequest::PerPage)->withQueryString()->through(fn (Category|Brand $record): array => [
+            'id' => $record->id,
+            'name' => $record->name,
+            'products_count' => (int) $record->getAttribute('products_count'),
         ]);
     }
 
