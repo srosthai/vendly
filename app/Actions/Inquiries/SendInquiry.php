@@ -82,9 +82,13 @@ class SendInquiry
     {
         $contact = $customer->email ?? ($customer->telegram_username !== null ? '@'.$customer->telegram_username : null);
 
-        $inquiry = DB::transaction(function () use ($store, $customer, $lines, $contact): Inquiry {
+        $inquiry = DB::transaction(function () use ($store, $customer, $lines, $contact, $fromCart): Inquiry {
+            Store::query()->whereKey($store->id)->lockForUpdate()->first();
+
             $inquiry = Inquiry::query()->create([
                 'public_id' => (string) Str::ulid(),
+                'number' => (int) Inquiry::query()->where('store_id', $store->id)->max('number') + 1,
+                'from_cart' => $fromCart,
                 'store_id' => $store->id,
                 'user_id' => $customer->id,
                 'customer_name' => $customer->name,
@@ -98,7 +102,7 @@ class SendInquiry
             return $inquiry->load(['items.product', 'store']);
         });
 
-        $this->telegram->inquiry($inquiry, $fromCart);
+        $this->telegram->inquiry($inquiry);
 
         return $inquiry;
     }

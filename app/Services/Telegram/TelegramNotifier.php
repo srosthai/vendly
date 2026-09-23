@@ -50,9 +50,12 @@ class TelegramNotifier
 
     /**
      * A single product ends with its own link. A cart ends with its total and
-     * then the store link, as in the plan's message shape.
+     * then the store link, as in the plan's message shape. A retry passes the
+     * chats that have not received it yet.
+     *
+     * @param  list<'admin'|'vendor'>|null  $only
      */
-    public function inquiry(Inquiry $inquiry, bool $fromCart = false): void
+    public function inquiry(Inquiry $inquiry, ?array $only = null): void
     {
         $inquiry->loadMissing(['store', 'items.product']);
         $store = $inquiry->store;
@@ -66,17 +69,29 @@ class TelegramNotifier
 
         $total = (int) $inquiry->items->sum(fn ($item): int => $item->price_cents * $item->quantity);
         $contact = $inquiry->contact !== null ? ' ('.$inquiry->contact.')' : '';
-        $text = "New request — {$store->name}\nFrom: {$inquiry->customer_name}{$contact}\n{$lines}\nTotal: ".Money::format($total);
+        $text = "New request {$inquiry->reference()} — {$store->name}\nFrom: {$inquiry->customer_name}{$contact}\n{$lines}\nTotal: ".Money::format($total);
 
-        if ($fromCart) {
+        if ($inquiry->from_cart) {
             $text .= "\n".route('stores.show', $store);
         }
 
-        $this->dispatch(PlatformSetting::current()->adminChatId(), $text, $inquiry->id, 'admin');
+        if ($only === null || in_array('admin', $only, true)) {
+            $this->dispatch(PlatformSetting::current()->adminChatId(), $text, $inquiry->id, 'admin');
+        }
 
-        if ($store->telegram_chat_id !== null && $store->telegram_chat_id !== '') {
+        if (($only === null || in_array('vendor', $only, true)) && filled($store->telegram_chat_id)) {
             $this->dispatch($store->telegram_chat_id, $text, $inquiry->id, 'vendor');
         }
+    }
+
+    public function storeConnected(Store $store): void
+    {
+        $this->dispatch(
+            (string) $store->telegram_chat_id,
+            "Connected to {$store->name}. Buy requests from your store now arrive here.",
+            null,
+            'vendor',
+        );
     }
 
     private function dispatch(string $chatId, string $text, ?int $inquiryId, string $destination): void
