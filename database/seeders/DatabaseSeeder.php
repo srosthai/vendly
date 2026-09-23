@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Plan;
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,19 +15,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        Plan::query()->firstOrCreate(
+            ['name' => 'Free'],
+            [
+                'price_cents' => 0,
+                'product_limit' => 10,
+                'is_active' => true,
+                'is_default' => true,
+            ],
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        Plan::query()->create([
-            'name' => 'Free',
-            'price_cents' => 0,
-            'product_limit' => 10,
-            'is_active' => true,
-            'is_default' => true,
-        ]);
+        $this->call(UserSeeder::class);
     }
 }
