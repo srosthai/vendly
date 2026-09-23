@@ -47,6 +47,17 @@ class UserFactory extends Factory
     }
 
     /**
+     * A platform admin. `is_admin` is never mass assignable, so only
+     * factories and seeders set it.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    /**
      * Indicate that the model has two-factor authentication configured.
      */
     public function withTwoFactor(): static
