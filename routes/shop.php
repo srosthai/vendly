@@ -15,6 +15,7 @@ use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
 use App\Http\Controllers\TelegramLinkController;
+use App\Http\Controllers\Vendor\WorkspaceController;
 use App\Http\Controllers\Webhooks\CutluyWebhookController;
 use App\Http\Controllers\Webhooks\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -41,7 +42,16 @@ Route::get('s/{store:slug}/p/{productSlug}', [ProductController::class, 'show'])
 Route::post('s/{store:slug}/products/{product}/cart', [CartController::class, 'store'])->name('cart.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', [WorkspaceController::class, 'home'])->name('dashboard');
     Route::get('start-selling', [StartSellingController::class, 'create'])->name('selling.create');
+    Route::get('vendor/store', [WorkspaceController::class, 'store'])->name('vendor.store');
+    Route::put('vendor/store', [WorkspaceController::class, 'updateStore'])->name('vendor.store.update');
+    Route::get('vendor/products', [WorkspaceController::class, 'products'])->name('vendor.products');
+    Route::get('vendor/products/create', [WorkspaceController::class, 'createProduct'])->name('vendor.products.create');
+    Route::get('vendor/categories', [WorkspaceController::class, 'categories'])->name('vendor.categories');
+    Route::get('vendor/brands', [WorkspaceController::class, 'brands'])->name('vendor.brands');
+    Route::get('vendor/plan', [WorkspaceController::class, 'plan'])->name('vendor.plan');
+    Route::get('vendor/telegram', [WorkspaceController::class, 'telegram'])->name('vendor.telegram');
     Route::post('stores', [StoreController::class, 'store'])->name('stores.store');
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::post('brands', [BrandController::class, 'store'])->name('brands.store');

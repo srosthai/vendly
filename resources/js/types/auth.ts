@@ -13,6 +13,7 @@ export type User = {
 
 export type Auth = {
     user: User;
+    hasStore?: boolean;
 };
 
 export type Passkey = {
