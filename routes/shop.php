@@ -10,6 +10,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
 use App\Http\Controllers\TelegramLinkController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('webhooks/cutluy', CutluyWebhookController::class)->name('webhooks.cutluy');
 Route::post('webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
+
+Route::get('sign-in', [EmailCodeController::class, 'create'])->name('auth.sign-in');
+Route::get('sign-in/code', [EmailCodeController::class, 'code'])->name('auth.sign-in.code');
 
 Route::middleware('throttle:email-code')->group(function () {
     Route::post('auth/email-code', [EmailCodeController::class, 'store'])->name('auth.email-code.store');
@@ -36,6 +40,7 @@ Route::get('s/{store:slug}/p/{productSlug}', [ProductController::class, 'show'])
 Route::post('s/{store:slug}/products/{product}/cart', [CartController::class, 'store'])->name('cart.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('start-selling', [StartSellingController::class, 'create'])->name('selling.create');
     Route::post('stores', [StoreController::class, 'store'])->name('stores.store');
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
