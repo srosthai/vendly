@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Link2 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useTelegramMiniApp } from '@/components/storefront/telegram-mini-app';
 
 /**
@@ -13,6 +14,7 @@ export default function Enter() {
     return (
         <>
             <Head title="Open a store" />
+            <ThemeToggle className="absolute top-4 right-4" />
             <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-6 text-center">
                 <div className="flex items-center gap-1">
                     <AppLogo />

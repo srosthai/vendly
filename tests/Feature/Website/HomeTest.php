@@ -147,3 +147,15 @@ test('the landing page lists the plans vendors can choose, free default first', 
             ->where('plans.0.name', 'Free')
             ->where('plans.1.name', 'Starter'));
 });
+
+test('the saved theme is applied on the first render with a matching browser bar color', function (string $appearance, bool $dark, string $color) {
+    $response = $this->withUnencryptedCookie('appearance', $appearance)->get(route('home'));
+
+    $response->assertOk()->assertSee('<meta name="theme-color" content="'.$color.'">', false);
+
+    expect(str_contains($response->getContent(), 'class="dark"'))->toBe($dark);
+})->with([
+    'dark' => ['dark', true, '#060f22'],
+    'light' => ['light', false, '#f4f7fc'],
+    'system' => ['system', false, '#f4f7fc'],
+]);

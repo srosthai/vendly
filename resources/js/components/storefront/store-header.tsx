@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
 type StoreIdentity = {
@@ -63,7 +64,10 @@ export function StoreHeader({
                     <StoreMark store={store} className="size-10 text-base" />
                     <span className="truncate font-semibold">{store.name}</span>
                 </Link>
-                {cart}
+                <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    {cart}
+                </div>
             </header>
         );
     }
@@ -83,7 +87,10 @@ export function StoreHeader({
                     ) : null}
                 </div>
             </div>
-            {cart}
+            <div className="flex items-center gap-2">
+                <ThemeToggle />
+                {cart}
+            </div>
         </header>
     );
 }
