@@ -87,7 +87,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                                     className={cn(
                                         'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                                         active
-                                            ? 'bg-secondary text-secondary-foreground'
+                                            ? 'bg-primary/10 text-primary dark:bg-primary/15 dark:text-foreground'
                                             : 'text-muted-foreground hover:text-foreground',
                                     )}
                                 >
@@ -146,16 +146,33 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                                     className="flex flex-col gap-1 px-4"
                                     aria-label="Main"
                                 >
-                                    {links.map((link) => (
-                                        <SheetClose asChild key={link.title}>
-                                            <Link
-                                                href={link.href}
-                                                className="rounded-xl px-3 py-3 text-base font-medium hover:bg-accent"
+                                    {links.map((link) => {
+                                        const active = isCurrentUrl(link.href);
+
+                                        return (
+                                            <SheetClose
+                                                asChild
+                                                key={link.title}
                                             >
-                                                {link.title}
-                                            </Link>
-                                        </SheetClose>
-                                    ))}
+                                                <Link
+                                                    href={link.href}
+                                                    aria-current={
+                                                        active
+                                                            ? 'page'
+                                                            : undefined
+                                                    }
+                                                    className={cn(
+                                                        'relative flex items-center rounded-xl px-4 py-3 text-base font-medium transition-colors',
+                                                        active
+                                                            ? 'bg-primary/10 text-primary before:absolute before:inset-y-2.5 before:left-0 before:w-1 before:rounded-full before:bg-primary dark:bg-primary/15 dark:text-foreground'
+                                                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                                                    )}
+                                                >
+                                                    {link.title}
+                                                </Link>
+                                            </SheetClose>
+                                        );
+                                    })}
                                 </nav>
                                 <div className="mt-auto flex flex-col gap-2 p-4">
                                     {auth.user ? (
