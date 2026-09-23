@@ -1,26 +1,25 @@
 import { Form } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/empty-state';
+import {
+    FormSheet,
+    FormSheetBody,
+    FormSheetFooter,
+} from '@/components/form-sheet';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SheetClose } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDeleteDialog } from '@/components/vendor/confirm-delete-dialog';
 import type { RouteFormDefinition } from '@/wayfinder';
 
-export type NamedRecord = { id: number; name: string; products_count?: number };
+export type NamedRecord = { id: number; name: string };
 
 type Routes = {
     store: RouteFormDefinition<'post'>;
@@ -28,59 +27,84 @@ type Routes = {
     destroy: (id: number) => RouteFormDefinition<'post'>;
 };
 
-function RenameDialog({
-    record,
+/**
+ * Add a category or brand, or rename one when a record is passed.
+ */
+function NamedRecordSheet({
+    record = null,
     noun,
     action,
+    variant = 'default',
 }: {
-    record: NamedRecord;
+    record?: NamedRecord | null;
     noun: string;
     action: RouteFormDefinition<'post'>;
+    variant?: 'default' | 'row';
 }) {
     const [open, setOpen] = useState(false);
+    const lowerNoun = noun.toLowerCase();
+    const id = `name-${record?.id ?? 'new'}`;
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                    Rename
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Rename {record.name}</DialogTitle>
-                </DialogHeader>
-                <Form
-                    {...action}
-                    options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
-                    className="grid gap-4"
-                >
-                    {({ processing, errors }) => (
-                        <>
+        <FormSheet
+            open={open}
+            onOpenChange={setOpen}
+            title={record ? `Rename ${record.name}` : `New ${lowerNoun}`}
+            description={
+                record
+                    ? 'The link customers use to filter by it stays the same.'
+                    : undefined
+            }
+            trigger={
+                variant === 'row' ? (
+                    <Button variant="ghost" size="sm">
+                        Rename
+                    </Button>
+                ) : (
+                    <Button>
+                        <Plus />
+                        New {lowerNoun}
+                    </Button>
+                )
+            }
+        >
+            <Form
+                {...action}
+                options={{ preserveScroll: true }}
+                resetOnSuccess={record === null}
+                onSuccess={() => setOpen(false)}
+                className="flex min-h-0 flex-1 flex-col"
+            >
+                {({ processing, errors }) => (
+                    <>
+                        <FormSheetBody>
                             <div className="grid gap-2">
-                                <Label htmlFor={`name-${record.id}`}>
-                                    {noun} name
-                                </Label>
+                                <Label htmlFor={id}>{noun} name</Label>
                                 <Input
-                                    id={`name-${record.id}`}
+                                    id={id}
                                     name="name"
                                     required
-                                    defaultValue={record.name}
+                                    autoFocus
+                                    defaultValue={record?.name}
                                 />
                                 <InputError message={errors.name} />
                             </div>
-                            <DialogFooter>
-                                <Button type="submit" disabled={processing}>
-                                    {processing && <Spinner />}
-                                    Save name
+                        </FormSheetBody>
+                        <FormSheetFooter>
+                            <SheetClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancel
                                 </Button>
-                            </DialogFooter>
-                        </>
-                    )}
-                </Form>
-            </DialogContent>
-        </Dialog>
+                            </SheetClose>
+                            <Button type="submit" disabled={processing}>
+                                {processing && <Spinner />}
+                                {record ? 'Save name' : `Add ${lowerNoun}`}
+                            </Button>
+                        </FormSheetFooter>
+                    </>
+                )}
+            </Form>
+        </FormSheet>
     );
 }
 
@@ -104,44 +128,21 @@ export function NamedList({
     routes: Routes;
 }) {
     const lowerNoun = noun.toLowerCase();
+    const addSheet = <NamedRecordSheet noun={noun} action={routes.store} />;
 
     return (
         <div className="flex max-w-3xl flex-col gap-6 p-4 md:p-6">
-            <PageHeader title={title} description={description} />
-            <Card className="p-4 sm:p-5">
-                <Form
-                    {...routes.store}
-                    options={{ preserveScroll: true }}
-                    resetOnSuccess
-                    className="flex flex-col gap-2 sm:flex-row sm:items-start"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid flex-1 gap-2">
-                                <Label htmlFor="new-name" className="sr-only">
-                                    New {lowerNoun} name
-                                </Label>
-                                <Input
-                                    id="new-name"
-                                    name="name"
-                                    required
-                                    placeholder={`New ${lowerNoun} name`}
-                                />
-                                <InputError message={errors.name} />
-                            </div>
-                            <Button type="submit" disabled={processing}>
-                                {processing && <Spinner />}
-                                Add {lowerNoun}
-                            </Button>
-                        </>
-                    )}
-                </Form>
-            </Card>
+            <PageHeader
+                title={title}
+                description={description}
+                actions={items.length > 0 ? addSheet : undefined}
+            />
             {items.length === 0 ? (
                 <EmptyState
                     icon={Icon}
                     title={`No ${title.toLowerCase()} yet`}
-                    description={`Add the first ${lowerNoun} above.`}
+                    description={`Add your first ${lowerNoun} to group your products.`}
+                    action={addSheet}
                 />
             ) : (
                 <Card className="gap-0 divide-y p-0">
@@ -154,10 +155,11 @@ export function NamedList({
                                 {item.name}
                             </span>
                             <div className="flex shrink-0 gap-1">
-                                <RenameDialog
+                                <NamedRecordSheet
                                     record={item}
                                     noun={noun}
                                     action={routes.update(item.id)}
+                                    variant="row"
                                 />
                                 <ConfirmDeleteDialog
                                     name={item.name}

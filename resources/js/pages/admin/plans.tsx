@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Tags } from 'lucide-react';
-import type { AdminPlan } from '@/components/admin/plan-form-dialog';
-import { PlanFormDialog } from '@/components/admin/plan-form-dialog';
+import type { AdminPlan } from '@/components/admin/plan-form-sheet';
+import { PlanFormSheet } from '@/components/admin/plan-form-sheet';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -43,14 +43,14 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                 <PageHeader
                     title="Plans"
                     description="Plans limit how many products a store can publish. The default plan is free, and every new store starts on it."
-                    actions={<PlanFormDialog />}
+                    actions={<PlanFormSheet />}
                 />
                 {plans.length === 0 ? (
                     <EmptyState
                         icon={Tags}
                         title="No plans yet"
                         description="Create a free default plan first. New stores cannot open without one."
-                        action={<PlanFormDialog />}
+                        action={<PlanFormSheet />}
                     />
                 ) : (
                     <>
@@ -89,7 +89,7 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                                 <PlanBadge plan={plan} />
                                             </TableCell>
                                             <TableCell className="pr-5 text-right">
-                                                <PlanFormDialog plan={plan} />
+                                                <PlanFormSheet plan={plan} />
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -114,7 +114,7 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                             {plan.product_limit} products
                                         </p>
                                     </div>
-                                    <PlanFormDialog plan={plan} />
+                                    <PlanFormSheet plan={plan} />
                                 </Card>
                             ))}
                         </div>

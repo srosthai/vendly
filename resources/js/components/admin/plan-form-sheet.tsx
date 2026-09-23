@@ -2,20 +2,17 @@ import { Form } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import PlanController from '@/actions/App/Http/Controllers/Billing/PlanController';
+import {
+    FormSheet,
+    FormSheetBody,
+    FormSheetFooter,
+} from '@/components/form-sheet';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SheetClose } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 
 export type AdminPlan = {
@@ -30,16 +27,20 @@ export type AdminPlan = {
 /**
  * Create a plan, or edit one when a plan is passed.
  */
-export function PlanFormDialog({ plan = null }: { plan?: AdminPlan | null }) {
+export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(plan?.is_active ?? true);
     const [isDefault, setIsDefault] = useState(plan?.is_default ?? false);
     const key = plan?.id ?? 'new';
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {plan ? (
+        <FormSheet
+            open={open}
+            onOpenChange={setOpen}
+            title={plan ? `Edit ${plan.name}` : 'New plan'}
+            description="Plans set how many products a store can publish. The default plan is free, and every new store starts on it."
+            trigger={
+                plan ? (
                     <Button variant="ghost" size="sm">
                         Edit
                     </Button>
@@ -48,37 +49,29 @@ export function PlanFormDialog({ plan = null }: { plan?: AdminPlan | null }) {
                         <Plus />
                         New plan
                     </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>
-                        {plan ? `Edit ${plan.name}` : 'New plan'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        The default plan is the free plan every new store starts
-                        on.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form
-                    {...(plan
-                        ? PlanController.update.form(plan.id)
-                        : PlanController.store.form())}
-                    options={{ preserveScroll: true }}
-                    resetOnSuccess={plan === null}
-                    onSuccess={() => setOpen(false)}
-                    className="grid gap-4"
-                >
-                    {({ processing, errors }) => (
-                        <>
+                )
+            }
+        >
+            <Form
+                {...(plan
+                    ? PlanController.update.form(plan.id)
+                    : PlanController.store.form())}
+                options={{ preserveScroll: true }}
+                resetOnSuccess={plan === null}
+                onSuccess={() => setOpen(false)}
+                className="flex min-h-0 flex-1 flex-col"
+            >
+                {({ processing, errors }) => (
+                    <>
+                        <FormSheetBody>
                             <div className="grid gap-2">
                                 <Label htmlFor={`name-${key}`}>Name</Label>
                                 <Input
                                     id={`name-${key}`}
                                     name="name"
                                     required
-                                    defaultValue={plan?.name}
                                     placeholder="Starter"
+                                    defaultValue={plan?.name}
                                 />
                                 <InputError message={errors.name} />
                             </div>
@@ -100,6 +93,10 @@ export function PlanFormDialog({ plan = null }: { plan?: AdminPlan | null }) {
                                             : ''
                                     }
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                    Use 0 for a free plan. A paid price is at
+                                    least $0.01.
+                                </p>
                                 <InputError message={errors.price} />
                             </div>
                             <div className="grid gap-2">
@@ -126,42 +123,49 @@ export function PlanFormDialog({ plan = null }: { plan?: AdminPlan | null }) {
                                 name="is_default"
                                 value={isDefault ? '1' : '0'}
                             />
-                            <div className="flex items-center gap-3">
-                                <Checkbox
-                                    id={`active-${key}`}
-                                    checked={active}
-                                    onCheckedChange={(checked) =>
-                                        setActive(checked === true)
-                                    }
-                                />
-                                <Label htmlFor={`active-${key}`}>
-                                    Vendors can choose this plan
-                                </Label>
+                            <div className="grid gap-3 rounded-2xl border p-4">
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id={`active-${key}`}
+                                        checked={active}
+                                        onCheckedChange={(checked) =>
+                                            setActive(checked === true)
+                                        }
+                                    />
+                                    <Label htmlFor={`active-${key}`}>
+                                        Vendors can choose this plan
+                                    </Label>
+                                </div>
+                                <InputError message={errors.is_active} />
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id={`default-${key}`}
+                                        checked={isDefault}
+                                        onCheckedChange={(checked) =>
+                                            setIsDefault(checked === true)
+                                        }
+                                    />
+                                    <Label htmlFor={`default-${key}`}>
+                                        New stores start on this plan
+                                    </Label>
+                                </div>
+                                <InputError message={errors.is_default} />
                             </div>
-                            <InputError message={errors.is_active} />
-                            <div className="flex items-center gap-3">
-                                <Checkbox
-                                    id={`default-${key}`}
-                                    checked={isDefault}
-                                    onCheckedChange={(checked) =>
-                                        setIsDefault(checked === true)
-                                    }
-                                />
-                                <Label htmlFor={`default-${key}`}>
-                                    New stores start on this plan
-                                </Label>
-                            </div>
-                            <InputError message={errors.is_default} />
-                            <DialogFooter>
-                                <Button type="submit" disabled={processing}>
-                                    {processing && <Spinner />}
-                                    {plan ? 'Save plan' : 'Create plan'}
+                        </FormSheetBody>
+                        <FormSheetFooter>
+                            <SheetClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancel
                                 </Button>
-                            </DialogFooter>
-                        </>
-                    )}
-                </Form>
-            </DialogContent>
-        </Dialog>
+                            </SheetClose>
+                            <Button type="submit" disabled={processing}>
+                                {processing && <Spinner />}
+                                {plan ? 'Save plan' : 'Create plan'}
+                            </Button>
+                        </FormSheetFooter>
+                    </>
+                )}
+            </Form>
+        </FormSheet>
     );
 }
