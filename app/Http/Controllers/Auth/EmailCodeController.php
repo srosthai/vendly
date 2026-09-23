@@ -8,15 +8,48 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\SendEmailCodeRequest;
 use App\Http\Requests\Auth\VerifyEmailCodeRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class EmailCodeController extends Controller
 {
+    public function create(Request $request): Response
+    {
+        if ($request->query('next') === 'sell') {
+            $request->session()->put('url.intended', route('selling.create'));
+        }
+
+        return Inertia::render('auth/sign-in', [
+            'step' => 'email',
+            'email' => '',
+            'status' => $request->session()->get('status'),
+        ]);
+    }
+
+    public function code(Request $request): Response|RedirectResponse
+    {
+        $email = $request->session()->get('sign_in_email');
+
+        if (! is_string($email) || $email === '') {
+            return redirect()->route('auth.sign-in');
+        }
+
+        return Inertia::render('auth/sign-in', [
+            'step' => 'code',
+            'email' => $email,
+            'status' => $request->session()->get('status'),
+        ]);
+    }
+
     public function store(SendEmailCodeRequest $request, SendEmailCode $action): RedirectResponse
     {
-        $action->handle($request->string('email')->toString());
+        $email = $request->string('email')->toString();
+        $action->handle($email);
+        $request->session()->put('sign_in_email', strtolower($email));
 
-        return back()->with('status', 'We sent a sign-in code.');
+        return redirect()->route('auth.sign-in.code')->with('status', 'We sent a sign-in code.');
     }
 
     public function verify(VerifyEmailCodeRequest $request, VerifyEmailCode $action): RedirectResponse
