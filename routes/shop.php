@@ -10,6 +10,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\MiniAppController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
@@ -37,6 +38,7 @@ Route::post('auth/telegram', [TelegramAuthController::class, 'store'])
     ->middleware('throttle:telegram-auth')
     ->name('auth.telegram.store');
 
+Route::get('m', MiniAppController::class)->name('mini-app');
 Route::get('s/{store:slug}', [StoreController::class, 'show'])->name('stores.show');
 Route::get('s/{store:slug}/p/{productSlug}', [ProductController::class, 'show'])->name('stores.products.show');
 Route::post('s/{store:slug}/products/{product}/cart', [CartController::class, 'store'])->name('cart.store');

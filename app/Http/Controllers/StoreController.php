@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Stores\CreateStore;
 use App\Http\Requests\CreateStoreRequest;
+use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,12 +29,15 @@ class StoreController extends Controller
         return redirect()->route('stores.show', $store);
     }
 
-    public function show(Store $store): Response
+    public function show(Request $request, Store $store): Response
     {
         abort_if($store->isSuspended(), 404);
 
+        $category = $request->string('category')->toString();
         $products = $store->products()
             ->published()
+            ->with('images')
+            ->when($category !== '', fn ($query) => $query->whereHas('category', fn ($categories) => $categories->where('slug', $category)))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
@@ -39,12 +45,18 @@ class StoreController extends Controller
         return Inertia::render('stores/show', [
             'store' => [
                 'name' => $store->name,
+                'slug' => $store->slug,
                 'description' => $store->description,
             ],
-            'products' => $products->map(fn ($product): array => [
+            'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['name', 'slug']),
+            'activeCategory' => $category,
+            'embedded' => $request->session()->get('mini_app') === true,
+            'products' => $products->map(fn (Product $product): array => [
                 'id' => $product->id,
                 'name' => $product->name,
                 'price_cents' => $product->price_cents,
+                'sold_out' => $product->isSoldOut(),
+                'image' => $product->images->first() !== null ? Storage::disk('public')->url($product->images->first()->path) : null,
                 'url' => route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug]),
             ])->values(),
         ]);
