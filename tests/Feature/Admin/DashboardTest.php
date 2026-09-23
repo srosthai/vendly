@@ -3,6 +3,7 @@
 use App\Actions\Billing\SavePlan;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
+use App\Models\Testimonial;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -182,4 +183,45 @@ test('admin vendor and payment lists are paginated', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.vendors'))
         ->assertInertia(fn ($page) => $page->has('vendors.data', 25)->where('vendors.last_page', 2));
+});
+
+test('an admin adds, publishes, edits, and deletes a testimonial', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->post(route('admin.testimonials.store'), [
+        'name' => 'Sokha',
+        'role' => 'Owner, Smile Tea',
+        'quote' => 'Customers send me their cart and I answer in Telegram.',
+        'published' => false,
+    ])->assertRedirect();
+
+    $testimonial = Testimonial::query()->sole();
+    expect($testimonial->published_at)->toBeNull();
+
+    $this->actingAs($admin)->put(route('admin.testimonials.update', $testimonial), [
+        'name' => 'Sokha',
+        'role' => 'Owner, Smile Tea',
+        'quote' => '<b>Customers</b> send me their cart and I answer in Telegram.',
+        'published' => true,
+    ])->assertRedirect();
+
+    expect($testimonial->fresh())
+        ->published_at->not->toBeNull()
+        ->quote->toBe('Customers send me their cart and I answer in Telegram.');
+
+    $this->actingAs($admin)->delete(route('admin.testimonials.destroy', $testimonial))->assertRedirect();
+    expect(Testimonial::query()->count())->toBe(0);
+});
+
+test('only an admin can manage testimonials', function () {
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)->get(route('admin.testimonials'))->assertForbidden();
+    $this->actingAs($vendor)->post(route('admin.testimonials.store'), [
+        'name' => 'Fake',
+        'quote' => 'A quote nobody said out loud.',
+        'published' => true,
+    ])->assertForbidden();
+
+    expect(Testimonial::query()->count())->toBe(0);
 });

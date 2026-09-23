@@ -45,9 +45,24 @@
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        @php($meta = $page['props']['meta'] ?? null)
+        {{-- Without server-side rendering this slot is the head; with it, the rendered page supplies the same tags. --}}
         <x-inertia::head>
-            <title>{{ config('app.name', 'Vendly') }}</title>
+            <title>{{ is_array($meta) ? $meta['title'].' - '.config('app.name', 'Vendly') : config('app.name', 'Vendly') }}</title>
+            @if (is_array($meta))
+                <meta name="description" content="{{ $meta['description'] }}" inertia="description">
+                <link rel="canonical" href="{{ $meta['url'] }}" inertia="canonical">
+                <meta property="og:title" content="{{ $meta['title'] }} - {{ config('app.name', 'Vendly') }}" inertia="og:title">
+                <meta property="og:description" content="{{ $meta['description'] }}" inertia="og:description">
+                <meta property="og:url" content="{{ $meta['url'] }}" inertia="og:url">
+            @endif
         </x-inertia::head>
+        @if (is_array($meta))
+            <meta property="og:type" content="website">
+            <meta property="og:site_name" content="{{ config('app.name', 'Vendly') }}">
+            <meta property="og:image" content="{{ asset('images/brand/vendly-logo.png') }}">
+            <meta name="twitter:card" content="summary">
+        @endif
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />
