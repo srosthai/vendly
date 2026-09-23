@@ -3,7 +3,7 @@ import { Menu } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import AppLogo from '@/components/app-logo';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeSwitch } from '@/components/theme-switch';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -96,7 +96,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                         })}
                     </nav>
                     <div className="ml-auto flex items-center gap-1.5">
-                        <ThemeToggle className="size-9 border-transparent bg-transparent" />
+                        <ThemeSwitch />
                         {auth.user ? (
                             <Button
                                 asChild

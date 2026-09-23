@@ -52,7 +52,7 @@ const applyTheme = (appearance: Appearance): void => {
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', isDark ? '#060f22' : '#f4f7fc');
+        ?.setAttribute('content', isDark ? '#0b0b0c' : '#f4f7fc');
     window.dispatchEvent(new CustomEvent('appearance-applied'));
 };
 
