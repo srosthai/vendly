@@ -113,7 +113,7 @@ export default function Product({
                                 ) : (
                                     <Button asChild className="min-h-11 flex-1">
                                         <Link
-                                            href={`/sign-in?next=/s/${store.slug}/p/${product.slug}`}
+                                            href={`/login?next=/s/${store.slug}/p/${product.slug}`}
                                         >
                                             Buy
                                         </Link>

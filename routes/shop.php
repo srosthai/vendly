@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
 use App\Http\Controllers\Billing\PlanController;
 use App\Http\Controllers\Billing\PlanPaymentController;
@@ -25,6 +26,11 @@ Route::post('webhooks/cutluy', CutluyWebhookController::class)->name('webhooks.c
 Route::post('webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
 
 Route::get('sign-in', [EmailCodeController::class, 'create'])->name('auth.sign-in');
+Route::get('register/code', [RegisterController::class, 'code'])->name('auth.register.code');
+Route::post('register/code', [RegisterController::class, 'store'])
+    ->middleware('throttle:email-code')
+    ->name('auth.register.store');
+Route::post('register/code/verify', [RegisterController::class, 'verify'])->name('auth.register.verify');
 Route::get('sign-in/code', [EmailCodeController::class, 'code'])->name('auth.sign-in.code');
 
 Route::middleware('throttle:email-code')->group(function () {

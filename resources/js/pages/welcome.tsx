@@ -17,7 +17,7 @@ export default function Welcome() {
                         Vendly
                     </span>
                     <Button variant="ghost" asChild>
-                        <Link href="/sign-in">Sign in</Link>
+                        <Link href="/login">Sign in</Link>
                     </Button>
                 </header>
                 <main className="mx-auto grid w-full max-w-5xl gap-16 px-6 pt-10 pb-24 lg:grid-cols-[minmax(0,1.1fr)_minmax(16rem,22rem)] lg:items-end">
@@ -32,12 +32,12 @@ export default function Welcome() {
                         </p>
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <Button asChild size="lg">
-                                <Link href="/sign-in?next=sell">
+                                <Link href="/register?next=sell">
                                     Start selling
                                 </Link>
                             </Button>
                             <Button asChild size="lg" variant="outline">
-                                <Link href="/sign-in">Sign in</Link>
+                                <Link href="/login">Sign in</Link>
                             </Button>
                         </div>
                     </div>

@@ -24,6 +24,10 @@ export default function Login({ status, canResetPassword }: Props) {
 
             <PasskeyVerify />
 
+            <Button variant="outline" className="w-full" asChild>
+                <a href="/auth/google/redirect">Continue with Google</a>
+            </Button>
+
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
@@ -113,5 +117,5 @@ export default function Login({ status, canResetPassword }: Props) {
 
 Login.layout = {
     title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    description: 'Continue with Google, or use your email and password.',
 };

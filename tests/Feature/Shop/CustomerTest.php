@@ -28,7 +28,7 @@ test('a guest can add to the cart and must sign in before buying', function () {
     $this->post(route('inquiries.product', [$store, $product]))->assertRedirect(route('login'));
     expect(Inquiry::query()->count())->toBe(0);
 
-    $this->get(route('auth.sign-in', ['next' => '/s/'.$store->slug.'/p/jasmine']))
+    $this->get(route('login', ['next' => '/s/'.$store->slug.'/p/jasmine']))
         ->assertOk();
 
     expect(session('url.intended'))->toBe(url('/s/'.$store->slug.'/p/jasmine'));

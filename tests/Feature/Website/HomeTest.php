@@ -2,8 +2,6 @@
 
 use App\Models\Plan;
 use App\Models\User;
-use App\Notifications\EmailSignInCode;
-use Illuminate\Support\Facades\Notification;
 
 test('the home page offers sign in and start selling', function () {
     $this->get(route('home'))
@@ -11,27 +9,13 @@ test('the home page offers sign in and start selling', function () {
         ->assertInertia(fn ($page) => $page->component('welcome'));
 });
 
-test('sign in shows the email step and then the code', function () {
-    Notification::fake();
-
-    $this->get(route('auth.sign-in', ['next' => 'sell']))
+test('sign in is the email and password form', function () {
+    $this->get(route('login'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('auth/sign-in')
-            ->where('step', 'email'));
+        ->assertInertia(fn ($page) => $page->component('auth/login'));
 
-    $this->post(route('auth.email-code.store'), [
-        'email' => 'ada@example.com',
-    ])->assertRedirect(route('auth.sign-in.code'));
-
-    $this->get(route('auth.sign-in.code'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('auth/sign-in')
-            ->where('step', 'code')
-            ->where('email', 'ada@example.com'));
-
-    Notification::assertSentOnDemand(EmailSignInCode::class);
+    $this->get(route('auth.sign-in'))
+        ->assertRedirect(route('login'));
 });
 
 test('start selling requires an account and creates one store', function () {

@@ -13,6 +13,16 @@ beforeEach(function () {
     ]);
 });
 
+test('google sign-in asks for the environment keys when they are missing', function () {
+    config([
+        'services.google.client_id' => null,
+        'services.google.client_secret' => null,
+    ]);
+
+    $this->get(route('auth.google.redirect'))
+        ->assertRedirect(route('login'));
+});
+
 test('google redirects without calling the network when faked', function () {
     Http::preventStrayRequests();
     Socialite::fake('google');
