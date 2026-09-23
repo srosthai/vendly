@@ -30,19 +30,27 @@ export function PhoneMockup({ className }: { className?: string }) {
     return (
         <div
             className={cn(
-                'relative mx-auto w-[280px] rounded-[2.75rem] bg-[#0f0f10] p-2.5 shadow-2xl ring-1 shadow-black/25 ring-black/10 sm:w-[300px] dark:ring-white/10',
+                'relative w-[264px] rounded-[2.75rem] bg-[#16161a] p-2 shadow-[0_30px_80px_-20px_rgb(8_26_59/0.45)] ring-1 ring-black/5 sm:w-[280px] dark:bg-[#2b2b30] dark:shadow-[0_30px_80px_-20px_rgb(0_0_0/0.8)] dark:ring-white/15',
                 className,
             )}
             role="img"
             aria-label="The Vendly mini app inside Telegram, showing the example store Smile Tea with four products and a cart ready to send."
         >
-            <div className="relative overflow-hidden rounded-[2.25rem] bg-background">
+            <span
+                className="absolute top-24 -left-[3px] h-10 w-[3px] rounded-l-sm bg-[#16161a] dark:bg-[#2b2b30]"
+                aria-hidden="true"
+            />
+            <span
+                className="absolute top-32 -right-[3px] h-14 w-[3px] rounded-r-sm bg-[#16161a] dark:bg-[#2b2b30]"
+                aria-hidden="true"
+            />
+            <div className="relative overflow-hidden rounded-[2.25rem] bg-background ring-1 ring-black/10 dark:ring-white/5">
                 <div
-                    className="absolute top-2 left-1/2 z-10 h-6 w-24 -translate-x-1/2 rounded-full bg-[#0f0f10]"
+                    className="absolute top-2 left-1/2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-black"
                     aria-hidden="true"
                 />
                 <div
-                    className="flex items-center justify-between bg-card px-4 pt-10 pb-3"
+                    className="flex items-center justify-between border-b bg-card px-4 pt-9 pb-2.5"
                     aria-hidden="true"
                 >
                     <span className="flex items-center gap-1 text-sm font-medium text-primary">
@@ -59,9 +67,9 @@ export function PhoneMockup({ className }: { className?: string }) {
                     </span>
                     <MoreVertical className="size-4 text-muted-foreground" />
                 </div>
-                <div className="flex flex-col gap-3 p-3" aria-hidden="true">
-                    <div className="flex items-center gap-3 rounded-2xl border bg-card p-3">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-secondary font-bold text-secondary-foreground">
+                <div className="flex flex-col gap-2.5 p-2.5" aria-hidden="true">
+                    <div className="flex items-center gap-3 rounded-2xl border bg-card p-2.5">
+                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-bold text-primary-foreground">
                             S
                         </span>
                         <span className="min-w-0">
@@ -97,14 +105,14 @@ export function PhoneMockup({ className }: { className?: string }) {
                                 className="overflow-hidden rounded-xl border bg-card"
                             >
                                 <div
-                                    className="aspect-square bg-cover"
+                                    className="aspect-[5/4] bg-cover"
                                     style={{
                                         backgroundImage: `url(${photo})`,
                                         backgroundPosition: product.position,
                                         backgroundSize: '320%',
                                     }}
                                 />
-                                <div className="p-2">
+                                <div className="px-2 py-1.5">
                                     <span className="block truncate text-sm font-medium">
                                         {product.name}
                                     </span>
@@ -117,7 +125,7 @@ export function PhoneMockup({ className }: { className?: string }) {
                     </div>
                 </div>
                 <div
-                    className="flex items-center gap-2 border-t bg-card p-3"
+                    className="flex items-center gap-2 border-t bg-card px-2.5 pt-2.5 pb-4"
                     aria-hidden="true"
                 >
                     <span className="flex size-10 items-center justify-center rounded-full border">
