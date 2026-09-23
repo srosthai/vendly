@@ -76,6 +76,11 @@ class DashboardController extends Controller
                 'bot_token' => filled(config('services.telegram.bot_token')),
                 'cutluy_key' => filled(config('services.cutluy.key')),
                 'cutluy_webhook' => filled(config('services.cutluy.webhook_secret')),
+                'telegram_webhook' => filled(config('services.telegram.webhook_secret')),
+            ],
+            'webhookUrls' => [
+                'telegram' => route('webhooks.telegram'),
+                'cutluy' => route('webhooks.cutluy'),
             ],
         ]);
     }

@@ -9,11 +9,13 @@ type Secrets = {
     bot_token: boolean;
     cutluy_key: boolean;
     cutluy_webhook: boolean;
+    telegram_webhook: boolean;
 };
 
 export default function Telegram({
     settings,
     secrets,
+    webhookUrls,
 }: {
     settings: {
         admin_chat_id: string;
@@ -21,6 +23,7 @@ export default function Telegram({
         mini_app_short_name: string;
     };
     secrets: Secrets;
+    webhookUrls: { telegram: string; cutluy: string };
 }) {
     return (
         <>
@@ -47,7 +50,24 @@ export default function Telegram({
                         CutLuy webhook secret:{' '}
                         {secrets.cutluy_webhook ? 'Configured' : 'Missing'}
                     </li>
+                    <li>
+                        Telegram webhook secret:{' '}
+                        {secrets.telegram_webhook ? 'Configured' : 'Missing'}
+                    </li>
                 </ul>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>
+                        Webhooks are refused until their secret is set. Point
+                        CutLuy at <code>{webhookUrls.cutluy}</code>.
+                    </p>
+                    <p>
+                        Register the bot webhook once with Telegram&apos;s{' '}
+                        <code>setWebhook</code>, passing{' '}
+                        <code>url={webhookUrls.telegram}</code> and{' '}
+                        <code>secret_token</code> equal to{' '}
+                        <code>TELEGRAM_WEBHOOK_SECRET</code>.
+                    </p>
+                </div>
                 <Form
                     action="/admin/telegram"
                     method="put"

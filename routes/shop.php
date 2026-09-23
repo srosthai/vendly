@@ -17,12 +17,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
 use App\Http\Controllers\TelegramLinkController;
 use App\Http\Controllers\Vendor\WorkspaceController;
-use App\Http\Controllers\Webhooks\CutluyWebhookController;
-use App\Http\Controllers\Webhooks\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
-
-Route::post('webhooks/cutluy', CutluyWebhookController::class)->name('webhooks.cutluy');
-Route::post('webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisterController::class, 'create'])->name('register');

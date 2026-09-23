@@ -6,6 +6,7 @@ use App\Enums\SubscriptionStatus;
 use App\Jobs\ApplyCutluyWebhook;
 use App\Models\Plan;
 use App\Models\Product;
+use App\Models\Store;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
@@ -25,15 +26,68 @@ beforeEach(function () {
 
 test('a re-serialized body and a stale timestamp fail verification', function () {
     Queue::fake();
-    $raw = '{"id":"pay_123"}';
+    $raw = cutluyDelivery('payment.completed');
     $signature = cutluySignature($raw, now()->getTimestamp());
 
-    cutluyCall('{"id": "pay_123"}', 'payment.completed', $signature)->assertUnauthorized();
+    cutluyCall(json_encode(json_decode($raw), JSON_PRETTY_PRINT), 'payment.completed', $signature)->assertUnauthorized();
     cutluyCall($raw, 'payment.completed', cutluySignature($raw, now()->subMinutes(6)->getTimestamp()), now()->subMinutes(6)->getTimestamp())
         ->assertUnauthorized();
 
     Queue::assertNotPushed(ApplyCutluyWebhook::class);
 });
+
+test('a webhook is refused when the signing secret is not configured', function () {
+    Queue::fake();
+    $raw = cutluyDelivery('payment.completed');
+    $signature = cutluySignature($raw, now()->getTimestamp());
+
+    config(['services.cutluy.webhook_secret' => '']);
+
+    cutluyCall($raw, 'payment.completed', $signature)->assertUnauthorized();
+
+    Queue::assertNothingPushed();
+});
+
+test('a signed webhook is queued without a session and unknown events are ignored', function () {
+    Queue::fake();
+
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')
+        ->assertNoContent()
+        ->assertCookieMissing(config('session.cookie'));
+
+    Queue::assertPushed(ApplyCutluyWebhook::class, fn (ApplyCutluyWebhook $job): bool => $job->event === 'payment.completed');
+
+    cutluyCall(cutluyDelivery('payment.refunded'), 'payment.refunded')->assertNoContent();
+
+    Queue::assertPushed(ApplyCutluyWebhook::class, 1);
+});
+
+test('the signed event type wins over the unsigned header', function () {
+    Http::preventStrayRequests();
+    $store = openStore(User::factory()->create(), 'Header Tea');
+    $freeId = $store->subscription->plan_id;
+    pendingStarterPayment($store);
+
+    cutluyCall(cutluyDelivery('payment.scanned'), 'payment.completed')->assertNoContent();
+
+    expect($store->fresh()->subscription->plan_id)->toBe($freeId);
+});
+
+test('a completed payment that does not match the local payment does not extend the plan', function (array $remote) {
+    Http::preventStrayRequests();
+    $store = openStore(User::factory()->create(), 'Mismatch Tea');
+    $freeId = $store->subscription->plan_id;
+    $payment = pendingStarterPayment($store);
+
+    cutluyCall(cutluyDelivery('payment.completed', $remote), 'payment.completed')->assertNoContent();
+
+    expect($store->fresh()->subscription->plan_id)->toBe($freeId)
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Pending);
+})->with([
+    'a lower amount' => [['amount' => '0.01']],
+    'another reference' => [['reference_id' => 'subpay_other']],
+    'another currency' => [['currency' => 'KHR']],
+]);
 
 test('scanned does not raise the product limit and completed does only once', function () {
     Http::preventStrayRequests();
@@ -73,7 +127,7 @@ test('scanned does not raise the product limit and completed does only once', fu
     $this->actingAs($vendor)->post(route('products.publish', $first))->assertRedirect();
     $this->actingAs($vendor)->post(route('products.publish', $second))->assertInvalid(['status']);
 
-    cutluyCall('{"id":"pay_123"}', 'payment.scanned')->assertNoContent();
+    cutluyCall(cutluyDelivery('payment.scanned'), 'payment.scanned')->assertNoContent();
 
     expect($store->fresh()->subscription->plan->product_limit)->toBe(1)
         ->and($store->fresh()->subscription->plan->isFree())->toBeTrue();
@@ -81,7 +135,7 @@ test('scanned does not raise the product limit and completed does only once', fu
     $this->actingAs($vendor)->post(route('products.publish', $second))->assertInvalid(['status']);
 
     $this->travelTo(now());
-    cutluyCall('{"id":"pay_123"}', 'payment.completed')->assertNoContent();
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
 
     $endsAt = $store->fresh()->subscription->ends_at;
     expect($store->fresh()->subscription->plan_id)->toBe($paid->id)
@@ -90,7 +144,7 @@ test('scanned does not raise the product limit and completed does only once', fu
 
     $this->actingAs($vendor)->post(route('products.publish', $second))->assertRedirect();
 
-    cutluyCall('{"id":"pay_123"}', 'payment.completed')->assertNoContent();
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
 
     expect($store->fresh()->subscription->ends_at?->equalTo($endsAt))->toBeTrue();
 });
@@ -235,6 +289,52 @@ test('a paid price under one cent is rejected', function () {
 
     expect(Plan::query()->where('name', 'Tiny')->exists())->toBeFalse();
 });
+
+function pendingStarterPayment(Store $store): SubscriptionPayment
+{
+    $plan = Plan::query()->create([
+        'name' => 'Starter '.$store->id,
+        'price_cents' => 500,
+        'product_limit' => 100,
+        'is_active' => true,
+        'is_default' => false,
+    ]);
+
+    return SubscriptionPayment::query()->create([
+        'public_id' => 'subpay_test',
+        'store_id' => $store->id,
+        'plan_id' => $plan->id,
+        'amount_cents' => 500,
+        'cutluy_id' => 'pay_123',
+        'status' => PaymentStatus::Pending,
+    ]);
+}
+
+/**
+ * A delivery in CutLuy's documented shape: the top-level id names the event,
+ * and the payment lives under data.payment.
+ *
+ * @param  array<string, mixed>  $payment
+ */
+function cutluyDelivery(string $type, array $payment = []): string
+{
+    return json_encode([
+        'id' => 'evt_'.$type,
+        'type' => $type,
+        'created' => now()->toIso8601String(),
+        'data' => [
+            'payment' => [
+                'id' => 'pay_123',
+                'status' => 'paid',
+                'amount' => '5.00',
+                'currency' => 'USD',
+                'reference_id' => 'subpay_test',
+                'metadata' => null,
+                ...$payment,
+            ],
+        ],
+    ], JSON_THROW_ON_ERROR);
+}
 
 function cutluySignature(string $raw, int $timestamp): string
 {

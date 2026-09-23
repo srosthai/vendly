@@ -31,7 +31,7 @@ class ApplyCutluyWebhook implements ShouldQueue
     {
         Log::error('CutLuy webhook job failed', [
             'event' => $this->event,
-            'payment' => $this->payload['id'] ?? null,
+            'payment' => data_get($this->payload, 'data.payment.id'),
             'exception' => $exception,
         ]);
     }

@@ -6,6 +6,7 @@ use App\Actions\Telegram\LinkStoreTelegram;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
@@ -13,7 +14,13 @@ class TelegramWebhookController extends Controller
     {
         $secret = config('services.telegram.webhook_secret');
 
-        if (is_string($secret) && $secret !== '' && ! hash_equals($secret, (string) $request->header('X-Telegram-Bot-Api-Secret-Token', ''))) {
+        if (! is_string($secret) || $secret === '') {
+            Log::error('Telegram webhook refused: TELEGRAM_WEBHOOK_SECRET is not set.');
+
+            abort(401);
+        }
+
+        if (! hash_equals($secret, (string) $request->header('X-Telegram-Bot-Api-Secret-Token', ''))) {
             abort(401);
         }
 

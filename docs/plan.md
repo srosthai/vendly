@@ -158,6 +158,8 @@ Verify in this order, in PHP:
 5. Only then decode the JSON.
 6. Dispatch one queued job and return `204` immediately. CutLuy retries any non-2xx up to 8 times with backoff, so the HTTP handler does no Telegram calls and no subscription writes.
 
+A delivery body is `{ "id", "type", "created", "data": { "payment": { "id", "status", "amount", "currency", "reference_id", ... } } }`. The top-level `id` names the event. The payment Vendly tracks is `data.payment.id`. The event comes from the signed `type` field, not from the unsigned `X-CutLuy-Event` header. Unknown event types return `204` and are not queued. A `payment.completed` only extends a plan when `reference_id`, `amount`, and `currency` match the local payment.
+
 The job is idempotent on the CutLuy payment id plus the event name. A unique key records that this delivery was already applied. A second `payment.completed` for the same id is stored and ignored.
 
 | Event               | Local status | Plan                         |
