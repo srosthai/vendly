@@ -1,6 +1,11 @@
 import { MarketingHead } from '@/components/marketing/marketing-head';
 import type { PageMeta } from '@/components/marketing/marketing-head';
 import { Faq } from '@/components/marketing/faq';
+import { Journey } from '@/components/marketing/journey';
+import {
+    PhoneMockup,
+    RequestMessage,
+} from '@/components/marketing/product-fragments';
 import { Reveal } from '@/components/marketing/reveal';
 import { CtaBand, SectionHeading } from '@/components/marketing/section';
 
@@ -8,26 +13,32 @@ const sellerSteps = [
     {
         title: 'Create your account',
         body: 'Register with your email and a password. We email a six-digit code to check the address. Google works too.',
+        detail: 'You get a six-digit code by email',
     },
     {
         title: 'Open your store',
         body: 'Name the store, choose its link, and add a one-line description and your logo. The free plan is attached right away.',
+        detail: 'Your link: /s/your-store',
     },
     {
         title: 'Add products',
         body: 'Add a name, price, photos, and optionally a category, brand, and stock. Products start as drafts.',
+        detail: 'Saved as Draft',
     },
     {
         title: 'Publish',
         body: 'Publish the products that are ready. Your plan sets how many can be live at once.',
+        detail: 'Draft becomes Published',
     },
     {
         title: 'Connect Telegram',
         body: 'Tap Connect Telegram and press Start in the Vendly bot, so requests reach your own chat.',
+        detail: 'Status: Connected',
     },
     {
         title: 'Share your links',
         body: 'Copy your web link and your Telegram link from the dashboard and send them to customers.',
+        detail: 'Web link and Telegram link, ready to copy',
     },
 ];
 
@@ -35,18 +46,22 @@ const customerSteps = [
     {
         title: 'Open the store link',
         body: 'Tap the link a seller shared, in a browser or in Telegram.',
+        detail: 'No app to install',
     },
     {
         title: 'Pick products',
         body: 'Browse by category, open a product, and add it to your cart or tap Buy.',
+        detail: 'Cart keeps quantities',
     },
     {
         title: 'Send the request',
         body: 'Inside Telegram you are signed in already. On the web, log in first.',
+        detail: 'One tap: Send to Telegram',
     },
     {
         title: 'Agree with the seller',
         body: 'The seller gets your request in Telegram and replies to arrange payment and delivery.',
+        detail: 'Payment and delivery, your way',
     },
 ];
 
@@ -77,41 +92,6 @@ const faq = [
     },
 ];
 
-function Steps({
-    title,
-    description,
-    steps,
-}: {
-    title: string;
-    description: string;
-    steps: { title: string; body: string }[];
-}) {
-    return (
-        <div className="mx-auto max-w-6xl">
-            <SectionHeading title={title} description={description} />
-            <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {steps.map((step, index) => (
-                    <Reveal
-                        as="li"
-                        key={step.title}
-                        delay={(index % 3) * 100}
-                        className="flex flex-col gap-3 rounded-2xl border bg-card p-6"
-                    >
-                        <span
-                            className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
-                            aria-hidden="true"
-                        >
-                            {index + 1}
-                        </span>
-                        <h3 className="text-lg font-semibold">{step.title}</h3>
-                        <p className="text-muted-foreground">{step.body}</p>
-                    </Reveal>
-                ))}
-            </ol>
-        </div>
-    );
-}
-
 export default function HowItWorks({ meta }: { meta: PageMeta }) {
     return (
         <>
@@ -126,11 +106,21 @@ export default function HowItWorks({ meta }: { meta: PageMeta }) {
                 </div>
             </section>
             <section className="px-4 py-14 md:px-6">
-                <Steps
-                    title="For sellers"
-                    description="From sign-up to your first request."
-                    steps={sellerSteps}
-                />
+                <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-16">
+                    <div className="lg:sticky lg:top-24 lg:self-start">
+                        <SectionHeading
+                            title="For sellers"
+                            description="From sign-up to your first request, usually the same day."
+                        />
+                        <Reveal
+                            delay={120}
+                            className="mt-10 hidden justify-center lg:flex"
+                        >
+                            <PhoneMockup />
+                        </Reveal>
+                    </div>
+                    <Journey steps={sellerSteps} />
+                </div>
             </section>
             <section className="bg-card px-4 py-14 md:px-6">
                 <div className="mx-auto max-w-6xl">
@@ -138,29 +128,12 @@ export default function HowItWorks({ meta }: { meta: PageMeta }) {
                         title="For customers"
                         description="No app to install and no card to enter."
                     />
-                    <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {customerSteps.map((step, index) => (
-                            <Reveal
-                                as="li"
-                                key={step.title}
-                                delay={index * 100}
-                                className="flex flex-col gap-3 rounded-2xl border bg-background p-6"
-                            >
-                                <span
-                                    className="flex size-10 items-center justify-center rounded-full bg-highlight text-sm font-bold text-highlight-foreground"
-                                    aria-hidden="true"
-                                >
-                                    {index + 1}
-                                </span>
-                                <h3 className="text-lg font-semibold">
-                                    {step.title}
-                                </h3>
-                                <p className="text-muted-foreground">
-                                    {step.body}
-                                </p>
-                            </Reveal>
-                        ))}
-                    </ol>
+                    <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
+                        <Journey steps={customerSteps} tone="highlight" />
+                        <Reveal delay={120} className="flex justify-center">
+                            <RequestMessage className="w-full max-w-xs" />
+                        </Reveal>
+                    </div>
                 </div>
             </section>
             <section className="px-4 py-16 md:px-6">
