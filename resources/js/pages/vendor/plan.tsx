@@ -15,11 +15,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { offersYearly, yearlySaving } from '@/lib/billing';
 import type { BillingPeriod } from '@/lib/billing';
 import { dollars, formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import vendor from '@/routes/vendor';
 
 type Payment = {
@@ -41,7 +41,58 @@ type Usage = {
     ends_at: string | null;
     can_publish: boolean;
     period: BillingPeriod | null;
+    plan_id: number | null;
 };
+
+/**
+ * A ring that fills with how much of the plan is in use. The number in the
+ * middle is what is left, which is what a seller plans around.
+ */
+function UsageRing({ used, limit }: { used: number; limit: number }) {
+    const share = limit > 0 ? Math.min(1, used / limit) : 1;
+    const radius = 52;
+    const circumference = 2 * Math.PI * radius;
+    const full = used >= limit;
+
+    return (
+        <div className="relative size-36 shrink-0">
+            <svg
+                viewBox="0 0 120 120"
+                className="size-full -rotate-90"
+                aria-hidden="true"
+            >
+                <circle
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="none"
+                    strokeWidth="10"
+                    className="stroke-muted"
+                />
+                <circle
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="none"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={circumference * (1 - share)}
+                    className={cn(
+                        'transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none',
+                        full ? 'stroke-warning' : 'stroke-primary',
+                    )}
+                />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-3xl font-bold tabular-nums">
+                    {Math.max(0, limit - used)}
+                </span>
+                <span className="text-sm text-muted-foreground">left</span>
+            </div>
+        </div>
+    );
+}
 
 const statusLabel: Record<string, string> = {
     pending: 'Pending',
@@ -75,6 +126,13 @@ export default function Plan({
     const expired = usage.status === 'expired';
     const [period, setPeriod] = useState<BillingPeriod>('monthly');
     const anyYearly = plans.some(offersYearly);
+    const largestLimit = Math.max(
+        0,
+        ...plans.map((plan) => plan.product_limit),
+    );
+    const recommendedId = plans
+        .filter((plan) => plan.product_limit > usage.limit)
+        .sort((a, b) => a.price_cents - b.price_cents)[0]?.id;
     const bestSaving = Math.max(0, ...plans.map(yearlySaving));
 
     useEffect(() => {
@@ -143,50 +201,68 @@ export default function Plan({
                     title="Plan"
                     description="Your plan sets how many products can be published. Drafts never count."
                 />
-                <Card className="gap-4 p-5 sm:p-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold">
-                            {usage.plan ?? 'No plan'}
-                        </h2>
-                        {usage.period ? (
-                            <Badge variant="secondary">
-                                {usage.period === 'yearly'
-                                    ? 'Paid yearly'
-                                    : 'Paid monthly'}
-                            </Badge>
-                        ) : null}
-                        {expired ? (
-                            <Badge variant="destructive">Ended</Badge>
-                        ) : (
-                            <Badge variant="success">Active</Badge>
-                        )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        {usage.published} of {usage.limit} published
-                        {usage.ends_at
-                            ? expired
-                                ? `. Ended ${formatDate(usage.ends_at)}.`
-                                : `. Paid until ${formatDate(usage.ends_at)}.`
-                            : usage.free
-                              ? '. Free plan, no end date.'
-                              : '.'}
-                    </p>
-                    <Progress
-                        value={usage.published}
-                        max={usage.limit}
-                        aria-label="Published products"
-                        className="max-w-md"
-                    />
-                    {!usage.can_publish ? (
-                        <p className="text-sm text-destructive" role="alert">
-                            {expired
-                                ? 'Your plan has ended, so new products cannot be published. Published products stay visible. Pay for a plan to publish again.'
-                                : 'Publishing is paused for this store.'}
+                <Card className="gap-6 p-5 sm:flex-row sm:items-center sm:p-6">
+                    <UsageRing used={usage.published} limit={usage.limit} />
+                    <div className="grid min-w-0 flex-1 gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-2xl font-bold tracking-tight">
+                                {usage.plan ?? 'No plan'}
+                            </h2>
+                            {expired ? (
+                                <Badge variant="destructive">Ended</Badge>
+                            ) : (
+                                <Badge variant="success">Active</Badge>
+                            )}
+                            {usage.period ? (
+                                <Badge variant="secondary">
+                                    {usage.period === 'yearly'
+                                        ? 'Paid yearly'
+                                        : 'Paid monthly'}
+                                </Badge>
+                            ) : null}
+                        </div>
+                        <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground tabular-nums">
+                                {usage.published} of {usage.limit}
+                            </span>{' '}
+                            products published.{' '}
+                            {usage.ends_at
+                                ? expired
+                                    ? `Ended ${formatDate(usage.ends_at)}.`
+                                    : `Paid until ${formatDate(usage.ends_at)}.`
+                                : usage.free
+                                  ? 'Free, with no end date.'
+                                  : ''}
                         </p>
-                    ) : null}
+                        {!usage.can_publish ? (
+                            <p
+                                className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                                role="alert"
+                            >
+                                {expired
+                                    ? 'Your plan has ended, so new products cannot be published. Published products stay visible. Pay for a plan to publish again.'
+                                    : 'Publishing is paused for this store.'}
+                            </p>
+                        ) : usage.published >= usage.limit ? (
+                            <p className="rounded-2xl bg-warning/10 px-4 py-3 text-sm text-warning">
+                                Your plan is full. Choose a bigger plan below to
+                                publish more.
+                            </p>
+                        ) : null}
+                    </div>
                 </Card>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold">Paid plans</h2>
+
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-semibold">
+                            {usage.free ? 'Upgrade your plan' : 'Plans'}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Pay by Cambodia QR in your banking app. The plan
+                            starts once the payment is complete, and paying
+                            again adds time on top.
+                        </p>
+                    </div>
                     {anyYearly ? (
                         <BillingPeriodSwitch
                             value={period}
@@ -199,7 +275,7 @@ export default function Plan({
                         />
                     ) : null}
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {plans.map((plan) => {
                         const yearly =
                             period === 'yearly' && offersYearly(plan);
@@ -207,34 +283,97 @@ export default function Plan({
                             ? (plan.yearly_price_cents ?? 0)
                             : plan.price_cents;
                         const saving = yearlySaving(plan);
+                        const current = plan.id === usage.plan_id;
+                        const recommended = plan.id === recommendedId;
+                        const difference = plan.product_limit - usage.limit;
+                        const share = Math.max(
+                            4,
+                            Math.round(
+                                Math.sqrt(
+                                    plan.product_limit /
+                                        Math.max(largestLimit, 1),
+                                ) * 100,
+                            ),
+                        );
 
                         return (
-                            <Card key={plan.id} className="gap-4 p-5">
-                                <div>
-                                    <h3 className="font-semibold">
+                            <Card
+                                key={plan.id}
+                                className={cn(
+                                    'relative gap-5 p-5 sm:p-6',
+                                    recommended &&
+                                        'border-primary ring-4 ring-primary/10',
+                                )}
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <h3 className="text-lg font-semibold">
                                         {plan.name}
                                     </h3>
-                                    <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">
-                                        {dollars(amount)}
-                                        <span className="text-sm font-normal text-muted-foreground">
-                                            {yearly ? ' / year' : ' / month'}
+                                    {current ? (
+                                        <Badge variant="secondary">
+                                            Your plan
+                                        </Badge>
+                                    ) : recommended ? (
+                                        <Badge>Recommended</Badge>
+                                    ) : null}
+                                </div>
+                                <div>
+                                    <p className="flex items-baseline gap-1">
+                                        <span className="text-3xl font-bold tracking-tight tabular-nums">
+                                            {dollars(amount)}
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                            {yearly ? 'per year' : 'per month'}
                                         </span>
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Up to {plan.product_limit} published
-                                        products
+                                    <p className="mt-1 min-h-5 text-sm text-muted-foreground">
                                         {yearly && saving > 0
-                                            ? `. Saves ${dollars(saving)} against paying monthly.`
+                                            ? `Saves ${dollars(saving)} against paying monthly.`
                                             : period === 'yearly' && !yearly
-                                              ? '. Paid monthly only.'
+                                              ? 'Paid monthly only.'
                                               : ''}
                                     </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <p className="flex items-baseline justify-between gap-2 text-sm">
+                                        <span>
+                                            <span className="font-semibold tabular-nums">
+                                                {plan.product_limit}
+                                            </span>{' '}
+                                            live products
+                                        </span>
+                                        {!current && difference !== 0 ? (
+                                            <span
+                                                className={cn(
+                                                    'tabular-nums',
+                                                    difference > 0
+                                                        ? 'text-success'
+                                                        : 'text-muted-foreground',
+                                                )}
+                                            >
+                                                {difference > 0
+                                                    ? `+${difference}`
+                                                    : difference}{' '}
+                                                vs yours
+                                            </span>
+                                        ) : null}
+                                    </p>
+                                    <div
+                                        className="h-2 overflow-hidden rounded-full bg-muted"
+                                        aria-hidden="true"
+                                    >
+                                        <div
+                                            className="h-full rounded-full bg-primary"
+                                            style={{ width: `${share}%` }}
+                                        />
+                                    </div>
                                 </div>
                                 <Form
                                     {...PlanPaymentController.store.form(
                                         plan.id,
                                     )}
                                     options={{ preserveScroll: true }}
+                                    className="mt-auto"
                                 >
                                     {({ processing, errors }) => (
                                         <div className="grid gap-2">
@@ -250,10 +389,16 @@ export default function Plan({
                                             <Button
                                                 type="submit"
                                                 disabled={processing}
-                                                className="justify-self-start"
+                                                variant={
+                                                    recommended
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                className="w-full"
                                             >
                                                 {processing && <Spinner />}
-                                                Pay {dollars(amount)}
+                                                {current ? 'Renew' : 'Pay'}{' '}
+                                                {dollars(amount)}
                                                 {yearly
                                                     ? ' for a year'
                                                     : ' for a month'}
