@@ -6,6 +6,7 @@ use App\Models\Inquiry;
 use App\Services\Telegram\TelegramClient;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -55,7 +56,8 @@ class SendTelegramMessage implements ShouldQueue
         Log::error('Telegram message failed', [
             'chat_id' => $this->chatId,
             'inquiry_id' => $this->inquiryId,
-            'exception' => $exception,
+            'error' => $exception === null ? null : $exception::class,
+            'status' => $exception instanceof RequestException ? $exception->response->status() : null,
         ]);
     }
 }

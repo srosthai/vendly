@@ -1,11 +1,15 @@
 <?php
 
 use App\Enums\ProductStatus;
+use App\Jobs\SendTelegramMessage;
 use App\Models\InquiryItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Telegram\TelegramClient;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 test('an inquiry keeps the price from the moment it was sent', function () {
     Http::preventStrayRequests();
@@ -116,7 +120,10 @@ test('telegram sends nothing when the bot is not configured', function () {
 });
 
 test('a telegram link token cannot be reused', function () {
-    config(['services.telegram.bot_username' => 'VendlyBot']);
+    config([
+        'services.telegram.bot_username' => 'VendlyBot',
+        'services.telegram.webhook_secret' => 'tg-secret',
+    ]);
 
     $vendor = User::factory()->create();
     $store = openStore($vendor, 'Smile Tea');
@@ -129,7 +136,7 @@ test('a telegram link token cannot be reused', function () {
     expect($url)->toContain('start=link_');
     $token = (string) str($url)->after('start=link_');
 
-    $this->postJson(route('webhooks.telegram'), [
+    $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'tg-secret')->postJson(route('webhooks.telegram'), [
         'message' => [
             'text' => '/start link_'.$token,
             'chat' => ['id' => 55],
@@ -138,7 +145,7 @@ test('a telegram link token cannot be reused', function () {
 
     expect($store->fresh()->telegram_chat_id)->toBe('55');
 
-    $this->postJson(route('webhooks.telegram'), [
+    $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'tg-secret')->postJson(route('webhooks.telegram'), [
         'message' => [
             'text' => '/start link_'.$token,
             'chat' => ['id' => 99],
@@ -146,4 +153,52 @@ test('a telegram link token cannot be reused', function () {
     ])->assertNoContent();
 
     expect($store->fresh()->telegram_chat_id)->toBe('55');
+});
+
+test('the telegram webhook is refused without the configured secret', function (?string $configured, ?string $sent) {
+    config(['services.telegram.webhook_secret' => $configured]);
+
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Secret Tea');
+
+    $token = (string) str(
+        $this->actingAs($vendor)->postJson(route('telegram.link'))->json('url')
+    )->after('start=link_');
+
+    $request = $sent === null ? $this : $this->withHeader('X-Telegram-Bot-Api-Secret-Token', $sent);
+
+    $request->postJson(route('webhooks.telegram'), [
+        'message' => ['text' => '/start link_'.$token, 'chat' => ['id' => 55]],
+    ])->assertUnauthorized();
+
+    expect($store->fresh()->telegram_chat_id)->toBeNull();
+})->with([
+    'no secret configured' => [null, null],
+    'an empty secret configured and sent' => ['', ''],
+    'a wrong secret' => ['tg-secret', 'guess'],
+    'a missing header' => ['tg-secret', null],
+]);
+
+test('a telegram connection error never carries the bot token', function () {
+    config(['services.telegram.bot_token' => '123456:SECRET-TOKEN']);
+    Log::spy();
+    Http::fake(fn () => throw new ConnectionException(
+        'cURL error 28: timed out for https://api.telegram.org/bot123456:SECRET-TOKEN/sendMessage',
+    ));
+
+    $job = new SendTelegramMessage('55', 'Hello');
+
+    try {
+        $job->handle(app(TelegramClient::class));
+        $this->fail('The connection error was swallowed.');
+    } catch (ConnectionException $exception) {
+        expect($exception->getMessage())->not->toContain('SECRET-TOKEN')
+            ->and($exception->getPrevious())->toBeNull();
+
+        $job->failed($exception);
+    }
+
+    Log::shouldHaveReceived('error')->withArgs(
+        fn (string $message, array $context): bool => ! str_contains(json_encode($context), 'SECRET-TOKEN'),
+    );
 });

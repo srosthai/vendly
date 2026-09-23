@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Actions\Billing\ApplyCutluyEvent;
 use App\Http\Controllers\Controller;
 use App\Jobs\ApplyCutluyWebhook;
 use App\Services\Cutluy\CutluySignature;
@@ -26,10 +27,12 @@ class CutluyWebhookController extends Controller
             abort(400, 'Invalid JSON.');
         }
 
-        ApplyCutluyWebhook::dispatch(
-            (string) $request->header('X-CutLuy-Event', ''),
-            $payload,
-        );
+        // The body is signed and the header is not, so the body names the event.
+        $event = is_string($payload['type'] ?? null) ? $payload['type'] : (string) $request->header('X-CutLuy-Event', '');
+
+        if (in_array($event, ApplyCutluyEvent::Events, true)) {
+            ApplyCutluyWebhook::dispatch($event, $payload);
+        }
 
         return response()->noContent();
     }
