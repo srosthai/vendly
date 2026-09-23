@@ -70,7 +70,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                 <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 md:px-6">
                     <Link
                         href={home()}
-                        className="flex shrink-0 items-center gap-1 rounded-md"
+                        className="flex min-h-11 shrink-0 items-center gap-1 rounded-md"
                         aria-label="Vendly home"
                     >
                         <AppLogo />

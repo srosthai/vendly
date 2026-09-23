@@ -20,7 +20,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         if (! app()->environment(['local', 'testing'])) {
-            $this->command?->warn('Skipped demo accounts: they are only seeded in local and testing.');
+            $this->command->warn('Skipped demo accounts: they are only seeded in local and testing.');
 
             return;
         }

@@ -45,7 +45,7 @@ test('seeded accounts can sign in for admin, vendor, and customer', function () 
 test('seeded accounts are never created outside local and testing', function () {
     app()->detectEnvironment(fn (): string => 'production');
 
-    app(UserSeeder::class)->run();
+    $this->artisan('db:seed', ['--class' => UserSeeder::class, '--force' => true])->assertSuccessful();
 
     expect(User::query()->count())->toBe(0);
 });

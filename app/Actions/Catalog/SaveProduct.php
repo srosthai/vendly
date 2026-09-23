@@ -28,7 +28,7 @@ class SaveProduct
             }
 
             // A rename keeps the slug, so links already sent to Telegram keep working.
-            $slug = $product?->slug ?? Slug::unique($name, $store->products()->getQuery(), 'product');
+            $slug = $product->slug ?? Slug::unique($name, $store->products()->getQuery(), 'product');
 
             $product ??= new Product([
                 'store_id' => $store->id,

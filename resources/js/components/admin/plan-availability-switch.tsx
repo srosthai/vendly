@@ -15,12 +15,15 @@ import {
 export function PlanAvailabilitySwitch({ plan }: { plan: AdminPlan }) {
     const toggle = (available: boolean) => {
         router
-            .optimistic<{ plans: AdminPlan[] }>((props) => ({
-                plans: props.plans.map((item) =>
-                    item.id === plan.id
-                        ? { ...item, is_active: available }
-                        : item,
-                ),
+            .optimistic<{ plans: { data: AdminPlan[] } }>((props) => ({
+                plans: {
+                    ...props.plans,
+                    data: props.plans.data.map((item) =>
+                        item.id === plan.id
+                            ? { ...item, is_active: available }
+                            : item,
+                    ),
+                },
             }))
             .patch(
                 PlanAvailabilityController.url(plan.id),
