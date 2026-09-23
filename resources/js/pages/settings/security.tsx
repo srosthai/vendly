@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
@@ -21,6 +21,7 @@ type Props = {
 export default function Security(props: Props) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const hasPassword = usePage().props.auth.hasPassword === true;
 
     return (
         <>
@@ -31,8 +32,12 @@ export default function Security(props: Props) {
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
+                    title={hasPassword ? 'Update password' : 'Set a password'}
+                    description={
+                        hasPassword
+                            ? 'Ensure your account is using a long, random password to stay secure'
+                            : 'You signed in with Google or Telegram. Set a password to also log in with your email.'
+                    }
                 />
 
                 <Form
@@ -59,22 +64,26 @@ export default function Security(props: Props) {
                 >
                     {({ errors, processing }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="current_password">
-                                    Current password
-                                </Label>
+                            {hasPassword ? (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="current_password">
+                                        Current password
+                                    </Label>
 
-                                <PasswordInput
-                                    id="current_password"
-                                    ref={currentPasswordInput}
-                                    name="current_password"
-                                    className="mt-1 block w-full"
-                                    autoComplete="current-password"
-                                    placeholder="Current password"
-                                />
+                                    <PasswordInput
+                                        id="current_password"
+                                        ref={currentPasswordInput}
+                                        name="current_password"
+                                        className="mt-1 block w-full"
+                                        autoComplete="current-password"
+                                        placeholder="Current password"
+                                    />
 
-                                <InputError message={errors.current_password} />
-                            </div>
+                                    <InputError
+                                        message={errors.current_password}
+                                    />
+                                </div>
+                            ) : null}
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password">New password</Label>
@@ -124,16 +133,25 @@ export default function Security(props: Props) {
                 </Form>
             </div>
 
-            <ManageTwoFactor
-                canManageTwoFactor={props.canManageTwoFactor}
-                requiresConfirmation={props.requiresConfirmation}
-                twoFactorEnabled={props.twoFactorEnabled}
-            />
+            {hasPassword ? (
+                <>
+                    <ManageTwoFactor
+                        canManageTwoFactor={props.canManageTwoFactor}
+                        requiresConfirmation={props.requiresConfirmation}
+                        twoFactorEnabled={props.twoFactorEnabled}
+                    />
 
-            <ManagePasskeys
-                canManagePasskeys={props.canManagePasskeys}
-                passkeys={props.passkeys}
-            />
+                    <ManagePasskeys
+                        canManagePasskeys={props.canManagePasskeys}
+                        passkeys={props.passkeys}
+                    />
+                </>
+            ) : (
+                <p className="text-sm text-muted-foreground">
+                    Set a password first to turn on two-factor authentication
+                    and passkeys.
+                </p>
+            )}
         </>
     );
 }

@@ -54,8 +54,9 @@ class TelegramInitData
         }
 
         $authDate = (int) ($data['auth_date'] ?? 0);
+        $maxAge = (int) config('services.telegram.init_data_max_age', 3600);
 
-        if ($authDate < now()->subDay()->getTimestamp()) {
+        if ($authDate < now()->subSeconds($maxAge)->getTimestamp() || $authDate > now()->addMinute()->getTimestamp()) {
             throw ValidationException::withMessages([
                 'init_data' => 'The Telegram sign-in data has expired.',
             ]);

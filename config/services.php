@@ -40,6 +40,7 @@ return [
         'mini_app_short_name' => env('TELEGRAM_MINI_APP_SHORT_NAME'),
         'admin_chat_id' => env('TELEGRAM_ADMIN_CHAT_ID'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        'init_data_max_age' => (int) env('TELEGRAM_INIT_DATA_MAX_AGE', 3600),
     ],
 
     'cutluy' => [

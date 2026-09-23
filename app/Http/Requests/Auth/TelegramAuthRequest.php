@@ -18,6 +18,7 @@ class TelegramAuthRequest extends FormRequest
     {
         return [
             'init_data' => ['required', 'string'],
+            'redirect' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

@@ -1,7 +1,8 @@
 export type User = {
     id: number;
     name: string;
-    email: string;
+    email: string | null;
+    telegram_id?: string | null;
     avatar?: string;
     email_verified_at: string | null;
     is_admin?: boolean;
@@ -14,6 +15,7 @@ export type User = {
 export type Auth = {
     user: User;
     hasStore?: boolean;
+    hasPassword?: boolean;
 };
 
 export type Passkey = {

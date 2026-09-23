@@ -17,6 +17,12 @@ class TelegramAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
+        $back = $request->string('redirect')->toString();
+
+        if (str_starts_with($back, '/s/')) {
+            return redirect($back);
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 }

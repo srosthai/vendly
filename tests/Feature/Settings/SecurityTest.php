@@ -102,3 +102,27 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
 });
+
+test('an account without a password opens security settings and sets a first password', function () {
+    $user = User::factory()->create(['password' => null]);
+
+    $this->actingAs($user)
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('settings/security')->where('auth.hasPassword', false));
+
+    $this->actingAs($user)
+        ->put(route('user-password.update'), [
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Hash::check('new-password', $user->fresh()->password))->toBeTrue();
+});
+
+test('an account with a password still confirms it before security settings', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get(route('security.edit'))->assertRedirect(route('password.confirm'));
+});
