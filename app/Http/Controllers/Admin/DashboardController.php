@@ -89,6 +89,7 @@ class DashboardController extends Controller
                 'cutluy_webhook' => filled(config('services.cutluy.webhook_secret')),
                 'telegram_webhook' => filled(config('services.telegram.webhook_secret')),
             ],
+            'testResult' => request()->session()->get('telegram_test'),
             'webhookUrls' => [
                 'telegram' => route('webhooks.telegram'),
                 'cutluy' => route('webhooks.cutluy'),

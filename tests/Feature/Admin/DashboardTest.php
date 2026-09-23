@@ -6,6 +6,7 @@ use App\Models\PlatformSetting;
 use App\Models\Testimonial;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Http;
 
 test('vendors cannot open the admin dashboard', function () {
     $user = User::factory()->create();
@@ -250,3 +251,28 @@ function freePlanForSwitch(): Plan
 {
     return Plan::query()->create(['name' => 'Free', 'price_cents' => 0, 'product_limit' => 10, 'is_active' => true, 'is_default' => true]);
 }
+
+test('the telegram test message reports success and each failure clearly', function () {
+    $admin = User::factory()->admin()->create();
+    PlatformSetting::current()->update(['admin_chat_id' => '-100555']);
+
+    config(['services.telegram.bot_token' => null]);
+    $this->actingAs($admin)->post(route('admin.telegram.test'))
+        ->assertSessionHas('telegram_test', fn (array $result): bool => $result['type'] === 'error' && str_contains($result['message'], 'TELEGRAM_BOT_TOKEN'));
+
+    config(['services.telegram.bot_token' => '123:ABC']);
+    Http::fake(['api.telegram.org/*' => Http::sequence()
+        ->push(['ok' => false, 'description' => 'Bad Request: chat not found'], 400)
+        ->push(['ok' => true])]);
+    $this->actingAs($admin)->post(route('admin.telegram.test'))
+        ->assertSessionHas('telegram_test', fn (array $result): bool => $result['message'] === 'Telegram refused the test: Bad Request: chat not found');
+
+    $this->actingAs($admin)->post(route('admin.telegram.test'))
+        ->assertSessionHas('telegram_test', fn (array $result): bool => $result['type'] === 'success');
+
+    Http::assertSent(fn ($request): bool => $request['chat_id'] === '-100555' && str_contains($request['text'], 'Vendly test message'));
+});
+
+test('only an admin can send a telegram test', function () {
+    $this->actingAs(User::factory()->create())->post(route('admin.telegram.test'))->assertForbidden();
+});
