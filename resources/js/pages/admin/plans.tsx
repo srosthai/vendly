@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Tags } from 'lucide-react';
 import type { AdminPlan } from '@/components/admin/plan-form-sheet';
+import { PlanAvailabilitySwitch } from '@/components/admin/plan-availability-switch';
 import { PlanFormSheet } from '@/components/admin/plan-form-sheet';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
@@ -16,18 +17,6 @@ import {
 } from '@/components/ui/table';
 import { dollars } from '@/lib/format';
 import admin from '@/routes/admin';
-
-function PlanBadge({ plan }: { plan: AdminPlan }) {
-    if (plan.is_default) {
-        return <Badge>Default</Badge>;
-    }
-
-    return plan.is_active ? (
-        <Badge variant="success">Available</Badge>
-    ) : (
-        <Badge variant="secondary">Hidden</Badge>
-    );
-}
 
 function price(plan: AdminPlan): string {
     return plan.price_cents === 0
@@ -65,7 +54,9 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                         <TableHead>
                                             Published products
                                         </TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead>
+                                            Available to vendors
+                                        </TableHead>
                                         <TableHead className="pr-5">
                                             <span className="sr-only">
                                                 Actions
@@ -77,7 +68,12 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                     {plans.map((plan) => (
                                         <TableRow key={plan.id}>
                                             <TableCell className="pl-5 font-medium">
-                                                {plan.name}
+                                                <span className="flex items-center gap-2">
+                                                    {plan.name}
+                                                    {plan.is_default ? (
+                                                        <Badge>Default</Badge>
+                                                    ) : null}
+                                                </span>
                                             </TableCell>
                                             <TableCell className="tabular-nums">
                                                 {price(plan)}
@@ -86,7 +82,9 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                                 Up to {plan.product_limit}
                                             </TableCell>
                                             <TableCell>
-                                                <PlanBadge plan={plan} />
+                                                <PlanAvailabilitySwitch
+                                                    plan={plan}
+                                                />
                                             </TableCell>
                                             <TableCell className="pr-5 text-right">
                                                 <PlanFormSheet plan={plan} />
@@ -107,14 +105,19 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                             <p className="font-medium">
                                                 {plan.name}
                                             </p>
-                                            <PlanBadge plan={plan} />
+                                            {plan.is_default ? (
+                                                <Badge>Default</Badge>
+                                            ) : null}
                                         </div>
                                         <p className="text-sm text-muted-foreground">
                                             {price(plan)}, up to{' '}
                                             {plan.product_limit} products
                                         </p>
                                     </div>
-                                    <PlanFormSheet plan={plan} />
+                                    <div className="flex flex-col items-end gap-2">
+                                        <PlanAvailabilitySwitch plan={plan} />
+                                        <PlanFormSheet plan={plan} />
+                                    </div>
                                 </Card>
                             ))}
                         </div>

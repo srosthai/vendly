@@ -225,3 +225,28 @@ test('only an admin can manage testimonials', function () {
 
     expect(Testimonial::query()->count())->toBe(0);
 });
+
+test('an admin shows and hides a plan with the switch, but not the default plan', function () {
+    $free = freePlanForSwitch();
+    $starter = Plan::query()->create(['name' => 'Starter', 'price_cents' => 500, 'product_limit' => 100, 'is_active' => true, 'is_default' => false]);
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->patch(route('admin.plans.availability', $starter), ['is_active' => false])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+    expect($starter->fresh()->is_active)->toBeFalse();
+
+    $this->actingAs($admin)->patch(route('admin.plans.availability', $starter), ['is_active' => true])->assertRedirect();
+    expect($starter->fresh()->is_active)->toBeTrue();
+
+    $this->actingAs($admin)->patch(route('admin.plans.availability', $free), ['is_active' => false])
+        ->assertInvalid(['is_active' => 'The default plan stays available']);
+    expect($free->fresh()->is_active)->toBeTrue();
+
+    $this->actingAs(User::factory()->create())->patch(route('admin.plans.availability', $starter), ['is_active' => false])->assertForbidden();
+});
+
+function freePlanForSwitch(): Plan
+{
+    return Plan::query()->create(['name' => 'Free', 'price_cents' => 0, 'product_limit' => 10, 'is_active' => true, 'is_default' => true]);
+}
