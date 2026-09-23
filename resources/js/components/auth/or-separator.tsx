@@ -1,16 +1,19 @@
 import { Separator } from '@/components/ui/separator';
 
+/**
+ * A label between two rules. No background behind the label, so it sits on
+ * a card, a dialog, or the page alike.
+ */
 export function OrSeparator({ label = 'or' }: { label?: string }) {
     return (
-        <div className="relative my-1" role="separator" aria-label={label}>
-            <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-3 text-muted-foreground">
-                    {label}
-                </span>
-            </div>
+        <div
+            className="my-1 flex items-center gap-3 text-sm text-muted-foreground"
+            role="separator"
+            aria-label={label}
+        >
+            <Separator className="flex-1" />
+            <span aria-hidden="true">{label}</span>
+            <Separator className="flex-1" />
         </div>
     );
 }
