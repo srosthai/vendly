@@ -5,7 +5,7 @@ import {
     RequestMessage,
     ShareLinkFragment,
 } from '@/components/marketing/product-fragments';
-import { ThemeSwitch } from '@/components/theme-switch';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
@@ -79,7 +79,7 @@ export default function AuthSplitLayout({
                         <ChevronLeft className="size-4" aria-hidden="true" />
                         Back to website
                     </Link>
-                    <ThemeSwitch />
+                    <ThemeToggle />
                 </div>
                 <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
                     <Link
