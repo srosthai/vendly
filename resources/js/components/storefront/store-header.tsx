@@ -43,15 +43,18 @@ export function StoreMark({
 
 /**
  * The top of every store page: logo, name, one line about the store, and
- * the cart. `compact` is the slimmer bar used on a product page.
+ * the cart, with optional details below. `compact` is the slimmer bar used
+ * on a product page.
  */
 export function StoreHeader({
     store,
     cart,
+    details,
     compact = false,
 }: {
     store: StoreIdentity;
     cart: ReactNode;
+    details?: ReactNode;
     compact?: boolean;
 }) {
     if (compact) {
@@ -85,6 +88,7 @@ export function StoreHeader({
                             {store.description}
                         </p>
                     ) : null}
+                    {details}
                 </div>
             </div>
             <div className="flex items-center gap-2">

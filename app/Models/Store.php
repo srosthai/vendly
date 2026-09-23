@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $currency
  * @property CarbonInterface|null $suspended_at
  * @property string|null $telegram_chat_id
+ * @property-read int|null $published_products_count Only when loaded with withCount in a listing.
  */
 #[Fillable(['user_id', 'name', 'slug', 'description', 'logo_path', 'currency', 'telegram_chat_id'])]
 class Store extends Model

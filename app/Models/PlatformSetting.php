@@ -111,4 +111,13 @@ class PlatformSetting extends Model
 
         return 'https://t.me/'.$username.'/'.$short.'?startapp='.$slug;
     }
+
+    /**
+     * The mini app link that opens one product. Store slugs never contain an
+     * underscore, so a "p_" start value cannot be mistaken for a store.
+     */
+    public function miniAppProductLink(int $productId): ?string
+    {
+        return $this->miniAppLink('p_'.$productId);
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ProductStatus;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
@@ -157,4 +158,68 @@ test('the store page shows the result of sending a cart', function () {
     $this->withSession(['status' => 'Sent to the store on Telegram.'])
         ->get(route('stores.show', $store))
         ->assertInertia(fn ($page) => $page->where('status', 'Sent to the store on Telegram.'));
+});
+
+test('the storefront filters by brand and sorts by price', function () {
+    $store = openStore(User::factory()->create(), 'Brand Tea');
+    $leaf = Brand::query()->create(['store_id' => $store->id, 'name' => 'Leaf', 'slug' => 'leaf']);
+    Brand::query()->create(['store_id' => $store->id, 'name' => 'Unused', 'slug' => 'unused']);
+
+    Product::factory()->for($store)->create(['name' => 'Cheap', 'price_cents' => 100, 'brand_id' => $leaf->id]);
+    Product::factory()->for($store)->create(['name' => 'Dear', 'price_cents' => 900, 'brand_id' => $leaf->id]);
+    Product::factory()->for($store)->create(['name' => 'Middle', 'price_cents' => 500]);
+
+    $this->get(route('stores.show', ['store' => $store, 'sort' => 'price-low']))
+        ->assertInertia(fn ($page) => $page
+            ->where('brands', [['name' => 'Leaf', 'slug' => 'leaf']])
+            ->where('filters.sort', 'price-low')
+            ->where('products.data.0.name', 'Cheap')
+            ->where('products.data.2.name', 'Dear'));
+
+    $this->get(route('stores.show', ['store' => $store, 'brand' => 'leaf', 'sort' => 'price-high']))
+        ->assertInertia(fn ($page) => $page
+            ->has('products.data', 2)
+            ->where('products.data.0.name', 'Dear'));
+
+    $this->get(route('stores.show', ['store' => $store, 'sort' => 'anything']))
+        ->assertInertia(fn ($page) => $page->where('filters.sort', 'newest'));
+});
+
+test('buy links open the product in the telegram mini app once the bot is set', function () {
+    $store = openStore(User::factory()->create(), 'Link Tea');
+    $product = Product::factory()->for($store)->create();
+
+    config(['services.telegram.bot_username' => null]);
+
+    $this->get(route('stores.show', $store))
+        ->assertInertia(fn ($page) => $page
+            ->where('store.telegram_url', null)
+            ->where('products.data.0.telegram_url', null));
+
+    config([
+        'services.telegram.bot_username' => 'VendlyBot',
+        'services.telegram.mini_app_short_name' => 'shop',
+    ]);
+
+    $this->get(route('stores.show', $store))
+        ->assertInertia(fn ($page) => $page
+            ->where('store.telegram_url', 'https://t.me/VendlyBot/shop?startapp='.$store->slug)
+            ->where('products.data.0.telegram_url', 'https://t.me/VendlyBot/shop?startapp=p_'.$product->id));
+
+    $this->get(route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug]))
+        ->assertInertia(fn ($page) => $page->where('product.telegram_url', 'https://t.me/VendlyBot/shop?startapp=p_'.$product->id));
+});
+
+test('the mini app opens the product named in the link', function () {
+    $store = openStore(User::factory()->create(), 'Deep Tea');
+    $product = Product::factory()->for($store)->create();
+    $draft = Product::factory()->for($store)->draft()->create();
+
+    $this->get(route('mini-app', ['startapp' => 'p_'.$product->id]))
+        ->assertRedirect(route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug]))
+        ->assertSessionHas('mini_app', true);
+
+    $this->get(route('mini-app', ['startapp' => 'p_'.$draft->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('stores/enter'));
 });

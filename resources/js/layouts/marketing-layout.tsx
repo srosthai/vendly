@@ -26,6 +26,7 @@ import {
     register,
     testimonials,
 } from '@/routes';
+import { index as storesIndex } from '@/routes/stores';
 
 type NavLink = { title: string; href: ReturnType<typeof features> };
 
@@ -37,6 +38,7 @@ function useNavLinks(): NavLink[] {
         { title: 'Features', href: features() },
         { title: 'How it works', href: howItWorks() },
         { title: 'Pricing', href: pricing() },
+        { title: 'Stores', href: storesIndex() },
         ...(showTestimonials
             ? [{ title: 'Testimonials', href: testimonials() }]
             : []),
