@@ -73,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
                 ));
         });
 
+        RateLimiter::for('plan-payments', function (Request $request): Limit {
+            return Limit::perMinute(10)->by((string) $request->user()?->getAuthIdentifier());
+        });
+
         RateLimiter::for('telegram-auth', function (Request $request): Limit {
             return Limit::perMinute(10)->by($request->ip() ?? 'telegram');
         });

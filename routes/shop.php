@@ -67,7 +67,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('telegram/link', [TelegramLinkController::class, 'store'])
             ->middleware('throttle:6,1')
             ->name('telegram.link');
-        Route::post('plans/{plan}/payments', [PlanPaymentController::class, 'store'])->name('plans.payments.store');
+        Route::post('plans/{plan}/payments', [PlanPaymentController::class, 'store'])
+            ->middleware('throttle:plan-payments')
+            ->name('plans.payments.store');
     });
 
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

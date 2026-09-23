@@ -10,6 +10,7 @@ use App\Models\SubscriptionPayment;
 use App\Services\Telegram\TelegramNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class ApplyCutluyEvent
 {
@@ -36,26 +37,18 @@ class ApplyCutluyEvent
         }
 
         DB::transaction(function () use ($event, $cutluyId, $remote): void {
+            $payment = $this->lockPayment($cutluyId, $remote);
+
+            if ($payment === null) {
+                throw new RuntimeException('CutLuy event '.$event.' did not match a payment yet.');
+            }
+
             $record = CutluyEvent::query()->firstOrCreate([
                 'cutluy_payment_id' => $cutluyId,
                 'event' => $event,
             ]);
 
             if (! $record->wasRecentlyCreated) {
-                return;
-            }
-
-            $payment = SubscriptionPayment::query()
-                ->where('cutluy_id', $cutluyId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($payment === null) {
-                Log::warning('CutLuy event did not match a payment', [
-                    'event' => $event,
-                    'cutluy_id' => $cutluyId,
-                ]);
-
                 return;
             }
 
@@ -67,6 +60,40 @@ class ApplyCutluyEvent
                 default => Log::info('Ignoring CutLuy event', ['event' => $event]),
             };
         });
+    }
+
+    /**
+     * Match by CutLuy id. When the event beats the local save of that id,
+     * fall back to our reference and store the CutLuy id on the row. An event
+     * that matches nothing is not recorded, so the job's retry can apply it.
+     *
+     * @param  array<string, mixed>  $remote
+     */
+    private function lockPayment(string $cutluyId, array $remote): ?SubscriptionPayment
+    {
+        $payment = SubscriptionPayment::query()
+            ->where('cutluy_id', $cutluyId)
+            ->lockForUpdate()
+            ->first();
+
+        $reference = $remote['reference_id'] ?? null;
+
+        if ($payment !== null || ! is_string($reference) || $reference === '') {
+            return $payment;
+        }
+
+        $payment = SubscriptionPayment::query()
+            ->where('public_id', $reference)
+            ->whereNull('cutluy_id')
+            ->lockForUpdate()
+            ->first();
+
+        if ($payment !== null) {
+            $payment->cutluy_id = $cutluyId;
+            $payment->save();
+        }
+
+        return $payment;
     }
 
     private function mark(SubscriptionPayment $payment, PaymentStatus $status): void
