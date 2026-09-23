@@ -32,14 +32,19 @@ export function FeatureShowcase({
                 <p className="mt-3 max-w-md text-lg text-muted-foreground">
                     {description}
                 </p>
-                <ul className="mt-8 divide-y border-y">
+                <ul className="-mx-4 mt-8 flex flex-col gap-1">
                     {items.map((item) => (
-                        <li key={item.title} className="flex gap-4 py-4">
-                            <item.icon
-                                className="mt-0.5 size-5 shrink-0 text-primary"
-                                aria-hidden="true"
-                            />
-                            <div>
+                        <li
+                            key={item.title}
+                            className="group flex gap-4 rounded-2xl border border-transparent p-4 transition-[background-color,border-color] duration-200 ease-out hover:border-border hover:bg-card motion-reduce:transition-none"
+                        >
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-[background-color,color,scale] duration-200 ease-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground motion-reduce:transition-none motion-reduce:group-hover:scale-100">
+                                <item.icon
+                                    className="size-5"
+                                    aria-hidden="true"
+                                />
+                            </span>
+                            <div className="pt-0.5">
                                 <h3 className="font-semibold">{item.title}</h3>
                                 <p className="mt-0.5 text-muted-foreground">
                                     {item.body}
