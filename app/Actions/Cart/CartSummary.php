@@ -7,11 +7,12 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CartSummary
 {
     /**
-     * @return array{count: int, total_cents: int, items: list<array{id: int, name: string, quantity: int, price_cents: int}>}
+     * @return array{count: int, total_cents: int, items: list<array{id: int, name: string, quantity: int, price_cents: int, image: string|null}>}
      */
     public function for(Request $request, Store $store): array
     {
@@ -28,14 +29,14 @@ class CartSummary
     }
 
     /**
-     * @return list<array{id: int, name: string, quantity: int, price_cents: int}>
+     * @return list<array{id: int, name: string, quantity: int, price_cents: int, image: string|null}>
      */
     private function accountLines(User $user, Store $store): array
     {
         $cart = Cart::query()
             ->whereBelongsTo($user)
             ->whereBelongsTo($store)
-            ->with('items.product')
+            ->with('items.product.images')
             ->first();
 
         if ($cart === null) {
@@ -49,19 +50,14 @@ class CartSummary
                 continue;
             }
 
-            $lines[] = [
-                'id' => $item->product->id,
-                'name' => $item->product->name,
-                'quantity' => $item->quantity,
-                'price_cents' => $item->product->price_cents,
-            ];
+            $lines[] = $this->line($item->product, $item->quantity);
         }
 
         return $lines;
     }
 
     /**
-     * @return list<array{id: int, name: string, quantity: int, price_cents: int}>
+     * @return list<array{id: int, name: string, quantity: int, price_cents: int, image: string|null}>
      */
     private function guestLines(Request $request, Store $store): array
     {
@@ -75,6 +71,7 @@ class CartSummary
             ->where('store_id', $store->id)
             ->published()
             ->whereIn('id', array_map('intval', array_keys($items)))
+            ->with('images')
             ->get()
             ->keyBy('id');
 
@@ -87,14 +84,25 @@ class CartSummary
                 continue;
             }
 
-            $lines[] = [
-                'id' => $product->id,
-                'name' => $product->name,
-                'quantity' => (int) $quantity,
-                'price_cents' => $product->price_cents,
-            ];
+            $lines[] = $this->line($product, (int) $quantity);
         }
 
         return $lines;
+    }
+
+    /**
+     * @return array{id: int, name: string, quantity: int, price_cents: int, image: string|null}
+     */
+    private function line(Product $product, int $quantity): array
+    {
+        $image = $product->images->sortBy('sort')->first();
+
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'quantity' => $quantity,
+            'price_cents' => $product->price_cents,
+            'image' => $image === null ? null : Storage::disk('public')->url($image->path),
+        ];
     }
 }

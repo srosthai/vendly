@@ -17,6 +17,25 @@ class GuestCart
         session()->put('guest-carts', $carts);
     }
 
+    public function set(Store $store, Product $product, int $quantity): void
+    {
+        $carts = session()->get('guest-carts', []);
+
+        if (! isset($carts[(string) $store->id][(string) $product->id])) {
+            return;
+        }
+
+        $carts[(string) $store->id][(string) $product->id] = $quantity;
+        session()->put('guest-carts', $carts);
+    }
+
+    public function remove(Store $store, Product $product): void
+    {
+        $carts = session()->get('guest-carts', []);
+        unset($carts[(string) $store->id][(string) $product->id]);
+        session()->put('guest-carts', $carts);
+    }
+
     /**
      * @return array<string, array<string, int>>
      */

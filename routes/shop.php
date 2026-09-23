@@ -40,6 +40,8 @@ Route::get('m', MiniAppController::class)->name('mini-app');
 Route::get('s/{store:slug}', [StoreController::class, 'show'])->name('stores.show');
 Route::get('s/{store:slug}/p/{productSlug}', [ProductController::class, 'show'])->name('stores.products.show');
 Route::post('s/{store:slug}/products/{product}/cart', [CartController::class, 'store'])->name('cart.store');
+Route::patch('s/{store:slug}/cart/{product}', [CartController::class, 'update'])->name('cart.update');
+Route::delete('s/{store:slug}/cart/{product}', [CartController::class, 'destroy'])->name('cart.destroy');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [WorkspaceController::class, 'home'])->name('dashboard');
