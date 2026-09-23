@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
+use App\Http\Controllers\Admin\TelegramTestController;
 use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -108,6 +109,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('throttle:30,1')
             ->name('requests.retry');
         Route::put('telegram', [AdminDashboardController::class, 'updateTelegram'])->name('telegram.update');
+        Route::post('telegram/test', TelegramTestController::class)
+            ->middleware('throttle:6,1')
+            ->name('telegram.test');
         Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
         Route::put('plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
         Route::patch('plans/{plan}/availability', PlanAvailabilityController::class)->name('plans.availability');

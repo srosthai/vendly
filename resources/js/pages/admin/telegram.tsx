@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
+import { AlertCircle, CheckCircle2, Send } from 'lucide-react';
 import AdminDashboardController from '@/actions/App/Http/Controllers/Admin/DashboardController';
+import TelegramTestController from '@/actions/App/Http/Controllers/Admin/TelegramTestController';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +38,9 @@ export default function Telegram({
     settings,
     secrets,
     webhookUrls,
+    testResult,
 }: {
+    testResult: { type: 'success' | 'error'; message: string } | null;
     settings: {
         admin_chat_id: string;
         bot_username: string;
@@ -125,6 +129,49 @@ export default function Telegram({
                                 </>
                             )}
                         </Form>
+                        <div className="flex flex-col gap-3 border-t pt-5">
+                            <div>
+                                <p className="font-medium">
+                                    Check the connection
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Sends one message to the admin chat now.
+                                    Save your changes first.
+                                </p>
+                            </div>
+                            <Form
+                                {...TelegramTestController.form()}
+                                options={{ preserveScroll: true }}
+                            >
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        disabled={processing}
+                                    >
+                                        {processing ? <Spinner /> : <Send />}
+                                        Send test message
+                                    </Button>
+                                )}
+                            </Form>
+                            {testResult ? (
+                                <p
+                                    role="status"
+                                    className={
+                                        testResult.type === 'success'
+                                            ? 'flex items-start gap-2 rounded-xl bg-success/10 p-3 text-sm text-success'
+                                            : 'flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-sm text-destructive'
+                                    }
+                                >
+                                    {testResult.type === 'success' ? (
+                                        <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
+                                    ) : (
+                                        <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                                    )}
+                                    {testResult.message}
+                                </p>
+                            ) : null}
+                        </div>
                     </Card>
                     <Card className="gap-5 p-5 sm:p-6">
                         <div>
