@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
@@ -93,6 +94,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('plans', [AdminDashboardController::class, 'plans'])->name('plans');
         Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
         Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
+        Route::get('requests', [AdminInquiryController::class, 'index'])->name('requests');
+        Route::post('requests/{inquiry}/retry', [AdminInquiryController::class, 'retry'])
+            ->middleware('throttle:30,1')
+            ->name('requests.retry');
         Route::put('telegram', [AdminDashboardController::class, 'updateTelegram'])->name('telegram.update');
         Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
         Route::put('plans/{plan}', [PlanController::class, 'update'])->name('plans.update');

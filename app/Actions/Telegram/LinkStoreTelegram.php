@@ -19,24 +19,27 @@ class LinkStoreTelegram
         return 'https://t.me/'.$username.'?start=link_'.$token;
     }
 
-    public function complete(string $token, string $chatId): bool
+    /**
+     * @return Store|null The linked store, or null for an unknown or used token.
+     */
+    public function complete(string $token, string $chatId): ?Store
     {
         $storeId = Cache::pull($this->key($token));
 
         if (! is_int($storeId) && ! is_string($storeId)) {
-            return false;
+            return null;
         }
 
         $store = Store::query()->find($storeId);
 
         if ($store === null) {
-            return false;
+            return null;
         }
 
         $store->telegram_chat_id = $chatId;
         $store->save();
 
-        return true;
+        return $store;
     }
 
     private function key(string $token): string

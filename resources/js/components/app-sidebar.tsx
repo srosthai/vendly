@@ -4,6 +4,7 @@ import {
     CreditCard,
     FolderGit2,
     LayoutGrid,
+    MessageSquare,
     Package,
     Send,
     Shapes,
@@ -48,6 +49,7 @@ const adminNavItems: NavItem[] = [
     { title: 'Vendors', href: '/admin/vendors', icon: Store },
     { title: 'Plans', href: '/admin/plans', icon: Tags },
     { title: 'Payments', href: '/admin/payments', icon: CreditCard },
+    { title: 'Requests', href: '/admin/requests', icon: MessageSquare },
     { title: 'Telegram', href: '/admin/telegram', icon: Send },
 ];
 
