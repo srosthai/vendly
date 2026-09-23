@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
+import { accents } from '@/components/storefront/store-profile';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
@@ -9,10 +10,12 @@ type StoreIdentity = {
     slug: string;
     logo: string | null;
     description?: string | null;
+    accent?: string | null;
 };
 
 /**
- * The store's own mark: its logo, or its first letter on the brand tint.
+ * The store's own mark: its logo, or its first letter on the store's accent
+ * (the brand tint when it has none).
  */
 export function StoreMark({
     store,
@@ -24,7 +27,10 @@ export function StoreMark({
     return (
         <span
             className={cn(
-                'flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary text-lg font-bold text-secondary-foreground',
+                'flex shrink-0 items-center justify-center overflow-hidden rounded-2xl text-lg font-bold',
+                store.accent && accents[store.accent]
+                    ? accents[store.accent].mark
+                    : 'bg-secondary text-secondary-foreground',
                 className,
             )}
         >
@@ -76,10 +82,26 @@ export function StoreHeader({
     }
 
     return (
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border bg-card p-4 sm:p-6">
-            <div className="flex min-w-0 items-center gap-4">
-                <StoreMark store={store} className="size-16 text-2xl" />
-                <div className="min-w-0">
+        <header className="relative overflow-hidden rounded-3xl border bg-card p-4 pt-5 sm:p-6 sm:pt-7">
+            {store.accent && accents[store.accent] ? (
+                <span
+                    aria-hidden="true"
+                    className={cn(
+                        'absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r',
+                        accents[store.accent].band,
+                    )}
+                />
+            ) : null}
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+                <StoreMark
+                    store={store}
+                    className="size-14 text-xl sm:size-16 sm:text-2xl"
+                />
+                <div className="flex items-center justify-end gap-2 sm:col-start-3 sm:row-start-1">
+                    <ThemeToggle />
+                    {cart}
+                </div>
+                <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
                     <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                         {store.name}
                     </h1>
@@ -90,10 +112,6 @@ export function StoreHeader({
                     ) : null}
                     {details}
                 </div>
-            </div>
-            <div className="flex items-center gap-2">
-                <ThemeToggle />
-                {cart}
             </div>
         </header>
     );

@@ -16,6 +16,8 @@ import { EmptyState } from '@/components/empty-state';
 import { SimplePagination } from '@/components/simple-pagination';
 import type { Paginated } from '@/components/simple-pagination';
 import { StoreMark } from '@/components/storefront/store-header';
+import { mapLink, StoreContact } from '@/components/storefront/store-profile';
+import type { StoreProfile } from '@/components/storefront/store-profile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,7 +47,7 @@ type VendorStore = {
     telegram_connected: boolean;
     suspended: boolean;
     suspended_at: string | null;
-};
+} & StoreProfile;
 
 type Owner = {
     name: string;
@@ -667,7 +669,40 @@ export default function Vendor({
                                 <Detail label="Opened">
                                     {formatDate(store.created_at)}
                                 </Detail>
+                                <Detail label="Phone">
+                                    {store.phone ? (
+                                        <a
+                                            href={`tel:${store.phone.replace(/[^\d+]/g, '')}`}
+                                            className="text-primary hover:underline"
+                                        >
+                                            {store.phone}
+                                        </a>
+                                    ) : null}
+                                </Detail>
+                                <Detail label="Address">
+                                    {store.address ? (
+                                        <a
+                                            href={mapLink(store.address)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline"
+                                        >
+                                            {store.address}
+                                        </a>
+                                    ) : null}
+                                </Detail>
+                                <Detail label="Hours">{store.hours}</Detail>
                             </dl>
+                            {Object.keys(store.socials).length > 0 ? (
+                                <StoreContact
+                                    profile={{
+                                        ...store,
+                                        phone: null,
+                                        address: null,
+                                        hours: null,
+                                    }}
+                                />
+                            ) : null}
                         </Section>
 
                         <Section title="Categories and brands">

@@ -8,6 +8,7 @@ use App\Enums\ProductStatus;
 use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateStoreRequest;
 use App\Http\Requests\Vendor\NamedListRequest;
 use App\Http\Requests\Vendor\ProductListRequest;
 use App\Models\Brand;
@@ -170,23 +171,24 @@ class WorkspaceController extends Controller
                 'logo' => $store->logoUrl(),
                 'web_url' => route('stores.show', $store),
                 'telegram_url' => PlatformSetting::current()->miniAppLink($store->slug),
+                'accent' => $store->accent,
+                'phone' => $store->phone ?? '',
+                'address' => $store->address ?? '',
+                'hours' => $store->hours ?? '',
+                'social_links' => collect(Store::SocialNetworks)
+                    ->mapWithKeys(fn (string $network): array => [$network => $store->social_links[$network] ?? ''])
+                    ->all(),
             ],
+            'accents' => Store::Accents,
         ]);
     }
 
-    public function updateStore(Request $request): RedirectResponse
+    public function updateStore(UpdateStoreRequest $request): RedirectResponse
     {
         $store = $this->vendorStore($request);
         $this->authorize('update', $store);
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
-            'remove_logo' => ['sometimes', 'boolean'],
-        ]);
 
-        $store->name = strip_tags($validated['name']);
-        $store->description = isset($validated['description']) ? strip_tags($validated['description']) : null;
+        $store->fill($request->profile());
 
         $oldLogo = $store->logo_path;
 
