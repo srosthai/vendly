@@ -1,7 +1,10 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { MessageSquare } from 'lucide-react';
 import InquiryController from '@/actions/App/Http/Controllers/Admin/InquiryController';
 import { SimplePagination } from '@/components/simple-pagination';
 import type { Paginated } from '@/components/simple-pagination';
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -112,54 +115,79 @@ export default function Requests({
         <>
             <Head title="Requests" />
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Requests
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Buy and cart requests sent to Telegram. Send again
-                            once a chat problem is fixed.
-                        </p>
-                    </div>
-                    <div className="flex gap-2" role="group" aria-label="Show">
-                        <Button
-                            variant={filter === 'all' ? 'default' : 'outline'}
-                            size="sm"
-                            asChild
+                <PageHeader
+                    title="Requests"
+                    description="Buy and cart requests sent to Telegram. Send one again once the chat problem is fixed."
+                    actions={
+                        <div
+                            className="flex gap-1 rounded-full border bg-card p-1"
+                            role="group"
+                            aria-label="Show"
                         >
-                            <Link href={InquiryController.index()}>All</Link>
-                        </Button>
-                        <Button
-                            variant={
-                                filter === 'undelivered' ? 'default' : 'outline'
-                            }
-                            size="sm"
-                            asChild
-                        >
-                            <Link
-                                href={InquiryController.index({
-                                    query: { filter: 'undelivered' },
-                                })}
+                            <Button
+                                variant={
+                                    filter === 'all' ? 'secondary' : 'ghost'
+                                }
+                                size="sm"
+                                asChild
                             >
-                                Not delivered
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
+                                <Link
+                                    href={InquiryController.index()}
+                                    aria-current={
+                                        filter === 'all' ? 'page' : undefined
+                                    }
+                                >
+                                    All
+                                </Link>
+                            </Button>
+                            <Button
+                                variant={
+                                    filter === 'undelivered'
+                                        ? 'secondary'
+                                        : 'ghost'
+                                }
+                                size="sm"
+                                asChild
+                            >
+                                <Link
+                                    href={InquiryController.index({
+                                        query: { filter: 'undelivered' },
+                                    })}
+                                    aria-current={
+                                        filter === 'undelivered'
+                                            ? 'page'
+                                            : undefined
+                                    }
+                                >
+                                    Not delivered
+                                </Link>
+                            </Button>
+                        </div>
+                    }
+                />
                 {inquiries.data.length === 0 ? (
-                    <p className="text-muted-foreground">
-                        {filter === 'undelivered'
-                            ? 'Every request reached Telegram.'
-                            : 'No requests yet. They appear when customers tap Buy or send a cart.'}
-                    </p>
+                    <EmptyState
+                        icon={MessageSquare}
+                        title={
+                            filter === 'undelivered'
+                                ? 'Every request reached Telegram'
+                                : 'No requests yet'
+                        }
+                        description={
+                            filter === 'undelivered'
+                                ? 'Nothing is waiting to be sent again.'
+                                : 'They appear when customers tap Buy or send a cart.'
+                        }
+                    />
                 ) : (
                     <>
-                        <div className="hidden md:block">
+                        <Card className="hidden gap-0 overflow-hidden p-0 md:flex">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Request</TableHead>
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="pl-5">
+                                            Request
+                                        </TableHead>
                                         <TableHead>Customer</TableHead>
                                         <TableHead>Products</TableHead>
                                         <TableHead>Delivery</TableHead>
@@ -176,7 +204,7 @@ export default function Requests({
                                             key={request.id}
                                             className="align-top"
                                         >
-                                            <TableCell>
+                                            <TableCell className="pl-5">
                                                 <p className="font-medium">
                                                     {request.store}{' '}
                                                     {request.reference}
@@ -228,7 +256,7 @@ export default function Requests({
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </Card>
                         <div className="flex flex-col gap-3 md:hidden">
                             {inquiries.data.map((request) => (
                                 <Card key={request.id} className="gap-3 p-4">
@@ -240,8 +268,8 @@ export default function Requests({
                                             {request.customer}
                                             {request.contact
                                                 ? ` (${request.contact})`
-                                                : ''}{' '}
-                                            · {sentAt(request.sent_at)}
+                                                : ''}
+                                            , {sentAt(request.sent_at)}
                                         </p>
                                     </div>
                                     <div className="text-sm">
@@ -272,3 +300,7 @@ export default function Requests({
         </>
     );
 }
+
+Requests.layout = {
+    breadcrumbs: [{ title: 'Requests', href: InquiryController.index() }],
+};

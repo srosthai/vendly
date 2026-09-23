@@ -93,4 +93,12 @@ class Store extends Model
     {
         return $this->suspended_at !== null;
     }
+
+    /**
+     * @return HasMany<Inquiry, $this>
+     */
+    public function inquiries(): HasMany
+    {
+        return $this->hasMany(Inquiry::class);
+    }
 }

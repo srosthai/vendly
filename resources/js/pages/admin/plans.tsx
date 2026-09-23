@@ -1,12 +1,11 @@
-import { Form, Head } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import { Tags } from 'lucide-react';
 import type { AdminPlan } from '@/components/admin/plan-form-dialog';
 import { PlanFormDialog } from '@/components/admin/plan-form-dialog';
-import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -15,36 +14,59 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { dollars } from '@/lib/format';
+import admin from '@/routes/admin';
+
+function PlanBadge({ plan }: { plan: AdminPlan }) {
+    if (plan.is_default) {
+        return <Badge>Default</Badge>;
+    }
+
+    return plan.is_active ? (
+        <Badge variant="success">Available</Badge>
+    ) : (
+        <Badge variant="secondary">Hidden</Badge>
+    );
+}
+
+function price(plan: AdminPlan): string {
+    return plan.price_cents === 0
+        ? 'Free'
+        : `${dollars(plan.price_cents)} / month`;
+}
 
 export default function Plans({ plans }: { plans: AdminPlan[] }) {
     return (
         <>
             <Head title="Plans" />
-            <div className="flex flex-col gap-8 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Plans
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        A paid price is at least $0.01. The free plan is the
-                        default.
-                    </p>
-                </div>
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Plans"
+                    description="Plans limit how many products a store can publish. The default plan is free, and every new store starts on it."
+                    actions={<PlanFormDialog />}
+                />
                 {plans.length === 0 ? (
-                    <p className="text-muted-foreground">
-                        Create the first plan.
-                    </p>
+                    <EmptyState
+                        icon={Tags}
+                        title="No plans yet"
+                        description="Create a free default plan first. New stores cannot open without one."
+                        action={<PlanFormDialog />}
+                    />
                 ) : (
                     <>
-                        <div className="hidden md:block">
+                        <Card className="hidden gap-0 overflow-hidden p-0 md:flex">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="pl-5">
+                                            Plan
+                                        </TableHead>
                                         <TableHead>Price</TableHead>
-                                        <TableHead>Products</TableHead>
+                                        <TableHead>
+                                            Published products
+                                        </TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">
+                                        <TableHead className="pr-5">
                                             <span className="sr-only">
                                                 Actions
                                             </span>
@@ -54,101 +76,55 @@ export default function Plans({ plans }: { plans: AdminPlan[] }) {
                                 <TableBody>
                                     {plans.map((plan) => (
                                         <TableRow key={plan.id}>
-                                            <TableCell>{plan.name}</TableCell>
-                                            <TableCell>
-                                                $
-                                                {(
-                                                    plan.price_cents / 100
-                                                ).toFixed(2)}
+                                            <TableCell className="pl-5 font-medium">
+                                                {plan.name}
+                                            </TableCell>
+                                            <TableCell className="tabular-nums">
+                                                {price(plan)}
+                                            </TableCell>
+                                            <TableCell className="tabular-nums">
+                                                Up to {plan.product_limit}
                                             </TableCell>
                                             <TableCell>
-                                                {plan.product_limit}
+                                                <PlanBadge plan={plan} />
                                             </TableCell>
-                                            <TableCell>
-                                                {plan.is_default
-                                                    ? 'Default'
-                                                    : plan.is_active
-                                                      ? 'Active'
-                                                      : 'Hidden'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="pr-5 text-right">
                                                 <PlanFormDialog plan={plan} />
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </Card>
                         <div className="flex flex-col gap-3 md:hidden">
                             {plans.map((plan) => (
-                                <Card key={plan.id} className="gap-2 p-4">
-                                    <p className="font-medium">{plan.name}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        ${(plan.price_cents / 100).toFixed(2)} ·{' '}
-                                        {plan.product_limit} products ·{' '}
-                                        {plan.is_default
-                                            ? 'Default'
-                                            : plan.is_active
-                                              ? 'Active'
-                                              : 'Hidden'}
-                                    </p>
-                                    <div>
-                                        <PlanFormDialog plan={plan} />
+                                <Card
+                                    key={plan.id}
+                                    className="flex-row items-center justify-between gap-3 p-4"
+                                >
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium">
+                                                {plan.name}
+                                            </p>
+                                            <PlanBadge plan={plan} />
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            {price(plan)}, up to{' '}
+                                            {plan.product_limit} products
+                                        </p>
                                     </div>
+                                    <PlanFormDialog plan={plan} />
                                 </Card>
                             ))}
                         </div>
                     </>
                 )}
-                <Form
-                    action="/admin/plans"
-                    method="post"
-                    className="grid max-w-md gap-4"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <h2 className="text-lg font-medium">New plan</h2>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" name="name" required />
-                                <InputError message={errors.name} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="price">
-                                    Monthly price (USD)
-                                </Label>
-                                <Input
-                                    id="price"
-                                    name="price"
-                                    required
-                                    placeholder="5.00"
-                                />
-                                <InputError message={errors.price} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="product_limit">
-                                    Published product limit
-                                </Label>
-                                <Input
-                                    id="product_limit"
-                                    name="product_limit"
-                                    type="number"
-                                    min={0}
-                                    required
-                                    defaultValue={100}
-                                />
-                                <InputError message={errors.product_limit} />
-                            </div>
-                            <input type="hidden" name="is_active" value="1" />
-                            <input type="hidden" name="is_default" value="0" />
-                            <Button type="submit" disabled={processing}>
-                                {processing && <Spinner />}
-                                Create plan
-                            </Button>
-                        </>
-                    )}
-                </Form>
             </div>
         </>
     );
 }
+
+Plans.layout = {
+    breadcrumbs: [{ title: 'Plans', href: admin.plans() }],
+};

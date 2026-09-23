@@ -233,5 +233,6 @@ export default function Register({
 
 Register.layout = {
     title: 'Create your Vendly account',
-    description: 'We email you a code to check the address before the account is made.',
+    description:
+        'We email you a code to check the address before the account is made.',
 };

@@ -269,3 +269,7 @@ function RowActions({ product, full }: { product: ProductRow; full: boolean }) {
         </div>
     );
 }
+
+Products.layout = {
+    breadcrumbs: [{ title: 'Products', href: vendor.products() }],
+};

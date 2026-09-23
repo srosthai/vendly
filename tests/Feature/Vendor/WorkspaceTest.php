@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Models\Plan;
 use App\Models\Product;
 use App\Models\Store;
+use App\Models\SubscriptionPayment;
 use App\Models\User;
 
 test('a vendor can open the store tools and another vendor cannot', function () {
@@ -173,4 +175,82 @@ test('the sidebar card shows plan room for a vendor and undelivered requests for
     $this->actingAs(User::factory()->create())
         ->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page->where('workspace', null));
+});
+
+test('the vendor overview counts products and this week\'s requests per day', function () {
+    $this->freezeSecond();
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Smile Tea', 10);
+    Product::factory()->for($store)->count(2)->create();
+    Product::factory()->for($store)->draft()->create();
+
+    foreach ([0, 0, 3, 9] as $daysAgo) {
+        $inquiry = $store->inquiries()->create([
+            'public_id' => (string) str()->ulid(),
+            'number' => $store->inquiries()->max('number') + 1,
+            'customer_name' => 'Ada',
+        ]);
+        $inquiry->forceFill(['created_at' => now()->subDays($daysAgo)])->save();
+        $inquiry->items()->create(['name' => 'Jasmine', 'price_cents' => 250, 'quantity' => 1]);
+    }
+
+    $this->actingAs($vendor)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->component('vendor/overview')
+            ->where('stats.published', 2)
+            ->where('stats.drafts', 1)
+            ->where('stats.requests_this_week', 3)
+            ->where('stats.requests_trend', [0, 0, 0, 1, 0, 0, 2])
+            ->has('recentRequests', 4)
+            ->where('recentRequests.0.total', '$2.50'));
+});
+
+test('the admin overview counts vendors, paid plans, money this month, and undelivered requests', function () {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $paid = Plan::query()->create(['name' => 'Starter', 'price_cents' => 500, 'product_limit' => 100, 'is_active' => true, 'is_default' => false]);
+    $store->subscription->update(['plan_id' => $paid->id, 'ends_at' => now()->addMonth()]);
+    SubscriptionPayment::query()->create([
+        'public_id' => 'subpay_one',
+        'store_id' => $store->id,
+        'plan_id' => $paid->id,
+        'amount_cents' => 500,
+        'status' => PaymentStatus::Paid,
+        'paid_at' => now(),
+    ]);
+    $store->inquiries()->create(['public_id' => 'inq_one', 'number' => 1, 'customer_name' => 'Ada']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/overview')
+            ->where('stats.vendors', 1)
+            ->where('stats.paid_plans', 1)
+            ->where('stats.revenue_this_month', '$5.00')
+            ->where('stats.undelivered', 1)
+            ->has('recentPayments', 1));
+});
+
+test('a customer dashboard lists only their own requests', function () {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $customer = User::factory()->create();
+    $store->inquiries()->create(['public_id' => 'mine', 'number' => 1, 'user_id' => $customer->id, 'customer_name' => 'Me']);
+    $store->inquiries()->create(['public_id' => 'theirs', 'number' => 2, 'user_id' => User::factory()->create()->id, 'customer_name' => 'Them']);
+
+    $this->actingAs($customer)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->component('dashboard')
+            ->has('requests', 1)
+            ->where('requests.0.reference', '#1'));
+});
+
+test('connecting telegram explains when the bot is not set up', function () {
+    config(['services.telegram.bot_username' => null]);
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Smile Tea');
+
+    $this->actingAs($vendor)
+        ->post(route('telegram.link'))
+        ->assertInvalid(['telegram' => 'not set up yet']);
 });
