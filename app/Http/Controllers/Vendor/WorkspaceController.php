@@ -35,18 +35,13 @@ class WorkspaceController extends Controller
     public function store(Request $request): Response
     {
         $store = $this->vendorStore($request);
-        $settings = PlatformSetting::current();
-        $username = $settings->botUsername();
-        $short = $settings->mini_app_short_name ?: (string) config('services.telegram.mini_app_short_name');
 
         return Inertia::render('vendor/store', [
             'store' => [
                 'name' => $store->name,
                 'description' => $store->description ?? '',
                 'web_url' => route('stores.show', $store),
-                'telegram_url' => $username !== '' && $short !== ''
-                    ? 'https://t.me/'.$username.'/'.$short.'?startapp='.$store->slug
-                    : null,
+                'telegram_url' => PlatformSetting::current()->miniAppLink($store->slug),
             ],
         ]);
     }

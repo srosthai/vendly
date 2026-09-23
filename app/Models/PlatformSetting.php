@@ -42,4 +42,21 @@ class PlatformSetting extends Model
 
         return (string) config('services.telegram.bot_username');
     }
+
+    /**
+     * The mini app link for a store, or null until the bot and mini app are set.
+     */
+    public function miniAppLink(string $slug): ?string
+    {
+        $username = $this->botUsername();
+        $short = is_string($this->mini_app_short_name) && $this->mini_app_short_name !== ''
+            ? $this->mini_app_short_name
+            : (string) config('services.telegram.mini_app_short_name');
+
+        if ($username === '' || $short === '') {
+            return null;
+        }
+
+        return 'https://t.me/'.$username.'/'.$short.'?startapp='.$slug;
+    }
 }
