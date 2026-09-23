@@ -224,3 +224,10 @@ test('the saved theme is applied on the first render with a matching browser bar
     'light' => ['light', false, '#f4f7fc'],
     'system' => ['system', false, '#f4f7fc'],
 ]);
+
+test('the footer names Vendly when no company name is set, whatever the app name', function () {
+    config(['app.name' => 'Laravel']);
+
+    $this->get(route('home'))
+        ->assertInertia(fn ($page) => $page->where('site.company_name', 'Vendly'));
+});
