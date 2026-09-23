@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\TelegramTestController;
 use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
+use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
@@ -98,6 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('vendors', [AdminDashboardController::class, 'vendors'])->name('vendors');
+        Route::get('vendors/{store}', [VendorController::class, 'show'])->name('vendors.show');
         Route::get('plans', [AdminDashboardController::class, 'plans'])->name('plans');
         Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
         Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
