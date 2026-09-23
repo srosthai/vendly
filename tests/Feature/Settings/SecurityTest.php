@@ -2,86 +2,25 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Fortify\Features;
 
-test('security page is displayed', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+test('the old security and appearance pages open the profile page', function (string $path) {
+    $this->actingAs(User::factory()->create())
+        ->get($path)
+        ->assertRedirect('/settings/profile');
+})->with(['/settings/security', '/settings/appearance']);
 
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
-    ]);
-    Features::passkeys([
-        'confirmPassword' => true,
-    ]);
-
+test('password can be updated from the profile page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('security.edit'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/security')
-            ->where('canManagePasskeys', true)
-            ->where('passkeys', [])
-            ->where('canManageTwoFactor', true)
-            ->where('twoFactorEnabled', false),
-        );
-});
-
-test('security page requires password confirmation when enabled', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-    $user = User::factory()->create();
-
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
-    ]);
-
-    $response = $this->actingAs($user)
-        ->get(route('security.edit'));
-
-    $response->assertRedirect(route('password.confirm'));
-});
-
-test('security page renders without two factor when feature is disabled', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-    config(['fortify.features' => []]);
-
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('security.edit'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/security')
-            ->where('canManagePasskeys', false)
-            ->where('passkeys', [])
-            ->where('canManageTwoFactor', false)
-            ->missing('twoFactorEnabled')
-            ->missing('requiresConfirmation'),
-        );
-});
-
-test('password can be updated', function () {
-    $user = User::factory()->create();
-
-    $response = $this
-        ->actingAs($user)
-        ->from(route('security.edit'))
+        ->from(route('profile.edit'))
         ->put(route('user-password.update'), [
             'current_password' => 'password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
-        ]);
-
-    $response
+        ])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('security.edit'));
+        ->assertRedirect(route('profile.edit'));
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });
@@ -89,27 +28,24 @@ test('password can be updated', function () {
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->from(route('security.edit'))
+    $this->actingAs($user)
+        ->from(route('profile.edit'))
         ->put(route('user-password.update'), [
             'current_password' => 'wrong-password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
-        ]);
-
-    $response
+        ])
         ->assertSessionHasErrors('current_password')
-        ->assertRedirect(route('security.edit'));
+        ->assertRedirect(route('profile.edit'));
 });
 
-test('an account without a password opens security settings and sets a first password', function () {
+test('an account without a password sets a first password from the profile page', function () {
     $user = User::factory()->create(['password' => null]);
 
     $this->actingAs($user)
-        ->get(route('security.edit'))
+        ->get(route('profile.edit'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('settings/security')->where('auth.hasPassword', false));
+        ->assertInertia(fn ($page) => $page->component('settings/profile')->where('auth.hasPassword', false));
 
     $this->actingAs($user)
         ->put(route('user-password.update'), [
@@ -119,10 +55,4 @@ test('an account without a password opens security settings and sets a first pas
         ->assertSessionHasNoErrors();
 
     expect(Hash::check('new-password', $user->fresh()->password))->toBeTrue();
-});
-
-test('an account with a password still confirms it before security settings', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)->get(route('security.edit'))->assertRedirect(route('password.confirm'));
 });

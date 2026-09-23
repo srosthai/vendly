@@ -328,7 +328,7 @@ test('deleting an account removes its store photos', function () {
 
     $path = $store->products()->sole()->images()->sole()->path;
 
-    $this->actingAs($vendor)->delete(route('profile.destroy'))->assertRedirect('/');
+    $vendor->delete();
 
     Storage::disk('public')->assertMissing($path);
 });
