@@ -27,7 +27,17 @@
     --color-popover-foreground: var(--popover-foreground);
 
     --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
     --color-primary-foreground: var(--primary-foreground);
+
+    --color-highlight: var(--highlight);
+    --color-highlight-foreground: var(--highlight-foreground);
+
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
 
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
@@ -62,74 +72,100 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    /*
+     * Vendly brand, taken from public/vendly.png: the blue V (#0B77FB to
+     * #0039B4), the orange cart (#FD890F to #FCA402), and the navy wordmark
+     * (#081A3B). Blue leads, orange is a highlight only, navy carries text.
+     */
+    --brand-blue: #0054d5;
+    --brand-blue-deep: #0039b4;
+    --brand-blue-light: #0b77fb;
+    --brand-orange: #fd890f;
+    --brand-navy: #081a3b;
+
+    --background: #f4f7fc;
+    --foreground: var(--brand-navy);
+    --card: #ffffff;
+    --card-foreground: var(--brand-navy);
+    --popover: #ffffff;
+    --popover-foreground: var(--brand-navy);
+    --primary: var(--brand-blue);
+    --primary-hover: var(--brand-blue-deep);
+    --primary-foreground: #ffffff;
+    --secondary: #eaf1fe;
+    --secondary-foreground: var(--brand-blue-deep);
+    --muted: #eef2f8;
+    --muted-foreground: #5b6b85;
+    --accent: #eaf1fe;
+    --accent-foreground: var(--brand-blue-deep);
+    --highlight: var(--brand-orange);
+    --highlight-foreground: var(--brand-navy);
+    --success: #12805c;
+    --success-foreground: #ffffff;
+    --warning: #b54708;
+    --warning-foreground: #ffffff;
+    --destructive: #d92d20;
+    --destructive-foreground: #d92d20;
+    --border: #e1e7f0;
+    --input: #d5ddea;
+    --ring: var(--brand-blue);
+    --chart-1: var(--brand-blue);
+    --chart-2: var(--brand-orange);
+    --chart-3: var(--brand-blue-light);
+    --chart-4: #12805c;
+    --chart-5: var(--brand-navy);
+    --radius: 0.75rem;
+    --sidebar: #ffffff;
+    --sidebar-foreground: var(--brand-navy);
+    --sidebar-primary: var(--brand-blue);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e6effe;
+    --sidebar-accent-foreground: var(--brand-blue-deep);
+    --sidebar-border: #e1e7f0;
+    --sidebar-ring: var(--brand-blue);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --background: #060f22;
+    --foreground: #eaf0fa;
+    --card: #0c1830;
+    --card-foreground: #eaf0fa;
+    --popover: #0c1830;
+    --popover-foreground: #eaf0fa;
+    /* A lighter blue than the light theme, still 4.5:1 with white text. */
+    --primary: #1f6feb;
+    --primary-hover: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #13254a;
+    --secondary-foreground: #cfe0ff;
+    --muted: #111f3b;
+    --muted-foreground: #93a3be;
+    --accent: #13254a;
+    --accent-foreground: #eaf0fa;
+    --highlight: #ffa23a;
+    --highlight-foreground: var(--brand-navy);
+    --success: #3ccb8f;
+    --success-foreground: var(--brand-navy);
+    --warning: #f5a524;
+    --warning-foreground: var(--brand-navy);
+    --destructive: #f0625a;
+    --destructive-foreground: #f0625a;
+    --border: #1c2c4d;
+    --input: #22355b;
+    --ring: #3b8bff;
+    --chart-1: #3b8bff;
+    --chart-2: #ffa23a;
+    --chart-3: #7fb2ff;
+    --chart-4: #3ccb8f;
+    --chart-5: #cfe0ff;
+    --sidebar: #0a152b;
+    --sidebar-foreground: #eaf0fa;
+    --sidebar-primary: #1f6feb;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #15305f;
+    --sidebar-accent-foreground: #cfe0ff;
+    --sidebar-border: #1c2c4d;
+    --sidebar-ring: #3b8bff;
 }
 
 @layer base {
@@ -137,7 +173,21 @@
         @apply border-border;
     }
 
+    html {
+        accent-color: var(--primary);
+        caret-color: var(--primary);
+        scrollbar-color: var(--input) transparent;
+    }
+
     body {
         @apply bg-background text-foreground;
+    }
+
+    ::selection {
+        background-color: color-mix(in oklab, var(--primary) 22%, transparent);
+    }
+
+    a {
+        text-underline-offset: 0.2em;
     }
 }
