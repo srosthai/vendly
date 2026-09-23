@@ -29,7 +29,7 @@ class TelegramWebhookController extends Controller
         $chatId = $request->input('message.chat.id');
 
         if (is_string($text) && preg_match('/^\/start link_([A-Za-z0-9]+)$/', $text, $matches) && (is_string($chatId) || is_int($chatId))) {
-            $store = $links->complete($matches[1], (string) $chatId);
+            $store = $links->complete($matches[1], (string) $chatId, $this->chatName($request));
 
             if ($store !== null) {
                 $telegram->storeConnected($store);
@@ -37,5 +37,31 @@ class TelegramWebhookController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * What to call the chat: a group's title, or the person's name, or
+     * their username.
+     */
+    private function chatName(Request $request): ?string
+    {
+        $title = $request->input('message.chat.title');
+
+        if (is_string($title) && $title !== '') {
+            return $title;
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $request->input('message.chat.first_name'),
+            $request->input('message.chat.last_name'),
+        ], 'is_string')));
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        $username = $request->input('message.chat.username');
+
+        return is_string($username) && $username !== '' ? '@'.$username : null;
     }
 }

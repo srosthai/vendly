@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Storage;
  * @property string $currency
  * @property CarbonInterface|null $suspended_at
  * @property string|null $telegram_chat_id
+ * @property string|null $telegram_chat_name
+ * @property CarbonInterface|null $telegram_connected_at
  * @property string|null $accent
  * @property string|null $phone
  * @property string|null $address
@@ -68,6 +70,7 @@ class Store extends Model
     {
         return [
             'suspended_at' => 'datetime',
+            'telegram_connected_at' => 'datetime',
             'social_links' => 'array',
         ];
     }
