@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Cart\CartSummary;
 use App\Actions\Stores\CreateStore;
 use App\Http\Requests\CreateStoreRequest;
 use App\Models\Product;
@@ -29,7 +30,7 @@ class StoreController extends Controller
         return redirect()->route('stores.show', $store);
     }
 
-    public function show(Request $request, Store $store): Response
+    public function show(Request $request, Store $store, CartSummary $cart): Response
     {
         abort_if($store->isSuspended(), 404);
 
@@ -51,6 +52,8 @@ class StoreController extends Controller
             'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['name', 'slug']),
             'activeCategory' => $category,
             'embedded' => $request->session()->get('mini_app') === true,
+            'authenticated' => $request->user() !== null,
+            'cart' => $cart->for($request, $store),
             'products' => $products->map(fn (Product $product): array => [
                 'id' => $product->id,
                 'name' => $product->name,
