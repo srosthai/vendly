@@ -3,7 +3,6 @@ import GoogleAuthController from '@/actions/App/Http/Controllers/Auth/GoogleAuth
 import { GoogleMark } from '@/components/auth/google-mark';
 import { OrSeparator } from '@/components/auth/or-separator';
 import InputError from '@/components/input-error';
-import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -34,15 +33,12 @@ export default function Login({ status, canResetPassword }: Props) {
                 </p>
             ) : null}
 
-            <div className="grid gap-3">
-                <Button variant="outline" className="w-full" asChild>
-                    <a href={GoogleAuthController.redirect.url()}>
-                        <GoogleMark />
-                        Continue with Google
-                    </a>
-                </Button>
-                <PasskeyVerify separator={false} />
-            </div>
+            <Button variant="outline" className="w-full" asChild>
+                <a href={GoogleAuthController.redirect.url()}>
+                    <GoogleMark />
+                    Continue with Google
+                </a>
+            </Button>
 
             <OrSeparator label="or use your email" />
 
