@@ -15,6 +15,20 @@ use Inertia\Response;
 
 class RegisterController extends Controller
 {
+    public function create(Request $request): Response
+    {
+        if ($request->query('next') === 'sell') {
+            $request->session()->put('url.intended', route('selling.create'));
+        }
+
+        return Inertia::render('auth/register', [
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'step' => 'details',
+            'email' => '',
+            'status' => $request->session()->get('status'),
+        ]);
+    }
+
     public function code(Request $request): Response|RedirectResponse
     {
         $email = $request->session()->get('register_email');

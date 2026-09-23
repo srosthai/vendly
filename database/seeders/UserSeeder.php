@@ -14,9 +14,17 @@ class UserSeeder extends Seeder
      * - admin@vendly.test manages vendors, plans, payments, and Telegram.
      * - vendor@vendly.test owns the Smile Tea store.
      * - customer@vendly.test can shop and send a request.
+     *
+     * The password is public, so these accounts are never created in production.
      */
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            $this->command?->warn('Skipped demo accounts: they are only seeded in local and testing.');
+
+            return;
+        }
+
         $admin = $this->account('Admin', 'admin@vendly.test');
         $admin->is_admin = true;
         $admin->save();

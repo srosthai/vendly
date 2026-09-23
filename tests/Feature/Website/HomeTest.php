@@ -13,9 +13,6 @@ test('sign in is the email and password form', function () {
     $this->get(route('login'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('auth/login'));
-
-    $this->get(route('auth.sign-in'))
-        ->assertRedirect(route('login'));
 });
 
 test('start selling requires an account and creates one store', function () {

@@ -5,17 +5,24 @@ namespace App\Actions\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CompleteRegistration
 {
-    public function __construct(private StartRegistration $registration) {}
+    private const MaxAttempts = 5;
+
+    public function __construct(
+        private StartRegistration $registration,
+        private ReleaseUnverifiedEmail $releaseUnverifiedEmail,
+    ) {}
 
     public function handle(string $email, string $code): User
     {
         $email = Str::lower($email);
         $key = $this->registration->key($email);
+        $attemptsKey = $this->registration->attemptsKey($email);
         $cached = Cache::get($key);
 
         if (! is_array($cached) || ! isset($cached['hash'], $cached['password'], $cached['name'])) {
@@ -24,30 +31,26 @@ class CompleteRegistration
             ]);
         }
 
-        $attempts = (int) ($cached['attempts'] ?? 0);
+        if (RateLimiter::hit($attemptsKey, 600) > self::MaxAttempts) {
+            throw ValidationException::withMessages([
+                'code' => 'Too many wrong codes. Try again in '.ceil(RateLimiter::availableIn($attemptsKey) / 60).' minutes.',
+            ]);
+        }
 
-        if ($attempts >= 5 || ! Hash::check($code, (string) $cached['hash'])) {
-            Cache::put($key, [
-                'name' => $cached['name'],
-                'password' => $cached['password'],
-                'hash' => $cached['hash'],
-                'attempts' => $attempts + 1,
-            ], now()->addMinutes(10));
-
+        if (! Hash::check($code, (string) $cached['hash'])) {
             throw ValidationException::withMessages([
                 'code' => 'That code is invalid or has expired.',
             ]);
         }
 
-        if (User::query()->where('email', $email)->exists()) {
-            Cache::forget($key);
+        Cache::forget($key);
+        RateLimiter::clear($attemptsKey);
 
+        if ($this->releaseUnverifiedEmail->handle($email) !== null) {
             throw ValidationException::withMessages([
                 'email' => 'An account with this email already exists. Log in instead.',
             ]);
         }
-
-        Cache::forget($key);
 
         $user = new User;
         $user->name = (string) $cached['name'];
