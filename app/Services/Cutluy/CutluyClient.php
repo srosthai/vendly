@@ -41,9 +41,33 @@ class CutluyClient
     }
 
     /**
-     * @return array{id: string, status: string, checkout_url: string, qr_string: string}
+     * One status read. Callers never loop on it; a 429 is reported like any
+     * other failure.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws CutluyRequestException
      */
-    private function payment(Response $response): array
+    public function findPayment(string $id): array
+    {
+        try {
+            $response = $this->request()->get('/v1/payments/'.rawurlencode($id));
+        } catch (ConnectionException) {
+            throw new CutluyRequestException(0, 'connection_failed');
+        }
+
+        $this->ensureSuccessful($response);
+
+        /** @var array<string, mixed> $json */
+        $json = $response->json();
+
+        return $json;
+    }
+
+    /**
+     * @throws CutluyRequestException
+     */
+    private function ensureSuccessful(Response $response): void
     {
         if (! $response->successful()) {
             throw new CutluyRequestException(
@@ -53,6 +77,14 @@ class CutluyClient
                 $response->status() === 429 ? $this->retryAfter($response) : 0,
             );
         }
+    }
+
+    /**
+     * @return array{id: string, status: string, checkout_url: string, qr_string: string}
+     */
+    private function payment(Response $response): array
+    {
+        $this->ensureSuccessful($response);
 
         /** @var array{id?: string, status?: string, checkout_url?: string, qr_string?: string} $json */
         $json = $response->json();
