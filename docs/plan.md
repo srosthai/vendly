@@ -11,27 +11,27 @@ One platform. Many independent stores. A customer always shops inside one vendor
 These replace ideas that sound right but are hard to run, or that Telegram does not allow.
 
 1. **One bot and one mini app for the whole platform.** Telegram registers a mini app on a single bot. A new mini app cannot be created automatically when a vendor opens a store. Each store is a link into that one app. The vendor pastes nothing. Vendly generates both links when the store is created:
-   - Web: `https://{app-domain}/s/{slug}`
-   - Telegram: `https://t.me/{bot}/{app}?startapp={slug}`
+    - Web: `https://{app-domain}/s/{slug}`
+    - Telegram: `https://t.me/{bot}/{app}?startapp={slug}`
 2. **Categories and brands belong to the store, and the vendor manages them.** Admin does not edit each vendor’s catalog. Admin manages vendors, plans, subscriptions, and the platform Telegram settings. A shared marketplace catalog (one category tree for every store) is a later product, because v1 customers arrive at a specific store.
 3. **One store per account.** A vendor signs up, creates one store, and sells there. A second store per account waits.
 4. **One user table for everyone.** There is no separate vendor account system and customer account system. A person is a customer until they open a store. Admin is a flag on the same user.
 5. **Plans limit how many products a store may publish.** Example the admin can create: Free 10 products, Starter 100 products at $5/month. The limit counts **published** products. Drafts do not count. Admin creates and edits plans. A default free plan is assigned when the store is created, so signup is usable before any payment exists.
 6. **Money is split into two different actions.**
-   - A vendor pays for a plan inside Vendly with a Cambodia QR payment through CutLuy (USD only). The plan turns on only when CutLuy reports `payment.completed`.
-   - A customer does not pay in the app. The store only displays products. Buy sends that product to Telegram. A cart sends several products in one message. The vendor’s Telegram and the platform admin Telegram both receive it. There is no order inbox, no status workflow, and no card checkout.
+    - A vendor pays for a plan inside Vendly with a Cambodia QR payment through CutLuy (USD only). The plan turns on only when CutLuy reports `payment.completed`.
+    - A customer does not pay in the app. The store only displays products. Buy sends that product to Telegram. A cart sends several products in one message. The vendor’s Telegram and the platform admin Telegram both receive it. There is no order inbox, no status workflow, and no card checkout.
 7. **Custom domains wait.** v1 stores live on the admin domain only. A later phase can map `shop.vendor.com` to the same store. The mini app still uses the platform domain, because Telegram must load one HTTPS app URL.
 8. **Customer login depends on where they are.**
-   - Web: Google, or email with a one-time code. The account is created only after the code is correct. Browsing stays open. Login is required at Buy.
-   - Mini app: no Google and no email prompt. Telegram already identified them. Vendly checks Telegram’s signed `initData` and creates the customer from their Telegram id, name, and username.
+    - Web: Google, or email with a one-time code. The account is created only after the code is correct. Browsing stays open. Login is required at Buy.
+    - Mini app: no Google and no email prompt. Telegram already identified them. Vendly checks Telegram’s signed `initData` and creates the customer from their Telegram id, name, and username.
 
 ## Who uses it
 
-| Person | What they can do in v1 |
-| --- | --- |
-| Admin | See and suspend vendors. Create plans. See which stores paid through CutLuy. Set the bot token, bot username, CutLuy keys, and the admin Telegram chat. |
-| Vendor | Register, create one store, manage that store’s categories, brands, and products, pay for a bigger plan by QR, share the web link and the mini app link, connect Telegram so buy requests reach them. |
-| Customer | Open one store, browse its products, and — after signing in — send one product or a cart of products to Telegram. |
+| Person   | What they can do in v1                                                                                                                                                                                |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin    | See and suspend vendors. Create plans. See which stores paid through CutLuy. Set the bot token, bot username, CutLuy keys, and the admin Telegram chat.                                               |
+| Vendor   | Register, create one store, manage that store’s categories, brands, and products, pay for a bigger plan by QR, share the web link and the mini app link, connect Telegram so buy requests reach them. |
+| Customer | Open one store, browse its products, and — after signing in — send one product or a cart of products to Telegram.                                                                                     |
 
 A vendor shopping at another store is just a customer there. Store data never leaks across vendors: every catalog query is scoped by `store_id`.
 
@@ -115,10 +115,10 @@ Create, from a queued job or a single request that does not retry in a loop:
 
 ```json
 {
-  "amount": 5.0,
-  "reference_id": "subpay_01J…",
-  "metadata": { "store_id": 12, "plan_id": 3 },
-  "idempotency_key": "subpay_01J…"
+    "amount": 5.0,
+    "reference_id": "subpay_01J…",
+    "metadata": { "store_id": 12, "plan_id": 3 },
+    "idempotency_key": "subpay_01J…"
 }
 ```
 
@@ -128,12 +128,12 @@ The `201` body gives `id`, `status`, `checkout_url`, and `qr_string`. The plan d
 
 Error body shape is `{ "error": code, "message": "…" }`:
 
-| HTTP | code | What Vendly does |
-| --- | --- | --- |
-| 401 | `unauthorized` | Log it, toast “Payments are unavailable”, message the admin chat. Do not show the raw API error to the vendor. |
-| 402 | `quota_exceeded` | Same vendor-facing toast, distinct log, message the admin chat. |
-| 403 | `account_suspended` | Same as 402. |
-| 429 | `rate_limited` | Read `Retry-After`. Show “Try again in N seconds”. One delayed retry at that delay, then stop. Creates are limited to 60/minute and reads to 600/minute. |
+| HTTP | code                | What Vendly does                                                                                                                                         |
+| ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 401  | `unauthorized`      | Log it, toast “Payments are unavailable”, message the admin chat. Do not show the raw API error to the vendor.                                           |
+| 402  | `quota_exceeded`    | Same vendor-facing toast, distinct log, message the admin chat.                                                                                          |
+| 403  | `account_suspended` | Same as 402.                                                                                                                                             |
+| 429  | `rate_limited`      | Read `Retry-After`. Show “Try again in N seconds”. One delayed retry at that delay, then stop. Creates are limited to 60/minute and reads to 600/minute. |
 
 The dialog does not poll `GET /v1/payments/:id` in a loop. The webhook is how Vendly learns the payment succeeded. A Refresh button may perform one read, and it also stops when CutLuy returns 429.
 
@@ -154,12 +154,12 @@ Verify in this order, in PHP:
 
 The job is idempotent on the CutLuy payment id plus the event name. A unique key records that this delivery was already applied. A second `payment.completed` for the same id is stored and ignored.
 
-| Event | Local status | Plan |
-| --- | --- | --- |
-| `payment.scanned` | `scanned` | unchanged |
-| `payment.completed` | `paid` | activate or extend one month |
-| `payment.expired` | `expired` | unchanged |
-| `payment.failed` | `failed` | unchanged |
+| Event               | Local status | Plan                         |
+| ------------------- | ------------ | ---------------------------- |
+| `payment.scanned`   | `scanned`    | unchanged                    |
+| `payment.completed` | `paid`       | activate or extend one month |
+| `payment.expired`   | `expired`    | unchanged                    |
+| `payment.failed`    | `failed`     | unchanged                    |
 
 `payment.completed` also messages the admin chat and the vendor chat. The other events update the payment row only.
 
@@ -196,11 +196,11 @@ A cart lists every line and a total, then the store link. Stock, when the vendor
 
 One bot. Two destinations.
 
-| Event | Admin chat | Vendor chat |
-| --- | --- | --- |
-| New store | yes | |
-| Plan paid, or plan expired | yes | yes |
-| Buy one product, or send a cart | yes | yes, when the vendor has connected |
+| Event                           | Admin chat | Vendor chat                        |
+| ------------------------------- | ---------- | ---------------------------------- |
+| New store                       | yes        |                                    |
+| Plan paid, or plan expired      | yes        | yes                                |
+| Buy one product, or send a cart | yes        | yes, when the vendor has connected |
 
 The vendor connects their chat from the dashboard. Vendly opens `https://t.me/{bot}?start=link_{one-time-token}`. The bot’s `/start` handler stores that chat id on the store. If they have not connected, the admin chat still receives the request, and the vendor is told in the dashboard that buy messages are only reaching the platform admin.
 
@@ -294,15 +294,15 @@ In the mini app, Telegram’s theme colors override the existing CSS variables. 
 
 The build is seven system issues. Code comes first. Each site follows from that backend. The responsive pass is last, and it checks desktop and mobile on every site. The behavior sections under the table are the rules those issues must include. This file is `docs/plan.md`.
 
-| Order | Issue | Depends on |
-| --- | --- | --- |
-| 1 | [#8 Code implement](https://github.com/srosthai/vendly/issues/8) | — |
-| 2 | [#9 Frontend website](https://github.com/srosthai/vendly/issues/9) | #8 |
-| 3 | [#10 Admin dashboard](https://github.com/srosthai/vendly/issues/10) | #8 |
-| 4 | [#11 Vendor dashboard](https://github.com/srosthai/vendly/issues/11) | #8 |
-| 5 | [#12 Vendor frontend](https://github.com/srosthai/vendly/issues/12) | #8 |
-| 6 | [#13 Customer site](https://github.com/srosthai/vendly/issues/13) | #8, #12 |
-| 7 | [#14 Responsive: desktop and mobile](https://github.com/srosthai/vendly/issues/14) | #9, #10, #11, #12, #13 |
+| Order | Issue                                                                              | Depends on             |
+| ----- | ---------------------------------------------------------------------------------- | ---------------------- |
+| 1     | [#8 Code implement](https://github.com/srosthai/vendly/issues/8)                   | —                      |
+| 2     | [#9 Frontend website](https://github.com/srosthai/vendly/issues/9)                 | #8                     |
+| 3     | [#10 Admin dashboard](https://github.com/srosthai/vendly/issues/10)                | #8                     |
+| 4     | [#11 Vendor dashboard](https://github.com/srosthai/vendly/issues/11)               | #8                     |
+| 5     | [#12 Vendor frontend](https://github.com/srosthai/vendly/issues/12)                | #8                     |
+| 6     | [#13 Customer site](https://github.com/srosthai/vendly/issues/13)                  | #8, #12                |
+| 7     | [#14 Responsive: desktop and mobile](https://github.com/srosthai/vendly/issues/14) | #9, #10, #11, #12, #13 |
 
 ### 1. Accounts
 
