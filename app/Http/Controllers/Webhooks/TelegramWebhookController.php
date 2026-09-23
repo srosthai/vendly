@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Controllers\Webhooks;
+
+use App\Actions\Telegram\LinkStoreTelegram;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+
+class TelegramWebhookController extends Controller
+{
+    public function __invoke(Request $request, LinkStoreTelegram $links): Response
+    {
+        $secret = config('services.telegram.webhook_secret');
+
+        if (is_string($secret) && $secret !== '' && ! hash_equals($secret, (string) $request->header('X-Telegram-Bot-Api-Secret-Token', ''))) {
+            abort(401);
+        }
+
+        $text = $request->input('message.text');
+        $chatId = $request->input('message.chat.id');
+
+        if (is_string($text) && preg_match('/^\/start link_([A-Za-z0-9]+)$/', $text, $matches) && (is_string($chatId) || is_int($chatId))) {
+            $links->complete($matches[1], (string) $chatId);
+        }
+
+        return response()->noContent();
+    }
+}

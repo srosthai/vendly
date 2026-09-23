@@ -28,6 +28,26 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'mini_app_short_name' => env('TELEGRAM_MINI_APP_SHORT_NAME'),
+        'admin_chat_id' => env('TELEGRAM_ADMIN_CHAT_ID'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+    ],
+
+    'cutluy' => [
+        'key' => env('CUTLUY_API_KEY'),
+        'webhook_secret' => env('CUTLUY_WEBHOOK_SECRET'),
+        'base_url' => env('CUTLUY_BASE_URL', 'https://cutluy.com'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
