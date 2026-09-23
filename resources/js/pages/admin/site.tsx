@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import SiteSettingsController from '@/actions/App/Http/Controllers/Admin/SiteSettingsController';
 import { PaymentMethodSheet } from '@/components/admin/payment-method-sheet';
@@ -15,6 +16,7 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmDeleteDialog } from '@/components/vendor/confirm-delete-dialog';
 import admin from '@/routes/admin';
@@ -69,13 +71,129 @@ type CutluySettings = {
     webhook_url: string;
 };
 
+type GoogleSettings = {
+    enabled: boolean;
+    client_id: string;
+    env_client_id: boolean;
+    client_secret: SecretState;
+    redirect_url: string;
+    ready: boolean;
+};
+
+/**
+ * Google sign-in: an on/off switch, the client ID, the write-only secret,
+ * and the redirect address to paste into Google Cloud Console.
+ */
+function GoogleCard({ google }: { google: GoogleSettings }) {
+    const [enabled, setEnabled] = useState(google.enabled);
+
+    return (
+        <Card className="gap-5 p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <CardTitle>Google sign-in</CardTitle>
+                    <CardDescription className="mt-1">
+                        Shows Continue with Google on the log in and sign up
+                        screens once it is on and both credentials are set.
+                    </CardDescription>
+                </div>
+                {google.ready ? (
+                    <Badge variant="success">Showing</Badge>
+                ) : (
+                    <Badge variant="secondary">Hidden</Badge>
+                )}
+            </div>
+            <Form
+                {...SiteSettingsController.updateGoogle.form()}
+                options={{ preserveScroll: true }}
+                resetOnSuccess={['client_secret']}
+                className="grid gap-5"
+            >
+                {({ processing, errors }) => (
+                    <>
+                        <div className="flex items-center justify-between gap-4 rounded-2xl border p-4">
+                            <div>
+                                <Label htmlFor="google-enabled">
+                                    Offer Google sign-in
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Turn it off to hide the button without
+                                    losing the credentials.
+                                </p>
+                            </div>
+                            <Switch
+                                id="google-enabled"
+                                checked={enabled}
+                                onCheckedChange={setEnabled}
+                            />
+                            <input
+                                type="hidden"
+                                name="enabled"
+                                value={enabled ? '1' : '0'}
+                            />
+                        </div>
+                        <div className="grid gap-5 lg:grid-cols-2">
+                            <div className="grid content-start gap-2">
+                                <Label htmlFor="google-client-id">
+                                    Client ID
+                                </Label>
+                                <Input
+                                    id="google-client-id"
+                                    name="client_id"
+                                    autoComplete="off"
+                                    defaultValue={google.client_id}
+                                    placeholder="1234-abc.apps.googleusercontent.com"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    {google.client_id === '' &&
+                                    google.env_client_id
+                                        ? 'Using the one from the server environment. A value saved here takes over.'
+                                        : 'From Google Cloud Console, under OAuth client IDs.'}
+                                </p>
+                                <InputError message={errors.client_id} />
+                            </div>
+                            <SecretField
+                                name="client_secret"
+                                label="Client secret"
+                                placeholder="Paste the client secret"
+                                state={google.client_secret}
+                                error={errors.client_secret}
+                            />
+                            <div className="grid content-start gap-2 lg:col-span-2">
+                                <CopyField
+                                    label="Redirect address"
+                                    value={google.redirect_url}
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Add this under Authorized redirect URIs in
+                                    Google Cloud Console.
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="justify-self-start"
+                        >
+                            {processing && <Spinner />}
+                            Save Google settings
+                        </Button>
+                    </>
+                )}
+            </Form>
+        </Card>
+    );
+}
+
 export default function Site({
     settings,
     cutluy,
+    google,
     paymentMethods,
 }: {
     settings: Settings;
     cutluy: CutluySettings;
+    google: GoogleSettings;
     paymentMethods: AdminPaymentMethod[];
 }) {
     return (
@@ -355,6 +473,8 @@ export default function Site({
                         )}
                     </Form>
                 </Card>
+
+                <GoogleCard google={google} />
             </div>
         </>
     );

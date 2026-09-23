@@ -20,9 +20,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $cutluy_api_key
  * @property string|null $cutluy_webhook_secret
  * @property string|null $cutluy_base_url
+ * @property bool $google_enabled
+ * @property string|null $google_client_id
+ * @property string|null $google_client_secret
  */
-#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links', 'cutluy_api_key', 'cutluy_webhook_secret', 'cutluy_base_url'])]
-#[Hidden(['cutluy_api_key', 'cutluy_webhook_secret'])]
+#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links', 'cutluy_api_key', 'cutluy_webhook_secret', 'cutluy_base_url', 'google_enabled', 'google_client_id', 'google_client_secret'])]
+#[Hidden(['cutluy_api_key', 'cutluy_webhook_secret', 'google_client_secret'])]
 class PlatformSetting extends Model
 {
     /**
@@ -41,6 +44,8 @@ class PlatformSetting extends Model
             'social_links' => 'array',
             'cutluy_api_key' => 'encrypted',
             'cutluy_webhook_secret' => 'encrypted',
+            'google_enabled' => 'boolean',
+            'google_client_secret' => 'encrypted',
         ];
     }
 
@@ -147,5 +152,35 @@ class PlatformSetting extends Model
     public function cutluyBaseUrl(): string
     {
         return rtrim($this->cutluy_base_url ?: (string) config('services.cutluy.base_url'), '/');
+    }
+
+    public function googleClientId(): string
+    {
+        return $this->google_client_id ?: (string) config('services.google.client_id');
+    }
+
+    public function googleClientSecret(): string
+    {
+        return $this->google_client_secret ?: (string) config('services.google.client_secret');
+    }
+
+    /**
+     * Where Google sends people back: the environment's address when set,
+     * otherwise this site's callback route.
+     */
+    public function googleRedirectUrl(): string
+    {
+        return (string) config('services.google.redirect') ?: route('auth.google.callback');
+    }
+
+    /**
+     * Google sign-in shows only when the admin has it on and both
+     * credentials are known.
+     */
+    public function googleSignInReady(): bool
+    {
+        return ($this->google_enabled ?? true)
+            && $this->googleClientId() !== ''
+            && $this->googleClientSecret() !== '';
     }
 }

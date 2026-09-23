@@ -96,3 +96,65 @@ test('webhooks are verified with the saved secret', function () {
     $call($sign('whsec_env'))->assertUnauthorized();
     $call($sign('whsec_admin'))->assertNoContent();
 });
+
+test('only an admin can change google sign-in', function () {
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.site.google.update'), ['enabled' => '1', 'client_id' => 'hijack'])
+        ->assertForbidden();
+
+    expect(PlatformSetting::current()->google_client_id)->toBeNull();
+});
+
+test('google sign-in uses the saved client id and secret, which never reach the page', function () {
+    config(['services.google.client_id' => null, 'services.google.client_secret' => null, 'services.google.redirect' => null]);
+    $admin = User::factory()->admin()->create();
+
+    $this->get(route('login'))->assertInertia(fn ($page) => $page->where('googleSignIn', false));
+
+    $this->actingAs($admin)
+        ->put(route('admin.site.google.update'), [
+            'enabled' => '1',
+            'client_id' => '1234-abc.apps.googleusercontent.com',
+            'client_secret' => 'GOCSPX-saved-secret',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(DB::table('platform_settings')->value('google_client_secret'))->not->toContain('GOCSPX-saved-secret');
+
+    $this->actingAs($admin)->get(route('admin.site'))
+        ->assertInertia(fn ($page) => $page
+            ->where('google.client_id', '1234-abc.apps.googleusercontent.com')
+            ->where('google.client_secret', ['source' => 'admin', 'ends_with' => 'cret'])
+            ->where('google.redirect_url', route('auth.google.callback')))
+        ->assertDontSee('GOCSPX-saved-secret');
+
+    $this->actingAs($admin)
+        ->put(route('admin.site.google.update'), ['enabled' => '1', 'client_id' => '1234-abc.apps.googleusercontent.com', 'client_secret' => ''])
+        ->assertSessionHasNoErrors();
+    expect(PlatformSetting::current()->googleClientSecret())->toBe('GOCSPX-saved-secret');
+
+    auth()->logout();
+    $this->get(route('register'))->assertInertia(fn ($page) => $page->where('googleSignIn', true));
+
+    $location = $this->get(route('auth.google.redirect'))->assertRedirect()->headers->get('Location');
+    expect($location)->toStartWith('https://accounts.google.com/')
+        ->toContain('client_id=1234-abc.apps.googleusercontent.com')
+        ->toContain('redirect_uri='.urlencode(route('auth.google.callback')));
+});
+
+test('turning google sign-in off hides the button and refuses the redirect', function () {
+    config(['services.google.client_id' => 'env-client', 'services.google.client_secret' => 'env-secret']);
+    $admin = User::factory()->admin()->create();
+
+    $this->get(route('login'))->assertInertia(fn ($page) => $page->where('googleSignIn', true));
+
+    $this->actingAs($admin)
+        ->put(route('admin.site.google.update'), ['enabled' => '0'])
+        ->assertSessionHasNoErrors();
+    auth()->logout();
+
+    $this->get(route('login'))->assertInertia(fn ($page) => $page->where('googleSignIn', false));
+    $this->get(route('auth.google.redirect'))
+        ->assertRedirect(route('login'))
+        ->assertSessionHas('status', 'Google sign-in is not available right now.');
+});

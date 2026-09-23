@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\AuthenticateGoogleUser;
 use App\Http\Controllers\Controller;
+use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,7 @@ class GoogleAuthController extends Controller
     public function redirect(): SymfonyRedirectResponse|RedirectResponse
     {
         if (! $this->configured()) {
-            return redirect()->route('login')->with('status', 'Add the Google client id and secret to the environment.');
+            return redirect()->route('login')->with('status', 'Google sign-in is not available right now.');
         }
 
         return Socialite::driver('google')->redirect();
@@ -25,7 +26,7 @@ class GoogleAuthController extends Controller
     public function callback(AuthenticateGoogleUser $action): RedirectResponse
     {
         if (! $this->configured()) {
-            return redirect()->route('login')->with('status', 'Add the Google client id and secret to the environment.');
+            return redirect()->route('login')->with('status', 'Google sign-in is not available right now.');
         }
 
         try {
@@ -46,11 +47,25 @@ class GoogleAuthController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
+    /**
+     * Loads the Google credentials from Site settings (or the environment)
+     * into Socialite's config for this request, and says whether sign-in is
+     * on.
+     */
     private function configured(): bool
     {
-        return is_string(config('services.google.client_id'))
-            && config('services.google.client_id') !== ''
-            && is_string(config('services.google.client_secret'))
-            && config('services.google.client_secret') !== '';
+        $settings = PlatformSetting::current();
+
+        if (! $settings->googleSignInReady()) {
+            return false;
+        }
+
+        config([
+            'services.google.client_id' => $settings->googleClientId(),
+            'services.google.client_secret' => $settings->googleClientSecret(),
+            'services.google.redirect' => $settings->googleRedirectUrl(),
+        ]);
+
+        return true;
     }
 }
