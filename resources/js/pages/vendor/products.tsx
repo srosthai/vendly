@@ -1,6 +1,12 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import ProductController from '@/actions/App/Http/Controllers/ProductController';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDeleteDialog } from '@/components/vendor/confirm-delete-dialog';
+import {
+    edit as editProduct,
+    create as createProduct,
+} from '@/routes/vendor/products';
 import {
     Table,
     TableBody,
@@ -42,7 +48,7 @@ export default function Products({
                         </p>
                     </div>
                     <Button asChild>
-                        <Link href="/vendor/products/create">New product</Link>
+                        <Link href={createProduct()}>New product</Link>
                     </Button>
                 </div>
                 {errors.status ? (
@@ -73,7 +79,14 @@ export default function Products({
                                     {products.map((product) => (
                                         <TableRow key={product.id}>
                                             <TableCell>
-                                                {product.name}
+                                                <Link
+                                                    href={editProduct(
+                                                        product.id,
+                                                    )}
+                                                    className="font-medium underline-offset-4 hover:underline"
+                                                >
+                                                    {product.name}
+                                                </Link>
                                             </TableCell>
                                             <TableCell>
                                                 $
@@ -87,13 +100,9 @@ export default function Products({
                                                     : 'Draft'}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Publish
+                                                <RowActions
                                                     product={product}
-                                                    disabled={
-                                                        full &&
-                                                        product.status !==
-                                                            'published'
-                                                    }
+                                                    full={full}
                                                 />
                                             </TableCell>
                                         </TableRow>
@@ -104,9 +113,12 @@ export default function Products({
                         <div className="flex flex-col gap-3 md:hidden">
                             {products.map((product) => (
                                 <Card key={product.id} className="gap-3 p-4">
-                                    <div className="font-medium">
+                                    <Link
+                                        href={editProduct(product.id)}
+                                        className="font-medium underline-offset-4 hover:underline"
+                                    >
                                         {product.name}
-                                    </div>
+                                    </Link>
                                     <p className="text-sm text-muted-foreground">
                                         $
                                         {(product.price_cents / 100).toFixed(2)}{' '}
@@ -115,13 +127,7 @@ export default function Products({
                                             ? 'Published'
                                             : 'Draft'}
                                     </p>
-                                    <Publish
-                                        product={product}
-                                        disabled={
-                                            full &&
-                                            product.status !== 'published'
-                                        }
-                                    />
+                                    <RowActions product={product} full={full} />
                                 </Card>
                             ))}
                         </div>
@@ -129,6 +135,25 @@ export default function Products({
                 )}
             </div>
         </>
+    );
+}
+
+function RowActions({ product, full }: { product: ProductRow; full: boolean }) {
+    return (
+        <div className="flex flex-wrap items-center justify-end gap-1">
+            <Publish
+                product={product}
+                disabled={full && product.status !== 'published'}
+            />
+            <Button variant="ghost" size="sm" asChild>
+                <Link href={editProduct(product.id)}>Edit</Link>
+            </Button>
+            <ConfirmDeleteDialog
+                name={product.name}
+                description="The product and its photos are deleted. Requests already sent keep their copy."
+                action={ProductController.destroy.form(product.id)}
+            />
+        </div>
     );
 }
 
@@ -144,7 +169,10 @@ function Publish({
     }
 
     return (
-        <Form action={`/products/${product.id}/publish`} method="post">
+        <Form
+            {...ProductController.publish.form(product.id)}
+            options={{ preserveScroll: true }}
+        >
             {({ processing }) => (
                 <Button
                     type="submit"

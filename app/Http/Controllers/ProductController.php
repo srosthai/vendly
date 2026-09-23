@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Cart\CartSummary;
+use App\Actions\Catalog\DeleteProduct;
 use App\Actions\Catalog\PublishProduct;
 use App\Actions\Catalog\SaveProduct;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
@@ -22,32 +23,37 @@ class ProductController extends Controller
 
     public function store(SaveProductRequest $request, SaveProduct $action): RedirectResponse
     {
-        $store = $this->vendorStore($request);
         $product = $action->handle(
-            $store,
+            $this->vendorStore($request),
             $request->productAttributes(),
             $this->images($request),
         );
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Product saved as a draft.']);
 
-        return redirect()->route('stores.products.show', [
-            'store' => $product->store,
-            'productSlug' => $product->slug,
-        ]);
+        return redirect()->route('vendor.products.edit', $product);
     }
 
     public function update(SaveProductRequest $request, Product $product, SaveProduct $action): RedirectResponse
     {
-        $product = $action->handle(
+        $action->handle(
             $product->store,
             $request->productAttributes(),
             $this->images($request),
             $product,
         );
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Product saved.']);
 
-        return redirect()->route('stores.products.show', [
-            'store' => $product->store,
-            'productSlug' => $product->slug,
-        ]);
+        return redirect()->route('vendor.products.edit', $product);
+    }
+
+    public function destroy(Product $product, DeleteProduct $action): RedirectResponse
+    {
+        $this->authorize('update', $product);
+
+        $action->handle($product);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Product deleted.']);
+
+        return redirect()->route('vendor.products');
     }
 
     public function publish(Product $product, PublishProduct $action): RedirectResponse

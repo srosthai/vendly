@@ -5,9 +5,9 @@ namespace App\Actions\Catalog;
 use App\Enums\ProductStatus;
 use App\Models\Product;
 use App\Models\Store;
+use App\Support\Slug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SaveProduct
@@ -19,25 +19,16 @@ class SaveProduct
     public function handle(Store $store, array $attributes, array $images = [], ?Product $product = null): Product
     {
         return DB::transaction(function () use ($store, $attributes, $images, $product): Product {
-            $name = strip_tags($attributes['name']);
-            $slug = Str::slug($name);
+            $name = trim(strip_tags($attributes['name']));
 
-            if ($slug === '') {
+            if ($name === '') {
                 throw ValidationException::withMessages([
-                    'name' => 'Use a product name that can appear in a link.',
+                    'name' => 'Enter a product name.',
                 ]);
             }
 
-            $slugTaken = $store->products()
-                ->when($product, fn ($query) => $query->whereKeyNot($product->id))
-                ->where('slug', $slug)
-                ->exists();
-
-            if ($slugTaken) {
-                throw ValidationException::withMessages([
-                    'name' => 'Choose a different product name.',
-                ]);
-            }
+            // A rename keeps the slug, so links already sent to Telegram keep working.
+            $slug = $product?->slug ?? Slug::unique($name, $store->products()->getQuery(), 'product');
 
             $product ??= new Product([
                 'store_id' => $store->id,
@@ -47,9 +38,9 @@ class SaveProduct
             $product->fill([
                 'name' => $name,
                 'slug' => $slug,
-                'description' => isset($attributes['description']) ? strip_tags((string) $attributes['description']) : $product->description,
+                'description' => isset($attributes['description']) ? strip_tags((string) $attributes['description']) : null,
                 'price_cents' => $attributes['price_cents'],
-                'stock' => $attributes['stock'] ?? $product->stock,
+                'stock' => $attributes['stock'] ?? null,
                 'category_id' => $attributes['category_id'] ?? null,
                 'brand_id' => $attributes['brand_id'] ?? null,
             ]);

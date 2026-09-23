@@ -12,6 +12,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\MiniAppController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
@@ -61,10 +62,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('vendor/brands', [WorkspaceController::class, 'brands'])->name('vendor.brands');
         Route::get('vendor/plan', [WorkspaceController::class, 'plan'])->name('vendor.plan');
         Route::get('vendor/telegram', [WorkspaceController::class, 'telegram'])->name('vendor.telegram');
+        Route::get('vendor/products/{product}/edit', [WorkspaceController::class, 'editProduct'])->name('vendor.products.edit');
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
         Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
+        Route::put('brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+        Route::delete('brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
         Route::post('products', [ProductController::class, 'store'])->name('products.store');
         Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::scopeBindings()->group(function () {
+            Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('products.images.destroy');
+            Route::post('products/{product}/images/{image}/cover', [ProductImageController::class, 'cover'])->name('products.images.cover');
+        });
         Route::post('products/{product}/publish', [ProductController::class, 'publish'])->name('products.publish');
         Route::post('telegram/link', [TelegramLinkController::class, 'store'])
             ->middleware('throttle:6,1')
