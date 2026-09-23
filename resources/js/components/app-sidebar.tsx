@@ -4,8 +4,11 @@ import {
     CreditCard,
     FolderGit2,
     LayoutGrid,
+    Package,
     Send,
+    Shapes,
     Store,
+    Tag,
     Tags,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -32,6 +35,15 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const vendorNavItems: NavItem[] = [
+    { title: 'Store', href: '/vendor/store', icon: Store },
+    { title: 'Products', href: '/vendor/products', icon: Package },
+    { title: 'Categories', href: '/vendor/categories', icon: Shapes },
+    { title: 'Brands', href: '/vendor/brands', icon: Tag },
+    { title: 'Plan', href: '/vendor/plan', icon: CreditCard },
+    { title: 'Telegram', href: '/vendor/telegram', icon: Send },
+];
+
 const adminNavItems: NavItem[] = [
     { title: 'Vendors', href: '/admin/vendors', icon: Store },
     { title: 'Plans', href: '/admin/plans', icon: Tags },
@@ -54,7 +66,12 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage().props;
-    const items = auth.user?.is_admin === true ? adminNavItems : mainNavItems;
+    const items =
+        auth.user?.is_admin === true
+            ? adminNavItems
+            : auth.hasStore
+              ? vendorNavItems
+              : mainNavItems;
 
     return (
         <Sidebar collapsible="icon" variant="inset">
