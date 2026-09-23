@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Cart\CartSummary;
 use App\Actions\Catalog\PublishProduct;
 use App\Actions\Catalog\SaveProduct;
 use App\Http\Requests\SaveProductRequest;
@@ -55,7 +56,7 @@ class ProductController extends Controller
         return back();
     }
 
-    public function show(Store $store, string $productSlug): Response
+    public function show(Store $store, string $productSlug, CartSummary $cart): Response
     {
         abort_if($store->isSuspended(), 404);
 
@@ -73,6 +74,9 @@ class ProductController extends Controller
                 'url' => route('stores.show', $store),
             ],
             'embedded' => request()->session()->get('mini_app') === true,
+            'authenticated' => request()->user() !== null,
+            'status' => request()->session()->get('status'),
+            'cart' => $cart->for(request(), $store),
             'product' => [
                 'id' => $product->id,
                 'slug' => $product->slug,

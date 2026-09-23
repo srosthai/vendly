@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
 import { useTelegramTheme } from '@/components/storefront/telegram-theme';
 import { Badge } from '@/components/ui/badge';
 
@@ -19,12 +20,16 @@ export default function Show({
     activeCategory,
     products,
     embedded,
+    authenticated,
+    cart,
 }: {
     store: { name: string; slug: string; description: string | null };
     categories: Category[];
     activeCategory: string;
     products: ProductCard[];
     embedded: boolean;
+    authenticated: boolean;
+    cart: CartData;
 }) {
     useTelegramTheme(embedded);
 
@@ -32,15 +37,22 @@ export default function Show({
         <>
             <Head title={store.name} />
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
-                <header className="max-w-xl">
-                    <h1 className="text-4xl font-semibold tracking-tight">
-                        {store.name}
-                    </h1>
-                    {store.description ? (
-                        <p className="mt-3 text-muted-foreground">
-                            {store.description}
-                        </p>
-                    ) : null}
+                <header className="flex items-start justify-between gap-4">
+                    <div className="max-w-xl">
+                        <h1 className="text-4xl font-semibold tracking-tight">
+                            {store.name}
+                        </h1>
+                        {store.description ? (
+                            <p className="mt-3 text-muted-foreground">
+                                {store.description}
+                            </p>
+                        ) : null}
+                    </div>
+                    <CartSheet
+                        cart={cart}
+                        storeSlug={store.slug}
+                        authenticated={authenticated}
+                    />
                 </header>
                 {categories.length > 0 ? (
                     <div className="flex gap-2 overflow-x-auto pb-1">

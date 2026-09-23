@@ -1,14 +1,24 @@
-import { Head, Link } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
 import { useTelegramTheme } from '@/components/storefront/telegram-theme';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export default function Product({
     store,
     product,
     embedded,
+    authenticated,
+    status,
+    cart,
 }: {
     store: { name: string; slug: string; url: string };
     embedded: boolean;
+    authenticated: boolean;
+    status?: string | null;
+    cart: CartData;
     product: {
         id: number;
         slug: string;
@@ -20,6 +30,12 @@ export default function Product({
     };
 }) {
     useTelegramTheme(embedded);
+
+    useEffect(() => {
+        if (status) {
+            toast.success(status);
+        }
+    }, [status]);
 
     return (
         <>
@@ -59,7 +75,58 @@ export default function Product({
                             {product.description}
                         </p>
                     ) : null}
-                    <div id="purchase-actions" />
+                    <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:static md:z-auto md:border-0 md:bg-transparent md:p-0">
+                        {!product.sold_out ? (
+                            <>
+                                <Form
+                                    action={`/s/${store.slug}/products/${product.id}/cart`}
+                                    method="post"
+                                    className="flex-1"
+                                >
+                                    {({ processing }) => (
+                                        <Button
+                                            type="submit"
+                                            variant="outline"
+                                            className="min-h-11 w-full"
+                                            disabled={processing}
+                                        >
+                                            Add to cart
+                                        </Button>
+                                    )}
+                                </Form>
+                                {authenticated ? (
+                                    <Form
+                                        action={`/s/${store.slug}/products/${product.id}/buy`}
+                                        method="post"
+                                        className="flex-1"
+                                    >
+                                        {({ processing }) => (
+                                            <Button
+                                                type="submit"
+                                                className="min-h-11 w-full"
+                                                disabled={processing}
+                                            >
+                                                Buy
+                                            </Button>
+                                        )}
+                                    </Form>
+                                ) : (
+                                    <Button asChild className="min-h-11 flex-1">
+                                        <Link
+                                            href={`/sign-in?next=/s/${store.slug}/p/${product.slug}`}
+                                        >
+                                            Buy
+                                        </Link>
+                                    </Button>
+                                )}
+                            </>
+                        ) : null}
+                    </div>
+                    <CartSheet
+                        cart={cart}
+                        storeSlug={store.slug}
+                        authenticated={authenticated}
+                    />
                 </div>
             </main>
         </>
