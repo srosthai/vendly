@@ -18,13 +18,13 @@ class SendInquiry
 
     public function forProduct(Store $store, Product $product, User $customer): Inquiry
     {
-        if ($product->store_id !== $store->id || $product->isSoldOut()) {
+        if ($product->store_id !== $store->id || ! $product->isPublished() || $product->isSoldOut()) {
             throw ValidationException::withMessages([
                 'product' => 'This product cannot be requested.',
             ]);
         }
 
-        return $this->send($store, $customer, [[
+        return $this->send($store, $customer, fromCart: false, lines: [[
             'product_id' => $product->id,
             'name' => $product->name,
             'price_cents' => $product->price_cents,
@@ -51,7 +51,7 @@ class SendInquiry
         foreach ($cart->items as $item) {
             $product = $item->product;
 
-            if ($product === null || $product->isSoldOut()) {
+            if ($product === null || ! $product->isPublished() || $product->isSoldOut()) {
                 continue;
             }
 
@@ -69,7 +69,7 @@ class SendInquiry
             ]);
         }
 
-        $inquiry = $this->send($store, $customer, $lines);
+        $inquiry = $this->send($store, $customer, fromCart: true, lines: $lines);
         $cart->items()->delete();
 
         return $inquiry;
@@ -78,7 +78,7 @@ class SendInquiry
     /**
      * @param  list<array{product_id: int, name: string, price_cents: int, quantity: int}>  $lines
      */
-    private function send(Store $store, User $customer, array $lines): Inquiry
+    private function send(Store $store, User $customer, bool $fromCart, array $lines): Inquiry
     {
         $contact = $customer->email ?? ($customer->telegram_username !== null ? '@'.$customer->telegram_username : null);
 
@@ -98,7 +98,7 @@ class SendInquiry
             return $inquiry->load(['items.product', 'store']);
         });
 
-        $this->telegram->inquiry($inquiry);
+        $this->telegram->inquiry($inquiry, $fromCart);
 
         return $inquiry;
     }

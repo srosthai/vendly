@@ -45,8 +45,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [WorkspaceController::class, 'home'])->name('dashboard');
     Route::get('start-selling', [StartSellingController::class, 'create'])->name('selling.create');
     Route::post('stores', [StoreController::class, 'store'])->name('stores.store');
-    Route::post('s/{store:slug}/products/{product}/buy', [InquiryController::class, 'product'])->name('inquiries.product');
-    Route::post('s/{store:slug}/cart/send', [InquiryController::class, 'cart'])->name('inquiries.cart');
+    Route::middleware('throttle:inquiries')->group(function () {
+        Route::post('s/{store:slug}/products/{product}/buy', [InquiryController::class, 'product'])->name('inquiries.product');
+        Route::post('s/{store:slug}/cart/send', [InquiryController::class, 'cart'])->name('inquiries.cart');
+    });
 
     Route::middleware('vendor')->group(function () {
         Route::get('vendor/store', [WorkspaceController::class, 'store'])->name('vendor.store');

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\ProductStatus;
+use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +26,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['store_id', 'category_id', 'brand_id', 'name', 'slug', 'description', 'price_cents', 'stock', 'status'])]
 class Product extends Model
 {
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+
     /**
      * @return array<string, string>
      */
@@ -75,6 +80,11 @@ class Product extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', ProductStatus::Published);
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status === ProductStatus::Published;
     }
 
     public function isSoldOut(): bool
