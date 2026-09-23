@@ -22,7 +22,7 @@ class LinkStoreTelegram
     /**
      * @return Store|null The linked store, or null for an unknown or used token.
      */
-    public function complete(string $token, string $chatId): ?Store
+    public function complete(string $token, string $chatId, ?string $chatName = null): ?Store
     {
         $storeId = Cache::pull($this->key($token));
 
@@ -37,6 +37,8 @@ class LinkStoreTelegram
         }
 
         $store->telegram_chat_id = $chatId;
+        $store->telegram_chat_name = $chatName !== null && $chatName !== '' ? mb_substr($chatName, 0, 255) : null;
+        $store->telegram_connected_at = now();
         $store->save();
 
         return $store;

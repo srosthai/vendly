@@ -405,9 +405,17 @@ class WorkspaceController extends Controller
     {
         $store = $this->vendorStore($request);
 
+        $botUsername = PlatformSetting::current()->botUsername();
+
         return Inertia::render('vendor/telegram', [
             'connected' => filled($store->telegram_chat_id),
+            'chat' => filled($store->telegram_chat_id) ? [
+                'name' => $store->telegram_chat_name,
+                'connected_at' => $store->telegram_connected_at?->toIso8601String(),
+            ] : null,
+            'bot' => $botUsername === '' ? null : '@'.$botUsername,
             'link' => $request->session()->get('telegram_link'),
+            'testResult' => $request->session()->get('telegram_test'),
         ]);
     }
 
