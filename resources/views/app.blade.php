@@ -36,6 +36,10 @@
 
         @fonts
 
+        @if (str_starts_with($page['component'] ?? '', 'stores/'))
+            <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        @endif
+
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>

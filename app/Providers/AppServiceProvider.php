@@ -78,7 +78,11 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('telegram-auth', function (Request $request): Limit {
-            return Limit::perMinute(10)->by($request->ip() ?? 'telegram');
+            parse_str($request->string('init_data')->toString(), $initData);
+            $telegramUser = json_decode(is_string($initData['user'] ?? null) ? $initData['user'] : '', true);
+            $telegramId = is_array($telegramUser) ? (string) ($telegramUser['id'] ?? '') : '';
+
+            return Limit::perMinute(10)->by($telegramId.'|'.$request->ip());
         });
     }
 }

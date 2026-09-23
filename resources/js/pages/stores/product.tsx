@@ -2,14 +2,16 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
-import { useTelegramTheme } from '@/components/storefront/telegram-theme';
+import {
+    TelegramSignInNotice,
+    useTelegramMiniApp,
+} from '@/components/storefront/telegram-mini-app';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export default function Product({
     store,
     product,
-    embedded,
     authenticated,
     status,
     cart,
@@ -29,7 +31,7 @@ export default function Product({
         image: string | null;
     };
 }) {
-    useTelegramTheme(embedded);
+    const miniApp = useTelegramMiniApp(authenticated);
 
     useEffect(() => {
         if (status) {
@@ -41,6 +43,9 @@ export default function Product({
         <>
             <Head title={product.name} />
             <main className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 pb-28 md:grid-cols-2 md:px-6 md:pb-8">
+                <div className="empty:hidden md:col-span-2">
+                    <TelegramSignInNotice {...miniApp} />
+                </div>
                 <div className="flex aspect-[4/5] items-center justify-center bg-muted">
                     {product.image ? (
                         <img

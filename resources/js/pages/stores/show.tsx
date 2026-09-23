@@ -1,6 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
-import { useTelegramTheme } from '@/components/storefront/telegram-theme';
+import {
+    TelegramSignInNotice,
+    useTelegramMiniApp,
+} from '@/components/storefront/telegram-mini-app';
 import { Badge } from '@/components/ui/badge';
 
 type ProductCard = {
@@ -19,7 +22,6 @@ export default function Show({
     categories,
     activeCategory,
     products,
-    embedded,
     authenticated,
     cart,
 }: {
@@ -31,12 +33,13 @@ export default function Show({
     authenticated: boolean;
     cart: CartData;
 }) {
-    useTelegramTheme(embedded);
+    const miniApp = useTelegramMiniApp(authenticated);
 
     return (
         <>
             <Head title={store.name} />
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
+                <TelegramSignInNotice {...miniApp} />
                 <header className="flex items-start justify-between gap-4">
                     <div className="max-w-xl">
                         <h1 className="text-4xl font-semibold tracking-tight">

@@ -83,3 +83,23 @@ test('correct password must be provided to delete account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('a telegram account can save its name without an email', function () {
+    $user = User::factory()->create(['email' => null, 'password' => null, 'telegram_id' => '42']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => 'Ada Telegram', 'email' => ''])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    expect($user->fresh()->name)->toBe('Ada Telegram');
+    $this->get(route('dashboard'))->assertOk();
+});
+
+test('an account without a password can delete itself without one', function () {
+    $user = User::factory()->create(['email' => null, 'password' => null, 'telegram_id' => '42']);
+
+    $this->actingAs($user)->delete(route('profile.destroy'))->assertRedirect('/');
+
+    expect($user->fresh())->toBeNull();
+});

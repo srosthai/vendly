@@ -57,6 +57,9 @@ Vendor creates store "Smile Tea" with slug smile-tea
 - Opening the mini app with no store shows a short “open a store link from the seller” screen. v1 has no public directory of every vendor.
 - The web store URL also works inside Telegram. If the page sees `window.Telegram.WebApp`, it runs the same silent sign-in.
 - The server accepts Telegram identity only after it checks the `initData` hash with the bot token, and only if `auth_date` is fresh. The client-supplied user id is never trusted by itself.
+- Telegram's script defines `window.Telegram.WebApp` in every browser, so the page only treats itself as inside Telegram when `initData` is not empty. It then posts `initData` with the current store path, follows Telegram's light or dark theme, and shows a short "Signing you in with Telegram" line, or the error with Try again.
+- `auth_date` is fresh for `TELEGRAM_INIT_DATA_MAX_AGE` seconds (default one hour) and never in the future.
+- Telegram Web runs the mini app in a cross-site iframe. Production sets `SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=none`, and `SESSION_PARTITIONED_COOKIE=true` so the session cookie still reaches it. The phone and desktop apps load the page directly.
 
 ## Accounts
 
