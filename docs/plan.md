@@ -294,6 +294,15 @@ In the mini app, Telegram’s theme colors override the existing CSS variables. 
 
 Implementation is six GitHub issues, merged in this order. Each one is usable on its own and names the issue it depends on. This file is `docs/plan.md`.
 
+| Order | Issue | Depends on |
+| --- | --- | --- |
+| 1 | [#2 Accounts: email code, Google, and Telegram sign-in](https://github.com/srosthai/vendly/issues/2) | — |
+| 2 | [#3 Store and the free plan](https://github.com/srosthai/vendly/issues/3) | #2 |
+| 3 | [#4 Catalog within the plan limit](https://github.com/srosthai/vendly/issues/4) | #3 |
+| 4 | [#5 Storefront cart](https://github.com/srosthai/vendly/issues/5) | #4 |
+| 5 | [#6 Telegram buy requests and the mini app](https://github.com/srosthai/vendly/issues/6) | #5 |
+| 6 | [#7 Plan payment with CutLuy](https://github.com/srosthai/vendly/issues/7) | #4, and #6 for the paid notice |
+
 ### 1. Accounts
 
 Email code, Google, and Telegram identity on the existing user table.
