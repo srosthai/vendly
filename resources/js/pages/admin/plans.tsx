@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -41,34 +42,59 @@ export default function Plans({ plans }: { plans: Plan[] }) {
                         Create the first plan.
                     </p>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Products</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                    <>
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Price</TableHead>
+                                        <TableHead>Products</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {plans.map((plan) => (
+                                        <TableRow key={plan.id}>
+                                            <TableCell>{plan.name}</TableCell>
+                                            <TableCell>
+                                                $
+                                                {(
+                                                    plan.price_cents / 100
+                                                ).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {plan.product_limit}
+                                            </TableCell>
+                                            <TableCell>
+                                                {plan.is_default
+                                                    ? 'Default'
+                                                    : plan.is_active
+                                                      ? 'Active'
+                                                      : 'Hidden'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="flex flex-col gap-3 md:hidden">
                             {plans.map((plan) => (
-                                <TableRow key={plan.id}>
-                                    <TableCell>{plan.name}</TableCell>
-                                    <TableCell>
-                                        ${(plan.price_cents / 100).toFixed(2)}
-                                    </TableCell>
-                                    <TableCell>{plan.product_limit}</TableCell>
-                                    <TableCell>
+                                <Card key={plan.id} className="gap-1 p-4">
+                                    <p className="font-medium">{plan.name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        ${(plan.price_cents / 100).toFixed(2)} ·{' '}
+                                        {plan.product_limit} products ·{' '}
                                         {plan.is_default
                                             ? 'Default'
                                             : plan.is_active
                                               ? 'Active'
                                               : 'Hidden'}
-                                    </TableCell>
-                                </TableRow>
+                                    </p>
+                                </Card>
                             ))}
-                        </TableBody>
-                    </Table>
+                        </div>
+                    </>
                 )}
                 <Form
                     action="/admin/plans"

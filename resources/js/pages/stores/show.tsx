@@ -143,8 +143,8 @@ function CategoryLink({
             href={href}
             className={
                 active
-                    ? 'shrink-0 border border-foreground px-3 py-2 text-sm'
-                    : 'shrink-0 border border-border px-3 py-2 text-sm text-muted-foreground'
+                    ? 'inline-flex min-h-11 shrink-0 items-center border border-foreground px-3 text-sm'
+                    : 'inline-flex min-h-11 shrink-0 items-center border border-border px-3 text-sm text-muted-foreground'
             }
         >
             {children}

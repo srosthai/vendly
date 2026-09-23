@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { Card } from '@/components/ui/card';
 import {
     Table,
     TableBody,
@@ -40,34 +41,60 @@ export default function Payments({ payments }: { payments: Payment[] }) {
                 {payments.length === 0 ? (
                     <p className="text-muted-foreground">No payments yet.</p>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Store</TableHead>
-                                <TableHead>Plan</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                    <>
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Store</TableHead>
+                                        <TableHead>Plan</TableHead>
+                                        <TableHead>Amount</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {payments.map((payment) => (
+                                        <TableRow key={payment.id}>
+                                            <TableCell>
+                                                {payment.store}
+                                            </TableCell>
+                                            <TableCell>
+                                                {payment.plan}
+                                            </TableCell>
+                                            <TableCell>
+                                                $
+                                                {(
+                                                    payment.amount_cents / 100
+                                                ).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {labels[payment.status] ??
+                                                    payment.status}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="flex flex-col gap-3 md:hidden">
                             {payments.map((payment) => (
-                                <TableRow key={payment.id}>
-                                    <TableCell>{payment.store}</TableCell>
-                                    <TableCell>{payment.plan}</TableCell>
-                                    <TableCell>
-                                        $
+                                <Card key={payment.id} className="gap-1 p-4">
+                                    <p className="font-medium">
+                                        {payment.store}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {payment.plan} · $
                                         {(payment.amount_cents / 100).toFixed(
                                             2,
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
+                                        )}{' '}
+                                        ·{' '}
                                         {labels[payment.status] ??
                                             payment.status}
-                                    </TableCell>
-                                </TableRow>
+                                    </p>
+                                </Card>
                             ))}
-                        </TableBody>
-                    </Table>
+                        </div>
+                    </>
                 )}
             </div>
         </>
