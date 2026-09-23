@@ -1,6 +1,6 @@
 # Vendly — simple multi-vendor shop on the web and in one Telegram mini app
 
-Vendly today is the Laravel React starter (Fortify, Inertia, Wayfinder, Pest). There is no store, catalog, billing, or Telegram code yet. This plan is the product shape to build on that starter.
+Vendly is built on the Laravel React starter (Fortify, Inertia, Wayfinder, Pest). The first round (#2–#14) shipped accounts, stores, the catalog, the cart, Telegram requests, CutLuy plans, and the vendor and admin dashboards. The second round (#44) hardens that work and applies the Vendly brand. This plan is the product shape both rounds build to.
 
 One platform. Many independent stores. A customer always shops inside one vendor’s store. The same store opens on the web and inside one Telegram mini app.
 
@@ -22,7 +22,7 @@ These replace ideas that sound right but are hard to run, or that Telegram does 
     - A customer does not pay in the app. The store only displays products. Buy sends that product to Telegram. A cart sends several products in one message. The vendor’s Telegram and the platform admin Telegram both receive it. There is no order inbox, no status workflow, and no card checkout.
 7. **Custom domains wait.** v1 stores live on the admin domain only. A later phase can map `shop.vendor.com` to the same store. The mini app still uses the platform domain, because Telegram must load one HTTPS app URL.
 8. **Customer login depends on where they are.**
-    - Web: Google, or email with a one-time code. The account is created only after the code is correct. Browsing stays open. Login is required at Buy.
+    - Web: email and password, or Google. Registering with email sends a one-time code, and the account is created only after the code is correct. Browsing stays open. Login is required at Buy.
     - Mini app: no Google and no email prompt. Telegram already identified them. Vendly checks Telegram’s signed `initData` and creates the customer from their Telegram id, name, and username.
 
 ## Who uses it
@@ -60,16 +60,20 @@ Vendor creates store "Smile Tea" with slug smile-tea
 
 ## Accounts
 
-One screen for web: **Continue with Google** or **Continue with email**.
+Two screens for web.
 
-Email path:
+**Log in:** email and password, plus **Continue with Google**. Fortify owns the password check and the two-factor challenge. No route signs a person in with only an emailed code.
 
-1. Visitor enters an email. Vendly stores a hashed 6-digit code for 10 minutes. No user row yet.
-2. Visitor enters the code. Rate-limit attempts.
-3. If the email is new, create the user with `email_verified_at` set and sign them in. If it already exists, sign them in.
+**Register:**
+
+1. Visitor enters a name, an email, and a password. Vendly keeps them with a hashed 6-digit code for 10 minutes and emails the code. No user row yet. An email that already has an account is refused with a link to Log in.
+2. Visitor enters the code. Attempts are counted atomically and rate limited by email and IP. A wrong code does not extend the expiry.
+3. Only when the code matches is the user created, with `email_verified_at` set and that password, and signed in.
 4. Send them back to the page they were trying to open (the product or cart they wanted to send, or “start selling”).
 
-Google path: Laravel Socialite. Google’s verified email creates or matches the user and skips the code.
+Fortify’s own `POST /register` is turned off, so nothing creates a user without the code.
+
+Google path: Laravel Socialite. Only an email Google marks as verified is accepted. It creates or matches the user and skips the code. When it matches a row whose email was never verified, that row’s password is cleared first.
 
 Telegram path, mini app only:
 
@@ -83,7 +87,9 @@ After sign-in:
 - No store yet, and they chose Start selling → create the store (name + slug), attach the free plan, notify the admin Telegram chat.
 - They already own a store → vendor dashboard.
 
-Fortify password, two-factor, and passkey screens stay in the starter. v1 entry is Google and email code. A vendor may set a password later from settings. Telegram-only customers have no email, so `users.email` and `users.password` become nullable, and `MustVerifyEmail` must not block a user who signed in with Telegram.
+Fortify password reset, two-factor, and passkey screens stay. Web entry is email and password, or Google. Telegram-only customers have no email or password, so `users.email` and `users.password` are nullable, `MustVerifyEmail` must not block a user who signed in with Telegram, and settings never ask them for a password they do not have.
+
+Seeded demo accounts exist for local and testing only. The seeder refuses to run in production.
 
 ## Plans, paid with CutLuy
 
@@ -243,7 +249,7 @@ Pages in `resources/js/pages` stay thin: layout, title, and a few feature compon
 
 Each feature component does one job. Examples: `OtpForm`, `StoreHeader`, `ProductCard`, `ProductGrid`, `CategoryPills`, `CartSheet`, `PlanUsage`, `PlanQrDialog`, `ShareLinks`. The web store and the mini app render the same storefront components. Only the chrome around them changes.
 
-Match the screens that already exist: Inertia `<Form>`, Wayfinder form helpers, `Label`, `Input`, `InputError`, `Button`, and `Spinner` while a form submits. Colors come from the theme tokens (`bg-background`, `text-muted-foreground`, `border-border`). Dark mode uses the existing `.dark` variables. Icons are Lucide.
+Match the screens that already exist: Inertia `<Form>`, Wayfinder form helpers, `Label`, `Input`, `InputError`, `Button`, and `Spinner` while a form submits. Colors come from the brand theme tokens (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`), never from hex values in a component. Dark mode uses the `.dark` variables. Icons are Lucide.
 
 A shipped page has no placeholder art, lorem, or a control that does nothing. The starter dashboard placeholder is replaced when the vendor dashboard exists.
 
@@ -251,7 +257,7 @@ A shipped page has no placeholder art, lorem, or a control that does nothing. Th
 
 A screen is unfinished if it only handles the happy path. Empty, loading, validation, success, and blocked states are part of the component.
 
-**Sign in.** One card, one step. First step: email field and Continue with Google. Second step: the existing OTP input, six digits, with the address shown and a resend countdown. The error sits under the field. The button shows a spinner while the request runs. Success returns the person to the product they wanted to send, or to Start selling.
+**Log in and register.** One card on the tinted page. Log in: email, password, Continue with Google, Forgot password, and a link to Register. Register: name, email, and password, then the existing OTP input, six digits, with the address shown and a resend countdown. The error sits under the field. The button shows a spinner while the request runs. Success returns the person to the product they wanted to send, or to Start selling.
 
 **Vendor and admin.** Reuse the existing sidebar layout. Vendor items: Store, Products, Categories, Brands, Plan, Telegram. Admin items: Vendors, Plans, Payments, Telegram. Inner pages have a breadcrumb, a short heading, and one primary button (New product, New plan). Desktop lists use a table. Narrow screens use the same data as stacked cards. An empty list is a sentence plus that primary button. Delete and suspend open a dialog that names the record and uses a destructive button. Success and server failures use a sonner toast. Field errors stay inline. Plan usage reads as a real sentence, “12 of 100 published”, with a progress bar. When publish is blocked, the button stays visible and the nearby text says the plan is full. The plan page lists paid plans as cards. Pay opens a dialog with the QR, the amount in USD, a link to the CutLuy page, and a status line that can say Pending, Opened in banking app, or Paid. Scanned is never shown as paid.
 
@@ -273,18 +279,43 @@ The app stays Laravel 13, Inertia React, Fortify, Wayfinder, Pest, and Pint. New
 - CutLuy and Telegram each have one client class, registered in the container. Application code reads `config()`, and `config/services.php` reads the environment. Keys are never written into source.
 - Webhook handling, Telegram sends, and a delayed CutLuy retry are queued jobs with a retry limit, backoff, and a `failed()` log. The webhook route itself returns `204` before that work.
 - Email codes and Telegram sign-in are rate limited by email or Telegram id plus IP.
-- The CutLuy route is the only CSRF exception. Its signature is checked with `hash_equals` over `$request->getContent()`. A failed check returns `401` and queues nothing.
+- The CutLuy webhook and the Telegram bot webhook are the only CSRF exceptions, and they run without a session. CutLuy’s signature is checked with `hash_equals` over `$request->getContent()`. Telegram’s `X-Telegram-Bot-Api-Secret-Token` must match the configured secret. A missing secret or a failed check returns `401` and queues nothing.
 - Product images allow jpeg, png, and webp, with a size cap, and are stored with a generated filename.
 - Product text is rendered as text. Vendor HTML is not injected into the page.
 - Each issue finishes with `vendor/bin/pint --dirty --format agent` and the focused Pest tests.
 
 ### Interface
 
-Vendor and admin screens are for getting work done. They keep the existing sidebar, Instrument Sans, and the neutral shadcn tokens. A person should scan a list and finish one task. Those screens are not a marketing page.
+Vendor and admin screens are for getting work done. A person should scan a list and finish one task. Those screens are not a marketing page.
 
 The public store is a shop counter. The photograph and the price lead. Buy is the primary button. Add to cart is secondary. The web store and the mini app use the same components.
 
-Stay on the starter palette. Do not introduce a cream-and-terracotta theme, a black page with one acid accent, all-caps labels above every heading, or the same soft shadow on every card. Price is ordinary foreground text at a larger size. Buy uses the existing primary button.
+#### Brand
+
+The logo is `public/vendly.png`: a blue V with an orange shopping cart above the navy word “Vendly”. The mark alone (V and cart) is the favicon, the home-screen icon, and the small logo in the sidebar. The app name is Vendly everywhere, including the page title and the mail sender.
+
+| Token      | Value                          | Use                                                                                              |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Blue       | `#0054D5`, hover `#0039B4`     | Primary buttons, links, focus ring, active navigation, and Buy.                                  |
+| Light blue | `#0B77FB`                      | The lighter end of the mark, and soft tinted fills such as the active nav pill.                  |
+| Orange     | `#FD890F` to `#FCA402`         | Accent only: cart count, highlight badges, and the sidebar promo card. Never body text on white. |
+| Navy       | `#081A3B`                      | Text, headings, and dark mode surfaces. Text on orange is navy.                                  |
+| Page       | a light blue-tinted near white | The page background, so white cards stand out.                                                   |
+
+Buttons, text, and focus rings meet WCAG AA in light and dark.
+
+#### Components
+
+Every screen uses one component look, the shadcn primitives restyled in place:
+
+- White cards with a large radius (about 20px) and a soft 1px border instead of a shadow, on the tinted page.
+- Pill buttons. Primary is filled blue. Secondary is a bordered pill (for example “Weekly” or “Select dates”).
+- Pill badges with soft tinted fills for status and category.
+- A left sidebar with the logo, icon plus label items, and a filled soft-tinted pill for the active item. At the bottom sits one useful card, such as plan usage and Upgrade plan for a vendor.
+- A top bar with a rounded search field, the page’s one primary action, notifications, and the avatar.
+- Stat cards with a label, a value, and a small trend line. Tables with light header text that turn into stacked cards on a phone.
+
+Do not introduce a cream-and-terracotta theme, a black page with one acid accent, or all-caps labels above every heading. Price is ordinary foreground text at a larger size.
 
 Copy is sentence case and names the result: “Add to cart”, “Send to Telegram”, “Pay $5”, “Published”. An empty screen tells the viewer the one next step. An error says what failed and how to fix it, without an apology.
 
@@ -306,14 +337,14 @@ The build is seven system issues. Code comes first. Each site follows from that 
 
 ### 1. Accounts
 
-Email code, Google, and Telegram identity on the existing user table.
+Password login, email-code registration, Google, and Telegram identity on the existing user table.
 
 Depends on: nothing.
 
-- No user row exists before a valid email code. Google sign-in skips the code. A bad or stale Telegram `initData` is rejected.
+- No user row exists before a valid registration code. Google sign-in skips the code. A bad or stale Telegram `initData` is rejected.
 - `email` and `password` are nullable. `telegram_id` is unique. `is_admin` is not mass assignable.
-- Rate limit the code request and the Telegram sign-in. Regenerate the session when a sign-in succeeds.
-- The screen is one card: email, then the six-digit OTP input, plus Continue with Google.
+- Rate limit the code request, the code check, and the Telegram sign-in. Regenerate the session when a sign-in succeeds.
+- Log in is one card: email, password, plus Continue with Google. Register is name, email, and password, then the six-digit OTP input.
 
 ### 2. Store and the free plan
 
@@ -376,6 +407,33 @@ Depends on: Catalog within the plan limit. Telegram messages for “plan paid”
 
 Build [#8](https://github.com/srosthai/vendly/issues/8) first. The site issues can start once the routes they need exist. [#14](https://github.com/srosthai/vendly/issues/14) is the last pass, at 1280px and at 390px. Stay on Inertia React pages, shadcn components, Wayfinder actions, Form Requests, policies, queued jobs, and Pest.
 
+### Round 2: harden v1 and apply the brand
+
+A review of the code against this plan and #2–#14 found security holes, rules the code did not enforce, and promised features that were never built. Round 2 is tracked in [#44](https://github.com/srosthai/vendly/issues/44). Security and correctness land before the redesign.
+
+| Order | Issue                                                                                                      | Depends on         |
+| ----- | ---------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1     | [#24 Plan: password login and the Vendly brand](https://github.com/srosthai/vendly/issues/24)              | —                  |
+| 2     | [#25 Accounts: close the registration and sign-in bypasses](https://github.com/srosthai/vendly/issues/25)  | #24                |
+| 3     | [#27 Webhooks: refuse deliveries when secrets are missing](https://github.com/srosthai/vendly/issues/27)   | —                  |
+| 4     | [#28 Vendor area: one middleware for an owned, active store](https://github.com/srosthai/vendly/issues/28) | —                  |
+| 5     | [#29 Storefront: only published products, rate limited](https://github.com/srosthai/vendly/issues/29)      | —                  |
+| 6     | [#30 Plans: exactly one free, active default plan](https://github.com/srosthai/vendly/issues/30)           | —                  |
+| 7     | [#31 CutLuy payments: one per click, 429, safe expiry](https://github.com/srosthai/vendly/issues/31)       | #30                |
+| 8     | [#26 Mini app: Telegram initData sign-in](https://github.com/srosthai/vendly/issues/26)                    | #25                |
+| 9     | [#32 Plan page: Paid, Refresh, and expiry](https://github.com/srosthai/vendly/issues/32)                   | #31                |
+| 10    | [#33 Cart sheet: quantity and remove](https://github.com/srosthai/vendly/issues/33)                        | #29                |
+| 11    | [#34 Catalog: edit and delete](https://github.com/srosthai/vendly/issues/34)                               | #28                |
+| 12    | [#35 Stores: slug for Khmer names and Telegram links](https://github.com/srosthai/vendly/issues/35)        | —                  |
+| 13    | [#36 Telegram requests: see and retry failed sends](https://github.com/srosthai/vendly/issues/36)          | #27                |
+| 14    | [#37 Performance: indexes and pagination](https://github.com/srosthai/vendly/issues/37)                    | —                  |
+| 15    | [#38 Brand: logo, favicon, name, colors](https://github.com/srosthai/vendly/issues/38)                     | #24                |
+| 16    | [#39 Design system and app shell](https://github.com/srosthai/vendly/issues/39)                            | #38                |
+| 17    | [#40 Auth screens](https://github.com/srosthai/vendly/issues/40)                                           | #25, #39           |
+| 18    | [#41 Vendor and admin dashboards](https://github.com/srosthai/vendly/issues/41)                            | #32, #34, #36, #39 |
+| 19    | [#42 Landing page, storefront, and mini app](https://github.com/srosthai/vendly/issues/42)                 | #26, #33, #39      |
+| 20    | [#43 Final responsive and accessibility pass](https://github.com/srosthai/vendly/issues/43)                | #40, #41, #42      |
+
 ### Later, only after v1 is in use
 
 - Charging the customer for products inside the app.
@@ -388,4 +446,4 @@ Staff accounts for a vendor, an order inbox, product options and variants, coupo
 
 ## Test and verification bar
 
-Feature tests cover the rules above. Browser check walks the real screens on desktop and a narrow viewport: the email-code card, an empty store, a product grid and product page, Add to cart then Send, a guest stopped at Buy until the email code succeeds, the mini app entry opening the same storefront, a vendor hitting the plan limit, and the plan dialog showing a QR with Pending rather than Paid. Confirm the controls are the shadcn ones (button, input, OTP, dialog, sheet, table, toast), and that empty, loading, and error states are visible. Webhook checks stay in automated tests, because a browser cannot sign a CutLuy delivery.
+Feature tests cover the rules above. Browser check walks the real screens on desktop and a narrow viewport: log in, the register code step, an empty store, a product grid and product page, Add to cart then Send, a guest stopped at Buy until the email code succeeds, the mini app entry opening the same storefront, a vendor hitting the plan limit, and the plan dialog showing a QR with Pending rather than Paid. Confirm the controls are the shadcn ones (button, input, OTP, dialog, sheet, table, toast), and that empty, loading, and error states are visible. Webhook checks stay in automated tests, because a browser cannot sign a CutLuy delivery.
