@@ -8,7 +8,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeSwitch } from '@/components/theme-switch';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
@@ -73,7 +73,7 @@ export function AppSidebarHeader({
             </div>
             <div className="ml-auto flex items-center gap-2">
                 <WorkspaceSearch />
-                <ThemeToggle className="size-10" />
+                <ThemeSwitch />
                 {auth.user ? (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
