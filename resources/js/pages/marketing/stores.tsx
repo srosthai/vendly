@@ -16,6 +16,7 @@ type DirectoryStore = {
     name: string;
     description: string | null;
     logo: string | null;
+    accent: string | null;
     url: string;
     products_count: number;
     joined_at: string | null;

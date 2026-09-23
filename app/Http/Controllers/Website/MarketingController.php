@@ -87,6 +87,7 @@ class MarketingController extends Controller
                 'name' => $store->name,
                 'description' => $store->description,
                 'logo' => $store->logoUrl(),
+                'accent' => $store->accent,
                 'url' => route('stores.show', $store),
                 'products_count' => $store->published_products_count ?? 0,
                 'joined_at' => $store->created_at?->toIso8601String(),
