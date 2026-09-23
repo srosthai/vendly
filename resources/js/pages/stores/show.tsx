@@ -1,11 +1,20 @@
 import { Head, InfiniteScroll, Link } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { Package, ShoppingBag } from 'lucide-react';
+import StoreController from '@/actions/App/Http/Controllers/StoreController';
+import { EmptyState } from '@/components/empty-state';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
+import { StoreHeader } from '@/components/storefront/store-header';
+import { StorefrontFooter } from '@/components/storefront/storefront-footer';
 import {
     TelegramSignInNotice,
     useTelegramMiniApp,
 } from '@/components/storefront/telegram-mini-app';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { dollars } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 type ProductCard = {
     id: number;
@@ -23,10 +32,18 @@ export default function Show({
     categories,
     activeCategory,
     products,
+    embedded,
     authenticated,
     cart,
+    status,
 }: {
-    store: { name: string; slug: string; description: string | null };
+    status?: string | null;
+    store: {
+        name: string;
+        slug: string;
+        description: string | null;
+        logo: string | null;
+    };
     categories: Category[];
     activeCategory: string;
     products: { data: ProductCard[] };
@@ -36,30 +53,42 @@ export default function Show({
 }) {
     const miniApp = useTelegramMiniApp(authenticated);
 
+    useEffect(() => {
+        if (!status) {
+            return;
+        }
+
+        if (status.startsWith('Too many')) {
+            toast.error(status);
+        } else {
+            toast.success(status);
+        }
+    }, [status]);
+
     return (
         <>
-            <Head title={store.name} />
-            <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
+            <Head title={store.name}>
+                {store.description ? (
+                    <meta name="description" content={store.description} />
+                ) : null}
+            </Head>
+            <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-6 px-4 py-4 sm:py-6 md:px-6">
                 <TelegramSignInNotice {...miniApp} />
-                <header className="flex items-start justify-between gap-4">
-                    <div className="max-w-xl">
-                        <h1 className="text-4xl font-semibold tracking-tight">
-                            {store.name}
-                        </h1>
-                        {store.description ? (
-                            <p className="mt-3 text-muted-foreground">
-                                {store.description}
-                            </p>
-                        ) : null}
-                    </div>
-                    <CartSheet
-                        cart={cart}
-                        storeSlug={store.slug}
-                        authenticated={authenticated}
-                    />
-                </header>
+                <StoreHeader
+                    store={store}
+                    cart={
+                        <CartSheet
+                            cart={cart}
+                            storeSlug={store.slug}
+                            authenticated={authenticated}
+                        />
+                    }
+                />
                 {categories.length > 0 ? (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
+                    <nav
+                        aria-label="Categories"
+                        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
+                    >
                         <CategoryLink
                             slug=""
                             active={activeCategory === ''}
@@ -77,77 +106,101 @@ export default function Show({
                                 {category.name}
                             </CategoryLink>
                         ))}
-                    </div>
+                    </nav>
                 ) : null}
                 {products.data.length === 0 ? (
-                    <p className="text-muted-foreground">
-                        {activeCategory === ''
-                            ? 'No products yet. Check back soon.'
-                            : 'Nothing in this category yet.'}
-                    </p>
+                    <EmptyState
+                        icon={ShoppingBag}
+                        title={
+                            activeCategory === ''
+                                ? 'No products yet'
+                                : 'Nothing in this category yet'
+                        }
+                        description={
+                            activeCategory === ''
+                                ? 'This store is getting ready. Check back soon.'
+                                : 'Try another category, or see everything in the store.'
+                        }
+                    />
                 ) : (
                     <InfiniteScroll
                         data="products"
                         buffer={400}
                         loading={<ProductGridSkeleton />}
                     >
-                        <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                             {products.data.map((product) => (
                                 <li key={product.id}>
-                                    <Link
-                                        href={product.url}
-                                        className="flex h-full flex-col gap-3"
-                                    >
-                                        <span className="flex aspect-[4/5] items-center justify-center overflow-hidden bg-muted">
-                                            {product.image ? (
-                                                <img
-                                                    src={product.image}
-                                                    alt=""
-                                                    className="size-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-2xl text-muted-foreground">
-                                                    {product.name.slice(0, 1)}
-                                                </span>
-                                            )}
-                                        </span>
-                                        <span className="flex items-baseline justify-between gap-2">
-                                            <span className="font-medium">
-                                                {product.name}
-                                            </span>
-                                            <span className="text-lg tabular-nums">
-                                                $
-                                                {(
-                                                    product.price_cents / 100
-                                                ).toFixed(2)}
-                                            </span>
-                                        </span>
-                                        {product.sold_out ? (
-                                            <Badge variant="secondary">
-                                                Sold out
-                                            </Badge>
-                                        ) : null}
-                                    </Link>
+                                    <ProductTile product={product} />
                                 </li>
                             ))}
                         </ul>
                     </InfiniteScroll>
                 )}
+                <StorefrontFooter hidden={embedded || miniApp.inTelegram} />
             </main>
         </>
+    );
+}
+
+function ProductTile({ product }: { product: ProductCard }) {
+    return (
+        <Link
+            href={product.url}
+            className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-colors hover:border-primary/40"
+        >
+            <span className="relative flex aspect-square items-center justify-center overflow-hidden bg-muted">
+                {product.image ? (
+                    <img
+                        src={product.image}
+                        alt=""
+                        loading="lazy"
+                        className={cn(
+                            'size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]',
+                            product.sold_out && 'opacity-60',
+                        )}
+                    />
+                ) : (
+                    <Package
+                        className="size-8 text-muted-foreground"
+                        aria-hidden="true"
+                    />
+                )}
+                {product.sold_out ? (
+                    <Badge
+                        variant="secondary"
+                        className="absolute top-2 left-2"
+                    >
+                        Sold out
+                    </Badge>
+                ) : null}
+            </span>
+            <span className="flex flex-1 flex-col gap-1 p-3">
+                <span className="line-clamp-2 text-sm font-medium sm:text-base">
+                    {product.name}
+                </span>
+                <span className="mt-auto text-lg font-bold tabular-nums">
+                    {dollars(product.price_cents)}
+                </span>
+            </span>
+        </Link>
     );
 }
 
 function ProductGridSkeleton() {
     return (
         <ul
-            className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3"
+            className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"
             aria-hidden="true"
         >
-            {Array.from({ length: 3 }, (_, index) => (
-                <li key={index} className="flex flex-col gap-3">
-                    <Skeleton className="aspect-[4/5] w-full" />
-                    <Skeleton className="h-5 w-2/3" />
+            {Array.from({ length: 4 }, (_, index) => (
+                <li
+                    key={index}
+                    className="flex flex-col gap-3 rounded-2xl border bg-card p-3"
+                >
+                    <Skeleton className="aspect-square w-full rounded-xl" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-5 w-1/3" />
                 </li>
             ))}
         </ul>
@@ -165,17 +218,19 @@ function CategoryLink({
     storeSlug: string;
     children: string;
 }) {
-    const href =
-        slug === '' ? `/s/${storeSlug}` : `/s/${storeSlug}?category=${slug}`;
-
     return (
         <Link
-            href={href}
-            className={
+            href={StoreController.show(storeSlug, {
+                query: slug === '' ? {} : { category: slug },
+            })}
+            preserveScroll
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+                'inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors',
                 active
-                    ? 'inline-flex min-h-11 shrink-0 items-center border border-foreground px-3 text-sm'
-                    : 'inline-flex min-h-11 shrink-0 items-center border border-border px-3 text-sm text-muted-foreground'
-            }
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground',
+            )}
         >
             {children}
         </Link>

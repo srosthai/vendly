@@ -4,7 +4,9 @@ use App\Enums\ProductStatus;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 test('the public store shows only that store published products', function () {
     $vendor = User::factory()->create();
@@ -90,4 +92,69 @@ test('foreign keys used by the storefront and admin lists are indexed', function
         ->and(Schema::hasIndex('cart_items', ['product_id']))->toBeTrue()
         ->and(Schema::hasIndex('inquiry_items', ['inquiry_id']))->toBeTrue()
         ->and(Schema::hasIndex('subscription_payments', ['store_id', 'status']))->toBeTrue();
+});
+
+test('a vendor uploads, replaces, and removes the store logo', function () {
+    Storage::fake('public');
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Logo Tea');
+
+    $this->actingAs($vendor)->put(route('vendor.store.update'), [
+        'name' => 'Logo Tea',
+        'logo' => UploadedFile::fake()->image('logo.png', 200, 200),
+    ])->assertRedirect();
+
+    $first = $store->fresh()->logo_path;
+    Storage::disk('public')->assertExists($first);
+
+    $this->get(route('stores.show', $store))
+        ->assertInertia(fn ($page) => $page->where('store.logo', Storage::disk('public')->url($first)));
+
+    $this->actingAs($vendor)->put(route('vendor.store.update'), [
+        'name' => 'Logo Tea',
+        'logo' => UploadedFile::fake()->image('new.png', 200, 200),
+    ])->assertRedirect();
+
+    Storage::disk('public')->assertMissing($first);
+
+    $second = $store->fresh()->logo_path;
+
+    $this->actingAs($vendor)->put(route('vendor.store.update'), [
+        'name' => 'Logo Tea',
+        'remove_logo' => '1',
+    ])->assertRedirect();
+
+    expect($store->fresh()->logo_path)->toBeNull();
+    Storage::disk('public')->assertMissing($second);
+});
+
+test('a store logo must be a small image', function () {
+    Storage::fake('public');
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Logo Tea');
+
+    $this->actingAs($vendor)->put(route('vendor.store.update'), [
+        'name' => 'Logo Tea',
+        'logo' => UploadedFile::fake()->create('logo.pdf', 10, 'application/pdf'),
+    ])->assertInvalid(['logo']);
+});
+
+test('the product page shows every photo in order', function () {
+    $store = openStore(User::factory()->create(), 'Photo Tea');
+    $product = Product::factory()->for($store)->create();
+    $product->images()->create(['path' => 'products/b.jpg', 'sort' => 2]);
+    $product->images()->create(['path' => 'products/a.jpg', 'sort' => 1]);
+
+    $this->get(route('stores.products.show', ['store' => $store, 'productSlug' => $product->slug]))
+        ->assertInertia(fn ($page) => $page
+            ->has('product.images', 2)
+            ->where('product.images.0', fn (string $url): bool => str_ends_with($url, 'products/a.jpg')));
+});
+
+test('the store page shows the result of sending a cart', function () {
+    $store = openStore(User::factory()->create(), 'Sent Tea');
+
+    $this->withSession(['status' => 'Sent to the store on Telegram.'])
+        ->get(route('stores.show', $store))
+        ->assertInertia(fn ($page) => $page->where('status', 'Sent to the store on Telegram.'));
 });

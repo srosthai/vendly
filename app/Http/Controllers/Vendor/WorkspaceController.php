@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -158,6 +159,8 @@ class WorkspaceController extends Controller
             'store' => [
                 'name' => $store->name,
                 'description' => $store->description ?? '',
+                'slug' => $store->slug,
+                'logo' => $store->logoUrl(),
                 'web_url' => route('stores.show', $store),
                 'telegram_url' => PlatformSetting::current()->miniAppLink($store->slug),
             ],
@@ -171,11 +174,27 @@ class WorkspaceController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
+            'remove_logo' => ['sometimes', 'boolean'],
         ]);
 
         $store->name = strip_tags($validated['name']);
         $store->description = isset($validated['description']) ? strip_tags($validated['description']) : null;
+
+        $oldLogo = $store->logo_path;
+
+        if ($request->hasFile('logo')) {
+            $store->logo_path = $request->file('logo')->store('logos', 'public');
+        } elseif ($request->boolean('remove_logo')) {
+            $store->logo_path = null;
+        }
+
         $store->save();
+
+        if ($oldLogo !== null && $oldLogo !== $store->logo_path) {
+            Storage::disk('public')->delete($oldLogo);
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Store saved.']);
 
         return back();

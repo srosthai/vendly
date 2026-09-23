@@ -9,11 +9,11 @@ use App\Actions\Catalog\SaveProduct;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Requests\SaveProductRequest;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Store;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -81,6 +81,7 @@ class ProductController extends Controller
                 'name' => $store->name,
                 'slug' => $store->slug,
                 'url' => route('stores.show', $store),
+                'logo' => $store->logoUrl(),
             ],
             'embedded' => request()->session()->get('mini_app') === true,
             'authenticated' => request()->user() !== null,
@@ -93,7 +94,7 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'price_cents' => $product->price_cents,
                 'sold_out' => $product->isSoldOut(),
-                'image' => $product->images->first() !== null ? Storage::disk('public')->url($product->images->first()->path) : null,
+                'images' => $product->images->sortBy([['sort', 'asc'], ['id', 'asc']])->values()->map(fn (ProductImage $image): string => $image->url())->all(),
             ],
         ]);
     }
