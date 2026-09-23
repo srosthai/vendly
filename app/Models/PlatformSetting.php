@@ -51,7 +51,7 @@ class PlatformSetting extends Model
             ->all();
 
         return [
-            'company_name' => $this->company_name ?: config('app.name'),
+            'company_name' => $this->company_name ?: 'Vendly',
             'address' => $this->address,
             'phone' => $this->phone,
             'email' => $this->email,

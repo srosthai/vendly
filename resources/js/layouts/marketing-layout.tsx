@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import AppLogo from '@/components/app-logo';
+import { BackToTop } from '@/components/marketing/back-to-top';
 import { SiteFooter } from '@/components/marketing/site-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -211,6 +212,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             <main className="flex-1">{children}</main>
 
             <SiteFooter />
+            <BackToTop />
         </div>
     );
 }
