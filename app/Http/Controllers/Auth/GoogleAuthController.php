@@ -12,13 +12,21 @@ use Throwable;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect(): SymfonyRedirectResponse
+    public function redirect(): SymfonyRedirectResponse|RedirectResponse
     {
+        if (! $this->configured()) {
+            return redirect()->route('login')->with('status', 'Add the Google client id and secret to the environment.');
+        }
+
         return Socialite::driver('google')->redirect();
     }
 
     public function callback(AuthenticateGoogleUser $action): RedirectResponse
     {
+        if (! $this->configured()) {
+            return redirect()->route('login')->with('status', 'Add the Google client id and secret to the environment.');
+        }
+
         try {
             $user = $action->handle(Socialite::driver('google')->user());
         } catch (Throwable) {
@@ -29,5 +37,13 @@ class GoogleAuthController extends Controller
         request()->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function configured(): bool
+    {
+        return is_string(config('services.google.client_id'))
+            && config('services.google.client_id') !== ''
+            && is_string(config('services.google.client_secret'))
+            && config('services.google.client_secret') !== '';
     }
 }

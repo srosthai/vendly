@@ -15,23 +15,11 @@ use Inertia\Response;
 
 class EmailCodeController extends Controller
 {
-    public function create(Request $request): Response
+    public function create(Request $request): RedirectResponse
     {
         $next = $request->query('next');
 
-        if ($next === 'sell') {
-            $request->session()->put('url.intended', route('selling.create'));
-        }
-
-        if (is_string($next) && str_starts_with($next, '/s/')) {
-            $request->session()->put('url.intended', url($next));
-        }
-
-        return Inertia::render('auth/sign-in', [
-            'step' => 'email',
-            'email' => '',
-            'status' => $request->session()->get('status'),
-        ]);
+        return redirect()->route('login', is_string($next) && $next !== '' ? ['next' => $next] : []);
     }
 
     public function code(Request $request): Response|RedirectResponse

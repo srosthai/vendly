@@ -89,7 +89,7 @@ export function CartSheet({
                         </Form>
                     ) : (
                         <Button asChild className="min-h-11">
-                            <Link href={`/sign-in?next=/s/${storeSlug}`}>
+                            <Link href={`/login?next=/s/${storeSlug}`}>
                                 Sign in to send
                             </Link>
                         </Button>
