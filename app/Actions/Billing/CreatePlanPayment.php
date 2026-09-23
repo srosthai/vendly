@@ -2,6 +2,7 @@
 
 namespace App\Actions\Billing;
 
+use App\Enums\BillingPeriod;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CutluyRequestException;
 use App\Jobs\RetryCutluyPayment;
@@ -23,7 +24,7 @@ class CreatePlanPayment
         private TelegramNotifier $telegram,
     ) {}
 
-    public function handle(Store $store, Plan $plan): SubscriptionPayment
+    public function handle(Store $store, Plan $plan, BillingPeriod $period = BillingPeriod::Monthly): SubscriptionPayment
     {
         if (! $plan->is_active || $plan->isFree()) {
             throw ValidationException::withMessages([
@@ -31,7 +32,15 @@ class CreatePlanPayment
             ]);
         }
 
-        $payment = $this->pendingPayment($store, $plan);
+        $amount = $plan->priceFor($period);
+
+        if ($amount === null) {
+            throw ValidationException::withMessages([
+                'plan' => $plan->name.' is paid monthly only.',
+            ]);
+        }
+
+        $payment = $this->pendingPayment($store, $plan, $period, $amount);
 
         if ($payment->cutluy_id !== null) {
             return $payment;
@@ -73,6 +82,7 @@ class CreatePlanPayment
             [
                 'store_id' => $payment->store_id,
                 'plan_id' => $payment->plan_id,
+                'period' => $payment->period->value,
             ],
             $payment->public_id,
         );
@@ -100,16 +110,19 @@ class CreatePlanPayment
 
     /**
      * The store row is locked while the pending payment is found or created,
-     * so a double click shares one local payment and one idempotency key.
+     * so a double click shares one local payment and one idempotency key. A
+     * pending payment is reused only for the same plan, period, and amount.
      */
-    private function pendingPayment(Store $store, Plan $plan): SubscriptionPayment
+    private function pendingPayment(Store $store, Plan $plan, BillingPeriod $period, int $amount): SubscriptionPayment
     {
-        return DB::transaction(function () use ($store, $plan): SubscriptionPayment {
+        return DB::transaction(function () use ($store, $plan, $period, $amount): SubscriptionPayment {
             Store::query()->whereKey($store->id)->lockForUpdate()->first();
 
             $payment = SubscriptionPayment::query()
                 ->where('store_id', $store->id)
                 ->where('plan_id', $plan->id)
+                ->where('period', $period)
+                ->where('amount_cents', $amount)
                 ->where('status', PaymentStatus::Pending)
                 ->latest('id')
                 ->first();
@@ -118,7 +131,8 @@ class CreatePlanPayment
                 'public_id' => 'subpay_'.Str::lower((string) Str::ulid()),
                 'store_id' => $store->id,
                 'plan_id' => $plan->id,
-                'amount_cents' => $plan->price_cents,
+                'amount_cents' => $amount,
+                'period' => $period,
                 'status' => PaymentStatus::Pending,
             ]);
         });

@@ -341,3 +341,28 @@ test('only an admin can change site settings', function () {
     $this->actingAs($vendor)->put(route('admin.site.update'), ['company_name' => 'Hijack'])->assertForbidden();
     $this->actingAs($vendor)->post(route('admin.site.payment-methods.store'), ['name' => 'Fake'])->assertForbidden();
 });
+
+test('an admin sets and clears a yearly price, and a free plan cannot have one', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.plans.store'), planInput(['name' => 'Yearly', 'yearly_price' => '50.00']))
+        ->assertSessionHasNoErrors();
+
+    $plan = Plan::query()->where('name', 'Yearly')->sole();
+    expect($plan->yearly_price_cents)->toBe(5000);
+
+    $this->actingAs($admin)
+        ->put(route('admin.plans.update', $plan), planInput(['name' => 'Yearly', 'yearly_price' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect($plan->fresh()->yearly_price_cents)->toBeNull();
+
+    $this->actingAs($admin)
+        ->post(route('admin.plans.store'), planInput(['name' => 'Free yearly', 'price' => '0', 'yearly_price' => '10.00']))
+        ->assertInvalid(['yearly_price']);
+
+    $this->actingAs($admin)
+        ->post(route('admin.plans.store'), planInput(['name' => 'Zero yearly', 'yearly_price' => '0']))
+        ->assertInvalid(['yearly_price']);
+});

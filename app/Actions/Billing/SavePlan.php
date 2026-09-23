@@ -10,7 +10,7 @@ class SavePlan
     /**
      * Plans are locked first so two saves cannot both leave a default behind.
      *
-     * @param  array{name: string, price_cents: int, product_limit: int, is_active: bool, is_default: bool}  $attributes
+     * @param  array{name: string, price_cents: int, yearly_price_cents: int|null, product_limit: int, is_active: bool, is_default: bool}  $attributes
      */
     public function handle(array $attributes, ?Plan $plan = null): Plan
     {

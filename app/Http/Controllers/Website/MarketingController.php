@@ -58,7 +58,7 @@ class MarketingController extends Controller
                 ->orderByDesc('is_default')
                 ->orderBy('price_cents')
                 ->orderBy('id')
-                ->get(['id', 'name', 'price_cents', 'product_limit', 'is_default']),
+                ->get(['id', 'name', 'price_cents', 'yearly_price_cents', 'product_limit', 'is_default']),
         ]);
     }
 

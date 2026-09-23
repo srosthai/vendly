@@ -26,6 +26,7 @@ class SavePlanRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'price' => ['required', new UsdAmount],
+            'yearly_price' => ['nullable', new UsdAmount],
             'product_limit' => ['required', 'integer', 'min:0', 'max:100000'],
             'is_active' => ['required', 'boolean'],
             'is_default' => ['required', 'boolean'],
@@ -52,6 +53,16 @@ class SavePlanRequest extends FormRequest
                     $validator->errors()->add('price', 'The price can be at most $10,000.00.');
                 }
 
+                $yearlyCents = $this->yearlyPriceCents();
+
+                if ($yearlyCents !== null && $priceCents === 0) {
+                    $validator->errors()->add('yearly_price', 'A free plan has no yearly price.');
+                } elseif ($yearlyCents !== null && $yearlyCents === 0) {
+                    $validator->errors()->add('yearly_price', 'Leave the yearly price empty to sell this plan monthly only.');
+                } elseif ($yearlyCents !== null && $yearlyCents > self::MaxPriceCents) {
+                    $validator->errors()->add('yearly_price', 'The yearly price can be at most $10,000.00.');
+                }
+
                 $makingDefault = $this->boolean('is_default');
 
                 if ($makingDefault && $priceCents !== 0) {
@@ -72,7 +83,7 @@ class SavePlanRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, price_cents: int, product_limit: int, is_active: bool, is_default: bool}
+     * @return array{name: string, price_cents: int, yearly_price_cents: int|null, product_limit: int, is_active: bool, is_default: bool}
      */
     public function planAttributes(): array
     {
@@ -81,9 +92,20 @@ class SavePlanRequest extends FormRequest
         return [
             'name' => $validated['name'],
             'price_cents' => Money::toCents((string) $validated['price']),
+            'yearly_price_cents' => $this->yearlyPriceCents(),
             'product_limit' => (int) $validated['product_limit'],
             'is_active' => (bool) $validated['is_active'],
             'is_default' => (bool) $validated['is_default'],
         ];
+    }
+
+    /**
+     * The yearly price in cents, or null when the field is left empty.
+     */
+    private function yearlyPriceCents(): ?int
+    {
+        $yearly = $this->input('yearly_price');
+
+        return $yearly === null || $yearly === '' ? null : Money::toCents((string) $yearly);
     }
 }

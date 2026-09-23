@@ -6,6 +6,7 @@ use App\Actions\Billing\CreatePlanPayment;
 use App\Actions\Billing\RefreshPlanPayment;
 use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreatePlanPaymentRequest;
 use App\Models\Plan;
 use App\Models\SubscriptionPayment;
 use Illuminate\Http\JsonResponse;
@@ -16,11 +17,11 @@ class PlanPaymentController extends Controller
 {
     use ResolvesVendorStore;
 
-    public function store(Request $request, Plan $plan, CreatePlanPayment $action): JsonResponse|RedirectResponse
+    public function store(CreatePlanPaymentRequest $request, Plan $plan, CreatePlanPayment $action): JsonResponse|RedirectResponse
     {
         $store = $this->vendorStore($request);
 
-        $payment = $action->handle($store, $plan);
+        $payment = $action->handle($store, $plan, $request->period());
 
         $payload = $this->payload($payment);
 
@@ -50,7 +51,7 @@ class PlanPaymentController extends Controller
     }
 
     /**
-     * @return array{public_id: string, status: string, checkout_url: string|null, qr_string: string|null, amount_cents: int}
+     * @return array{public_id: string, status: string, checkout_url: string|null, qr_string: string|null, amount_cents: int, period: string}
      */
     private function payload(SubscriptionPayment $payment): array
     {
@@ -60,6 +61,7 @@ class PlanPaymentController extends Controller
             'checkout_url' => $payment->checkout_url,
             'qr_string' => $payment->qr_string,
             'amount_cents' => $payment->amount_cents,
+            'period' => $payment->period->value,
         ];
     }
 }

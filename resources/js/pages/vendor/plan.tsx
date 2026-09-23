@@ -2,6 +2,7 @@ import { Form, Head, useHttp } from '@inertiajs/react';
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useState } from 'react';
 import PlanPaymentController from '@/actions/App/Http/Controllers/Billing/PlanPaymentController';
+import { BillingPeriodSwitch } from '@/components/billing-period-switch';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
+import { offersYearly, yearlySaving } from '@/lib/billing';
+import type { BillingPeriod } from '@/lib/billing';
 import { dollars, formatDate } from '@/lib/format';
 import vendor from '@/routes/vendor';
 
@@ -25,6 +28,7 @@ type Payment = {
     checkout_url: string | null;
     qr_string: string | null;
     amount_cents: number;
+    period?: BillingPeriod;
     notice?: string | null;
 };
 
@@ -36,6 +40,7 @@ type Usage = {
     status: string | null;
     ends_at: string | null;
     can_publish: boolean;
+    period: BillingPeriod | null;
 };
 
 const statusLabel: Record<string, string> = {
@@ -58,6 +63,7 @@ export default function Plan({
         id: number;
         name: string;
         price_cents: number;
+        yearly_price_cents: number | null;
         product_limit: number;
     }[];
     payment: Payment | null;
@@ -67,6 +73,9 @@ export default function Plan({
     const [qr, setQr] = useState<string | null>(null);
     const http = useHttp<Record<string, never>, Payment>();
     const expired = usage.status === 'expired';
+    const [period, setPeriod] = useState<BillingPeriod>('monthly');
+    const anyYearly = plans.some(offersYearly);
+    const bestSaving = Math.max(0, ...plans.map(yearlySaving));
 
     useEffect(() => {
         setPayment(flashedPayment);
@@ -139,6 +148,13 @@ export default function Plan({
                         <h2 className="text-lg font-semibold">
                             {usage.plan ?? 'No plan'}
                         </h2>
+                        {usage.period ? (
+                            <Badge variant="secondary">
+                                {usage.period === 'yearly'
+                                    ? 'Paid yearly'
+                                    : 'Paid monthly'}
+                            </Badge>
+                        ) : null}
                         {expired ? (
                             <Badge variant="destructive">Ended</Badge>
                         ) : (
@@ -169,44 +185,86 @@ export default function Plan({
                         </p>
                     ) : null}
                 </Card>
-                <h2 className="text-lg font-semibold">Paid plans</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Paid plans</h2>
+                    {anyYearly ? (
+                        <BillingPeriodSwitch
+                            value={period}
+                            onChange={setPeriod}
+                            note={
+                                bestSaving > 0
+                                    ? `Save up to ${dollars(bestSaving)}`
+                                    : undefined
+                            }
+                        />
+                    ) : null}
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                    {plans.map((plan) => (
-                        <Card key={plan.id} className="gap-4 p-5">
-                            <div>
-                                <h3 className="font-semibold">{plan.name}</h3>
-                                <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">
-                                    {dollars(plan.price_cents)}
-                                    <span className="text-sm font-normal text-muted-foreground">
-                                        {' '}
-                                        / month
-                                    </span>
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    Up to {plan.product_limit} published
-                                    products
-                                </p>
-                            </div>
-                            <Form
-                                {...PlanPaymentController.store.form(plan.id)}
-                                options={{ preserveScroll: true }}
-                            >
-                                {({ processing, errors }) => (
-                                    <div className="grid gap-2">
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                            className="justify-self-start"
-                                        >
-                                            {processing && <Spinner />}
-                                            Pay {dollars(plan.price_cents)}
-                                        </Button>
-                                        <InputError message={errors.plan} />
-                                    </div>
-                                )}
-                            </Form>
-                        </Card>
-                    ))}
+                    {plans.map((plan) => {
+                        const yearly =
+                            period === 'yearly' && offersYearly(plan);
+                        const amount = yearly
+                            ? (plan.yearly_price_cents ?? 0)
+                            : plan.price_cents;
+                        const saving = yearlySaving(plan);
+
+                        return (
+                            <Card key={plan.id} className="gap-4 p-5">
+                                <div>
+                                    <h3 className="font-semibold">
+                                        {plan.name}
+                                    </h3>
+                                    <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">
+                                        {dollars(amount)}
+                                        <span className="text-sm font-normal text-muted-foreground">
+                                            {yearly ? ' / year' : ' / month'}
+                                        </span>
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Up to {plan.product_limit} published
+                                        products
+                                        {yearly && saving > 0
+                                            ? `. Saves ${dollars(saving)} against paying monthly.`
+                                            : period === 'yearly' && !yearly
+                                              ? '. Paid monthly only.'
+                                              : ''}
+                                    </p>
+                                </div>
+                                <Form
+                                    {...PlanPaymentController.store.form(
+                                        plan.id,
+                                    )}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing, errors }) => (
+                                        <div className="grid gap-2">
+                                            <input
+                                                type="hidden"
+                                                name="period"
+                                                value={
+                                                    yearly
+                                                        ? 'yearly'
+                                                        : 'monthly'
+                                                }
+                                            />
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                                className="justify-self-start"
+                                            >
+                                                {processing && <Spinner />}
+                                                Pay {dollars(amount)}
+                                                {yearly
+                                                    ? ' for a year'
+                                                    : ' for a month'}
+                                            </Button>
+                                            <InputError message={errors.plan} />
+                                        </div>
+                                    )}
+                                </Form>
+                            </Card>
+                        );
+                    })}
                 </div>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
@@ -214,7 +272,7 @@ export default function Plan({
                     <DialogHeader>
                         <DialogTitle>
                             {payment
-                                ? `Pay ${dollars(payment.amount_cents)}`
+                                ? `Pay ${dollars(payment.amount_cents)}${payment.period === 'yearly' ? ' for a year' : payment.period === 'monthly' ? ' for a month' : ''}`
                                 : 'Payment'}
                         </DialogTitle>
                         <DialogDescription>

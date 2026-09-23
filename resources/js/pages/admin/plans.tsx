@@ -19,9 +19,15 @@ import { dollars } from '@/lib/format';
 import admin from '@/routes/admin';
 
 function price(plan: AdminPlan): string {
-    return plan.price_cents === 0
-        ? 'Free'
-        : `${dollars(plan.price_cents)} / month`;
+    if (plan.price_cents === 0) {
+        return 'Free';
+    }
+
+    const monthly = `${dollars(plan.price_cents)} / month`;
+
+    return plan.yearly_price_cents
+        ? `${monthly}, ${dollars(plan.yearly_price_cents)} / year`
+        : monthly;
 }
 
 export default function Plans({ plans }: { plans: AdminPlan[] }) {

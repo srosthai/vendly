@@ -307,8 +307,16 @@ class WorkspaceController extends Controller
                 'status' => $subscription?->status->value,
                 'ends_at' => $subscription?->ends_at?->toIso8601String(),
                 'can_publish' => $subscription?->allowsPublishing() ?? false,
+                'period' => $subscription?->plan->isFree() === false
+                    ? SubscriptionPayment::query()
+                        ->where('store_id', $store->id)
+                        ->where('status', PaymentStatus::Paid)
+                        ->latest('paid_at')
+                        ->latest('id')
+                        ->first()?->period->value
+                    : null,
             ],
-            'plans' => Plan::query()->where('is_active', true)->where('price_cents', '>', 0)->orderBy('price_cents')->orderBy('id')->get(['id', 'name', 'price_cents', 'product_limit']),
+            'plans' => Plan::query()->where('is_active', true)->where('price_cents', '>', 0)->orderBy('price_cents')->orderBy('id')->get(['id', 'name', 'price_cents', 'yearly_price_cents', 'product_limit']),
             'payment' => $request->session()->get('payment'),
         ]);
     }

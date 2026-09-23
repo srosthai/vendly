@@ -590,3 +590,56 @@ test('the plan page shows an expired plan before a publish fails', function () {
             ->where('usage.can_publish', false)
             ->where('usage.ends_at', $subscription->ends_at->toIso8601String()));
 });
+
+test('a yearly checkout charges the yearly price and records the period', function () {
+    Http::preventStrayRequests();
+    Http::fakeSequence()
+        ->push(createdCutluyPayment('pay_month'), 201)
+        ->push(createdCutluyPayment('pay_year'), 201);
+
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Year Tea');
+    $plan = starterPlan();
+    $plan->update(['yearly_price_cents' => 5000]);
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan))
+        ->assertOk()
+        ->assertJsonPath('amount_cents', 500)
+        ->assertJsonPath('period', 'monthly');
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan), ['period' => 'yearly'])
+        ->assertOk()
+        ->assertJsonPath('amount_cents', 5000)
+        ->assertJsonPath('period', 'yearly');
+
+    expect(SubscriptionPayment::query()->where('period', 'yearly')->sole()->cutluy_id)->toBe('pay_year');
+    Http::assertSent(fn ($request) => (float) $request['amount'] === 50.0 && $request['metadata']['period'] === 'yearly');
+});
+
+test('yearly is refused for a plan without a yearly price', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Monthly Tea');
+    $plan = starterPlan();
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan), ['period' => 'yearly'])
+        ->assertInvalid(['plan']);
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan), ['period' => 'weekly'])
+        ->assertInvalid(['period']);
+
+    expect(SubscriptionPayment::query()->count())->toBe(0);
+});
+
+test('a completed yearly payment adds twelve months', function () {
+    Http::preventStrayRequests();
+    $this->freezeSecond();
+    $store = openStore(User::factory()->create(), 'Twelve Tea');
+    $payment = pendingStarterPayment($store);
+    $payment->update(['amount_cents' => 5000, 'period' => 'yearly']);
+
+    cutluyCall(cutluyDelivery('payment.completed', ['amount' => '50.00']), 'payment.completed')->assertNoContent();
+
+    expect($store->fresh()->subscription)
+        ->status->toBe(SubscriptionStatus::Active)
+        ->ends_at->toEqual(now()->addYear());
+});
