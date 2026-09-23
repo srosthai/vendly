@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Vendor;
 
+use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class WorkspaceController extends Controller
 {
+    use ResolvesVendorStore;
+
     public function home(Request $request): Response
     {
         $store = $this->optionalStore($request);
@@ -30,7 +33,7 @@ class WorkspaceController extends Controller
 
     public function store(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
         $settings = PlatformSetting::current();
         $username = $settings->botUsername();
         $short = $settings->mini_app_short_name ?: (string) config('services.telegram.mini_app_short_name');
@@ -49,7 +52,8 @@ class WorkspaceController extends Controller
 
     public function updateStore(Request $request): RedirectResponse
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
+        $this->authorize('update', $store);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -64,7 +68,7 @@ class WorkspaceController extends Controller
 
     public function products(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
         $limit = (int) ($store->subscription?->plan->product_limit ?? 0);
         $published = $store->products()->published()->count();
 
@@ -86,7 +90,7 @@ class WorkspaceController extends Controller
 
     public function categories(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
 
         return Inertia::render('vendor/categories', [
             'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['id', 'name']),
@@ -95,7 +99,7 @@ class WorkspaceController extends Controller
 
     public function brands(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
 
         return Inertia::render('vendor/brands', [
             'brands' => $store->brands()->orderBy('name')->orderBy('id')->get(['id', 'name']),
@@ -104,7 +108,7 @@ class WorkspaceController extends Controller
 
     public function plan(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
         $subscription = $store->subscription()->with('plan')->first();
 
         return Inertia::render('vendor/plan', [
@@ -120,20 +124,12 @@ class WorkspaceController extends Controller
 
     public function telegram(Request $request): Response
     {
-        $store = $this->ownedStore($request);
+        $store = $this->vendorStore($request);
 
         return Inertia::render('vendor/telegram', [
             'connected' => filled($store->telegram_chat_id),
             'link' => $request->session()->get('telegram_link'),
         ]);
-    }
-
-    private function ownedStore(Request $request): Store
-    {
-        $store = $this->optionalStore($request);
-        abort_if($store === null, 403);
-
-        return $store;
     }
 
     private function optionalStore(Request $request): ?Store

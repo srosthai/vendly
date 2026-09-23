@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Actions\Cart\CartSummary;
 use App\Actions\Catalog\PublishProduct;
 use App\Actions\Catalog\SaveProduct;
+use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Http\Requests\SaveProductRequest;
 use App\Models\Product;
 use App\Models\Store;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -18,9 +18,11 @@ use Inertia\Response;
 
 class ProductController extends Controller
 {
+    use ResolvesVendorStore;
+
     public function store(SaveProductRequest $request, SaveProduct $action): RedirectResponse
     {
-        $store = $this->ownedStore($request->user());
+        $store = $this->vendorStore($request);
         $product = $action->handle(
             $store,
             $request->productAttributes(),
@@ -87,15 +89,6 @@ class ProductController extends Controller
                 'image' => $product->images->first() !== null ? Storage::disk('public')->url($product->images->first()->path) : null,
             ],
         ]);
-    }
-
-    private function ownedStore(mixed $user): Store
-    {
-        abort_unless($user instanceof User, 403);
-        $store = $user->store;
-        abort_if($store === null, 403);
-
-        return $store;
     }
 
     /**
