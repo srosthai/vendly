@@ -4,6 +4,7 @@ import {
     StoreStatusBadge,
     StoreSuspendAction,
 } from '@/components/admin/store-suspension';
+import { ListToolbar } from '@/components/admin/list-toolbar';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { SimplePagination } from '@/components/simple-pagination';
@@ -27,16 +28,38 @@ type Vendor = {
     owner: string | null;
     plan: string | null;
     published_count: number;
+    telegram_connected: boolean;
     suspended: boolean;
+};
+
+type Filters = {
+    search: string;
+    status: string;
+    plan: string;
+    telegram: string;
+    sort: string;
+};
+
+const defaults: Filters = {
+    search: '',
+    status: 'all',
+    plan: 'all',
+    telegram: 'all',
+    sort: 'newest',
 };
 
 export default function Vendors({
     vendors,
-    search,
+    filters,
+    plans,
 }: {
     vendors: Paginated<Vendor>;
-    search: string;
+    filters: Filters;
+    plans: { id: number; name: string }[];
 }) {
+    const filtered = (Object.keys(defaults) as (keyof Filters)[]).some(
+        (key) => key !== 'sort' && filters[key] !== defaults[key],
+    );
     return (
         <>
             <Head title="Vendors" />
@@ -45,16 +68,61 @@ export default function Vendors({
                     title="Vendors"
                     description="Every store on Vendly. Suspending hides the store and stops its vendor from making changes."
                 />
+                <ListToolbar
+                    url={admin.vendors.url()}
+                    values={filters}
+                    defaults={defaults}
+                    searchPlaceholder="Search store, link, owner, or email"
+                    filters={[
+                        {
+                            key: 'status',
+                            label: 'Status',
+                            options: [
+                                { value: 'all', label: 'All statuses' },
+                                { value: 'live', label: 'Live' },
+                                { value: 'suspended', label: 'Suspended' },
+                            ],
+                        },
+                        {
+                            key: 'plan',
+                            label: 'Plan',
+                            options: [
+                                { value: 'all', label: 'All plans' },
+                                ...plans.map((plan) => ({
+                                    value: String(plan.id),
+                                    label: plan.name,
+                                })),
+                            ],
+                        },
+                        {
+                            key: 'telegram',
+                            label: 'Telegram',
+                            options: [
+                                { value: 'all', label: 'Any Telegram' },
+                                { value: 'connected', label: 'Connected' },
+                                { value: 'missing', label: 'Not connected' },
+                            ],
+                        },
+                    ]}
+                    sorts={[
+                        { value: 'newest', label: 'Newest first' },
+                        { value: 'oldest', label: 'Oldest first' },
+                        { value: 'name', label: 'Name A to Z' },
+                        { value: 'products', label: 'Most published' },
+                    ]}
+                    total={vendors.total ?? vendors.data.length}
+                    noun={['vendor', 'vendors']}
+                />
                 {vendors.data.length === 0 ? (
-                    search !== '' ? (
+                    filtered ? (
                         <EmptyState
                             icon={Store}
-                            title={`No vendors match "${search}"`}
-                            description="Search by store name, link, or the owner's email."
+                            title="No vendors match these filters"
+                            description="Try another search or filter, or clear them to see every store."
                             action={
                                 <Button asChild variant="outline">
                                     <Link href={admin.vendors()}>
-                                        Clear search
+                                        Clear filters
                                     </Link>
                                 </Button>
                             }
