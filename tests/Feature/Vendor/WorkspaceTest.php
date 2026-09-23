@@ -149,7 +149,7 @@ test('a vendor searches their own products', function () {
     $this->actingAs($vendor)
         ->get(route('vendor.products', ['search' => 'jasmine']))
         ->assertInertia(fn ($page) => $page
-            ->where('search', 'jasmine')
+            ->where('filters.search', 'jasmine')
             ->has('products.data', 1)
             ->where('products.data.0.name', 'Jasmine pearls'));
 });
