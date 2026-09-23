@@ -4,6 +4,7 @@ import {
     LayoutGrid,
     MessageSquare,
     Package,
+    Quote,
     Send,
     Shapes,
     Store,
@@ -74,6 +75,16 @@ const adminGroups: NavGroup[] = [
                 icon: MessageSquare,
             },
             { title: 'Telegram', href: admin.telegram(), icon: Send },
+        ],
+    },
+    {
+        label: 'Website',
+        items: [
+            {
+                title: 'Testimonials',
+                href: admin.testimonials(),
+                icon: Quote,
+            },
         ],
     },
 ];

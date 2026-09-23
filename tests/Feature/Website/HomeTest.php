@@ -1,14 +1,16 @@
 <?php
 
+use App\Actions\Stores\CreateStore;
 use App\Models\Plan;
 use App\Models\Store;
+use App\Models\Testimonial;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 test('the home page offers sign in and start selling', function () {
     $this->get(route('home'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('welcome'));
+        ->assertInertia(fn ($page) => $page->component('marketing/home'));
 });
 
 test('sign in is the email and password form', function () {
@@ -135,17 +137,80 @@ test('a slug race ends in a validation error, not a server error', function () {
     expect($vendor->store()->exists())->toBeFalse();
 });
 
-test('the landing page lists the plans vendors can choose, free default first', function () {
+test('the pricing page lists the plans vendors can choose, free default first', function () {
     freePlan();
     Plan::query()->create(['name' => 'Starter', 'price_cents' => 500, 'product_limit' => 100, 'is_active' => true, 'is_default' => false]);
     Plan::query()->create(['name' => 'Hidden', 'price_cents' => 900, 'product_limit' => 500, 'is_active' => false, 'is_default' => false]);
 
-    $this->get(route('home'))
+    $this->get(route('pricing'))
         ->assertInertia(fn ($page) => $page
-            ->component('welcome')
+            ->component('marketing/pricing')
             ->has('plans', 2)
             ->where('plans.0.name', 'Free')
             ->where('plans.1.name', 'Starter'));
+});
+
+test('each marketing page has its own title, description, and canonical link', function (string $route, string $component, string $title) {
+    $this->get(route($route))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component($component)->where('meta.title', $title))
+        ->assertSee('rel="canonical" href="'.route($route).'"', false)
+        ->assertSee($title.' - Vendly</title>', false);
+})->with([
+    'home' => ['home', 'marketing/home', 'A shop on the web and in Telegram'],
+    'features' => ['features', 'marketing/features', 'Features'],
+    'how it works' => ['how-it-works', 'marketing/how-it-works', 'How it works'],
+    'pricing' => ['pricing', 'marketing/pricing', 'Pricing'],
+]);
+
+test('the home page shows the newest live stores and never suspended ones', function () {
+    freePlan();
+    $older = app(CreateStore::class)->handle(User::factory()->create(), 'Older Tea');
+    $older->forceFill(['created_at' => now()->subDays(3)])->save();
+    $hidden = app(CreateStore::class)->handle(User::factory()->create(), 'Hidden Tea');
+    $hidden->forceFill(['suspended_at' => now()])->save();
+    app(CreateStore::class)->handle(User::factory()->create(), 'Newest Tea');
+
+    $this->get(route('home'))
+        ->assertInertia(fn ($page) => $page
+            ->has('recentStores', 2)
+            ->where('recentStores.0.name', 'Newest Tea')
+            ->where('recentStores.1.name', 'Older Tea')
+            ->where('recentStores.1.url', route('stores.show', $older)));
+});
+
+test('testimonials only show when published, and the page is hidden without any', function () {
+    Testimonial::factory()->draft()->create(['name' => 'Draft Person']);
+
+    $this->get(route('testimonials'))->assertNotFound();
+    $this->get(route('home'))->assertInertia(fn ($page) => $page->where('showTestimonials', false)->has('testimonials', 0));
+
+    Testimonial::factory()->create(['name' => 'Real Seller']);
+
+    $this->get(route('testimonials'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('testimonials', 1)->where('testimonials.0.name', 'Real Seller'));
+    $this->get(route('features'))->assertInertia(fn ($page) => $page->where('showTestimonials', true));
+});
+
+test('the sitemap lists the marketing pages and live stores, and robots points to it', function () {
+    freePlan();
+    $live = app(CreateStore::class)->handle(User::factory()->create(), 'Live Tea');
+    $suspended = app(CreateStore::class)->handle(User::factory()->create(), 'Gone Tea');
+    $suspended->forceFill(['suspended_at' => now()])->save();
+
+    $this->get(route('sitemap'))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/xml')
+        ->assertSee('<loc>'.route('pricing').'</loc>', false)
+        ->assertSee('<loc>'.route('stores.show', $live).'</loc>', false)
+        ->assertDontSee(route('stores.show', $suspended), false)
+        ->assertDontSee(route('testimonials'), false);
+
+    $this->get('/robots.txt')
+        ->assertOk()
+        ->assertSee('Sitemap: '.route('sitemap'))
+        ->assertSee('Disallow: /admin');
 });
 
 test('the saved theme is applied on the first render with a matching browser bar color', function (string $appearance, bool $dark, string $color) {

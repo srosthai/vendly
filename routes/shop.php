@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
+use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TelegramAuthController;
@@ -98,6 +99,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
         Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
         Route::get('requests', [AdminInquiryController::class, 'index'])->name('requests');
+        Route::get('testimonials', [AdminTestimonialController::class, 'index'])->name('testimonials');
+        Route::post('testimonials', [AdminTestimonialController::class, 'store'])->name('testimonials.store');
+        Route::put('testimonials/{testimonial}', [AdminTestimonialController::class, 'update'])->name('testimonials.update');
+        Route::delete('testimonials/{testimonial}', [AdminTestimonialController::class, 'destroy'])->name('testimonials.destroy');
         Route::post('requests/{inquiry}/retry', [AdminInquiryController::class, 'retry'])
             ->middleware('throttle:30,1')
             ->name('requests.retry');
