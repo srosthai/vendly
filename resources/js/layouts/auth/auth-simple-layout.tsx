@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
@@ -13,7 +14,8 @@ export default function AuthSimpleLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4 py-10 sm:px-6">
+        <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4 py-16 sm:px-6">
+            <ThemeToggle className="absolute top-4 right-4" />
             <Link
                 href={home()}
                 className="flex items-center gap-2 rounded-md"

@@ -9,6 +9,7 @@ import {
     Smartphone,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -211,47 +212,56 @@ export default function Welcome({ plans }: { plans: Plan[] }) {
                         >
                             <NavLinks />
                         </nav>
-                        <div className="hidden items-center gap-2 lg:flex">
-                            <Button variant="ghost" asChild>
-                                <Link href={login()}>Log in</Link>
-                            </Button>
-                            <Button asChild>
-                                <Link href={startSelling}>Start selling</Link>
-                            </Button>
-                        </div>
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-11 lg:hidden"
-                                    aria-label="Open menu"
-                                >
-                                    <Menu />
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <div className="hidden items-center gap-2 lg:flex">
+                                <Button variant="ghost" asChild>
+                                    <Link href={login()}>Log in</Link>
                                 </Button>
-                            </SheetTrigger>
-                            <SheetContent>
-                                <SheetHeader>
-                                    <SheetTitle>Menu</SheetTitle>
-                                </SheetHeader>
-                                <nav
-                                    className="flex flex-col gap-1 px-4"
-                                    aria-label="Sections"
-                                >
-                                    <NavLinks inSheet />
-                                </nav>
-                                <div className="mt-auto flex flex-col gap-2 p-4">
-                                    <Button asChild size="lg">
-                                        <Link href={startSelling}>
-                                            Start selling
-                                        </Link>
+                                <Button asChild>
+                                    <Link href={startSelling}>
+                                        Start selling
+                                    </Link>
+                                </Button>
+                            </div>
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-11 lg:hidden"
+                                        aria-label="Open menu"
+                                    >
+                                        <Menu />
                                     </Button>
-                                    <Button asChild size="lg" variant="outline">
-                                        <Link href={login()}>Log in</Link>
-                                    </Button>
-                                </div>
-                            </SheetContent>
-                        </Sheet>
+                                </SheetTrigger>
+                                <SheetContent>
+                                    <SheetHeader>
+                                        <SheetTitle>Menu</SheetTitle>
+                                    </SheetHeader>
+                                    <nav
+                                        className="flex flex-col gap-1 px-4"
+                                        aria-label="Sections"
+                                    >
+                                        <NavLinks inSheet />
+                                    </nav>
+                                    <div className="mt-auto flex flex-col gap-2 p-4">
+                                        <Button asChild size="lg">
+                                            <Link href={startSelling}>
+                                                Start selling
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            variant="outline"
+                                        >
+                                            <Link href={login()}>Log in</Link>
+                                        </Button>
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
                     </div>
                 </header>
 

@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="{{ ($appearance ?? 'system') === 'dark' ? '#060f22' : '#f4f7fc' }}">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -14,6 +15,7 @@
 
                     if (prefersDark) {
                         document.documentElement.classList.add('dark');
+                        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#060f22');
                     }
                 }
             })();
@@ -34,8 +36,6 @@
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
         <link rel="manifest" href="/site.webmanifest">
-        <meta name="theme-color" content="#f4f7fc" media="(prefers-color-scheme: light)">
-        <meta name="theme-color" content="#060f22" media="(prefers-color-scheme: dark)">
 
         @fonts
 
