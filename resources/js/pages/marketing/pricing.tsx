@@ -46,6 +46,14 @@ export default function Pricing({
     meta: PageMeta;
     plans: MarketingPlan[];
 }) {
+    const largestLimit = Math.max(
+        0,
+        ...plans.map((plan) => plan.product_limit),
+    );
+    const featuredId = plans
+        .filter((plan) => plan.price_cents > 0)
+        .sort((a, b) => a.price_cents - b.price_cents)[0]?.id;
+
     return (
         <>
             <MarketingHead meta={meta} />
@@ -62,10 +70,18 @@ export default function Pricing({
                             see them in your dashboard.
                         </p>
                     ) : (
-                        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="mt-12 flex flex-wrap justify-center gap-4">
                             {plans.map((plan, index) => (
-                                <Reveal key={plan.id} delay={(index % 3) * 90}>
-                                    <PlanCard plan={plan} />
+                                <Reveal
+                                    key={plan.id}
+                                    delay={(index % 3) * 90}
+                                    className="w-full md:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.667rem)]"
+                                >
+                                    <PlanCard
+                                        plan={plan}
+                                        largestLimit={largestLimit}
+                                        featured={plan.id === featuredId}
+                                    />
                                 </Reveal>
                             ))}
                         </div>

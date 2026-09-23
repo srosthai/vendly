@@ -19,7 +19,13 @@ import {
 } from 'lucide-react';
 import { MarketingHead } from '@/components/marketing/marketing-head';
 import type { PageMeta } from '@/components/marketing/marketing-head';
-import { Reveal } from '@/components/marketing/reveal';
+import { FeatureShowcase } from '@/components/marketing/feature-showcase';
+import {
+    PlanUsageFragment,
+    PublishFragment,
+    RequestMessage,
+    ShareLinkFragment,
+} from '@/components/marketing/product-fragments';
 import { CtaBand, SectionHeading } from '@/components/marketing/section';
 
 type Feature = { icon: LucideIcon; title: string; body: string };
@@ -132,11 +138,18 @@ const groups: { title: string; description: string; items: Feature[] }[] = [
     },
 ];
 
+const visuals = [
+    <ShareLinkFragment key="store" />,
+    <PublishFragment key="catalog" />,
+    <RequestMessage key="requests" className="mx-auto w-full" />,
+    <PlanUsageFragment key="plans" />,
+];
+
 export default function Features({ meta }: { meta: PageMeta }) {
     return (
         <>
             <MarketingHead meta={meta} />
-            <section className="px-4 pt-16 pb-6 md:px-6 lg:pt-24">
+            <section className="px-4 pt-16 pb-4 md:px-6 lg:pt-24">
                 <div className="mx-auto max-w-6xl">
                     <SectionHeading
                         as="h1"
@@ -145,56 +158,22 @@ export default function Features({ meta }: { meta: PageMeta }) {
                     />
                 </div>
             </section>
-            {groups.map((group, groupIndex) => (
-                <section
-                    key={group.title}
-                    className={
-                        groupIndex % 2 === 0
-                            ? 'px-4 py-14 md:px-6'
-                            : 'bg-card px-4 py-14 md:px-6'
-                    }
-                >
-                    <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,18rem)_1fr]">
-                        <Reveal>
-                            <h2 className="text-2xl font-bold tracking-tight">
-                                {group.title}
-                            </h2>
-                            <p className="mt-2 text-muted-foreground">
-                                {group.description}
-                            </p>
-                        </Reveal>
-                        <ul className="grid gap-4 sm:grid-cols-2">
-                            {group.items.map((item, index) => (
-                                <Reveal
-                                    as="li"
-                                    key={item.title}
-                                    delay={(index % 2) * 90}
-                                    className={
-                                        groupIndex % 2 === 0
-                                            ? 'flex gap-4 rounded-2xl border bg-card p-5'
-                                            : 'flex gap-4 rounded-2xl border bg-background p-5'
-                                    }
-                                >
-                                    <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
-                                        <item.icon
-                                            className="size-5"
-                                            aria-hidden="true"
-                                        />
-                                    </span>
-                                    <div>
-                                        <h3 className="font-semibold">
-                                            {item.title}
-                                        </h3>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            {item.body}
-                                        </p>
-                                    </div>
-                                </Reveal>
-                            ))}
-                        </ul>
-                    </div>
-                </section>
-            ))}
+            <div className="flex flex-col gap-24 px-4 py-16 md:px-6 lg:gap-32">
+                {groups.map((group, index) => (
+                    <section
+                        key={group.title}
+                        className="mx-auto w-full max-w-6xl"
+                    >
+                        <FeatureShowcase
+                            title={group.title}
+                            description={group.description}
+                            items={group.items}
+                            visual={visuals[index]}
+                            flip={index % 2 === 1}
+                        />
+                    </section>
+                ))}
+            </div>
             <CtaBand />
         </>
     );

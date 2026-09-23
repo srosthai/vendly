@@ -4,11 +4,17 @@ import {
     Boxes,
     Link2,
     MessageSquareText,
-    Moon,
     QrCode,
-    Smartphone,
 } from 'lucide-react';
-import { HowItLooks } from '@/components/marketing/how-it-looks';
+import {
+    PhoneMockup,
+    PlanUsageFragment,
+    PublishFragment,
+    RequestMessage,
+    ShareLinkFragment,
+} from '@/components/marketing/product-fragments';
+import { cn } from '@/lib/utils';
+import { Journey } from '@/components/marketing/journey';
 import { MarketingHead } from '@/components/marketing/marketing-head';
 import type { PageMeta } from '@/components/marketing/marketing-head';
 import { RecentlyJoined } from '@/components/marketing/recently-joined';
@@ -26,36 +32,34 @@ import {
     testimonials as testimonialsPage,
 } from '@/routes';
 
-const highlights = [
+const bento = [
     {
         icon: Link2,
         title: 'One link, two places',
-        body: 'Your store opens in any browser and inside the Telegram mini app.',
+        body: 'Your store opens in any browser and inside the Telegram mini app. Share it anywhere you talk to customers.',
+        visual: <ShareLinkFragment />,
+        wide: true,
     },
     {
         icon: MessageSquareText,
         title: 'Requests in Telegram',
         body: 'Buy and cart requests arrive in your chat, numbered and ready to answer.',
+        visual: <RequestMessage className="w-full shadow-none" />,
+        wide: false,
     },
     {
         icon: Boxes,
-        title: 'A simple catalog',
-        body: 'Categories, brands, photos, stock, and drafts you publish when ready.',
+        title: 'A catalog you control',
+        body: 'Drafts stay private until you publish. Sold out shows by itself.',
+        visual: <PublishFragment />,
+        wide: false,
     },
     {
         icon: QrCode,
-        title: 'Plans by QR',
-        body: 'Start free. Pay for more products by Cambodia QR in your banking app.',
-    },
-    {
-        icon: Smartphone,
-        title: 'Made for phones',
-        body: 'Your store and your dashboard both work on a small screen.',
-    },
-    {
-        icon: Moon,
-        title: 'Light and dark',
-        body: 'Every page follows the theme your customers prefer, Telegram included.',
+        title: 'Pay for room, not for sales',
+        body: 'Start free. When you need more products live, pay monthly by Cambodia QR in your banking app.',
+        visual: <PlanUsageFragment />,
+        wide: true,
     },
 ];
 
@@ -118,7 +122,14 @@ export default function Home({
                                 : 'Open a store in a minute.'}
                         </p>
                     </div>
-                    <HowItLooks />
+                    <div className="relative flex justify-center py-6">
+                        <div
+                            aria-hidden="true"
+                            className="absolute inset-x-10 top-10 bottom-10 rounded-full bg-primary/15 blur-3xl"
+                        />
+                        <PhoneMockup className="hero-phone relative" />
+                        <RequestMessage className="hero-message absolute right-0 bottom-16 hidden sm:block lg:-right-4" />
+                    </div>
                 </div>
                 <RecentlyJoined stores={recentStores} />
             </section>
@@ -139,31 +150,34 @@ export default function Home({
                             </Button>
                         </Reveal>
                     </div>
-                    <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {highlights.map((item, index) => (
+                    <div className="mt-12 grid gap-4 lg:grid-cols-3">
+                        {bento.map((tile, index) => (
                             <Reveal
-                                as="li"
-                                key={item.title}
-                                delay={(index % 3) * 90}
-                                className="flex gap-4 rounded-2xl border bg-background p-5"
+                                key={tile.title}
+                                delay={(index % 2) * 100}
+                                className={cn(
+                                    'flex flex-col justify-between gap-8 overflow-hidden rounded-3xl border bg-background p-6 sm:p-8',
+                                    tile.wide && 'lg:col-span-2',
+                                )}
                             >
-                                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
-                                    <item.icon
-                                        className="size-5"
+                                <div className="max-w-md">
+                                    <tile.icon
+                                        className="size-6 text-primary"
                                         aria-hidden="true"
                                     />
-                                </span>
-                                <div>
-                                    <h3 className="font-semibold">
-                                        {item.title}
+                                    <h3 className="mt-4 text-xl font-bold tracking-tight">
+                                        {tile.title}
                                     </h3>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {item.body}
+                                    <p className="mt-2 text-muted-foreground">
+                                        {tile.body}
                                     </p>
+                                </div>
+                                <div className={tile.wide ? 'max-w-lg' : ''}>
+                                    {tile.visual}
                                 </div>
                             </Reveal>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             </section>
 
@@ -183,31 +197,7 @@ export default function Home({
                             </Button>
                         </Reveal>
                     </div>
-                    <ol className="flex flex-col gap-3">
-                        {steps.map((step, index) => (
-                            <Reveal
-                                as="li"
-                                key={step.title}
-                                delay={index * 120}
-                                className="flex items-center gap-4 rounded-2xl border bg-card p-5"
-                            >
-                                <span
-                                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
-                                    aria-hidden="true"
-                                >
-                                    {index + 1}
-                                </span>
-                                <div>
-                                    <h3 className="font-semibold">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {step.body}
-                                    </p>
-                                </div>
-                            </Reveal>
-                        ))}
-                    </ol>
+                    <Journey steps={steps} />
                 </div>
             </section>
 

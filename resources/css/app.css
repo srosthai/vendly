@@ -225,6 +225,11 @@
     }
 }
 
+/* The hero phone rises in once on load. */
+.hero-phone {
+    animation: hero-copy-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+
 /* The hero copy settles in once on load. */
 .hero-copy {
     animation: hero-copy-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
