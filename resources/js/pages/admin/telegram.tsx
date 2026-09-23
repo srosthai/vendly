@@ -192,7 +192,7 @@ export default function Telegram({
                                         <p className="text-sm font-medium">
                                             {secret.label}
                                         </p>
-                                        <p className="font-mono text-xs text-muted-foreground">
+                                        <p className="font-mono text-sm text-muted-foreground">
                                             {secret.env}
                                         </p>
                                     </div>

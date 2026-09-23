@@ -39,7 +39,7 @@ export default function AuthSimpleLayout({
                 </div>
                 <div className="flex flex-col gap-6">{children}</div>
             </main>
-            <p className="max-w-md text-center text-xs text-muted-foreground">
+            <p className="max-w-md text-center text-sm text-muted-foreground">
                 Vendly runs small shops on the web and inside Telegram.
             </p>
         </div>

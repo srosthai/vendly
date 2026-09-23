@@ -20,7 +20,7 @@ function StorePill({
                 tabIndex={hidden ? -1 : undefined}
                 className="flex items-center gap-2.5 rounded-full border bg-card py-1.5 pr-4 pl-1.5 text-sm whitespace-nowrap transition-colors hover:border-primary/40"
             >
-                <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
+                <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
                     {store.name.slice(0, 1).toUpperCase()}
                 </span>
                 <span className="font-medium">{store.name}</span>

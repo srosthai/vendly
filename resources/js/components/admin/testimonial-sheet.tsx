@@ -110,7 +110,7 @@ export function TestimonialSheet({
                                     min={0}
                                     defaultValue={testimonial?.sort ?? 0}
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     Lower numbers show first.
                                 </p>
                                 <InputError message={errors.sort} />

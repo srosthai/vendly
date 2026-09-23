@@ -105,7 +105,7 @@ function PhotoField({
                         </Button>
                     ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                     A square JPEG, PNG, or WebP up to 1 MB. Save to apply.
                 </p>
                 <InputError message={error} />

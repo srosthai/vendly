@@ -93,7 +93,7 @@ export function PaymentMethodSheet({
                                     type="file"
                                     accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     Optional. Without a logo, the name is shown.
                                     Up to 512 KB.
                                 </p>

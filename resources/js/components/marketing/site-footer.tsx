@@ -229,13 +229,13 @@ export function SiteFooter() {
 
             <div className="border-t">
                 <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-6">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                         © {new Date().getFullYear()} {site.company_name}. All
                         rights reserved.
                     </p>
                     {site.payment_methods.length > 0 ? (
                         <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-sm text-muted-foreground">
                                 We accept
                             </span>
                             <ul
@@ -255,7 +255,7 @@ export function SiteFooter() {
                                                 className="max-h-5 max-w-16 object-contain"
                                             />
                                         ) : (
-                                            <span className="text-xs font-semibold text-neutral-800">
+                                            <span className="text-sm font-semibold text-neutral-800">
                                                 {method.name}
                                             </span>
                                         )}

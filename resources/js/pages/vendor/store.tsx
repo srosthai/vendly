@@ -66,7 +66,7 @@ export default function StorePage({ store }: { store: StoreProps }) {
                                                 type="file"
                                                 accept="image/jpeg,image/png,image/webp"
                                             />
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground">
                                                 A square JPEG, PNG, or WebP up
                                                 to 1 MB.
                                             </p>

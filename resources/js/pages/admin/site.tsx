@@ -234,7 +234,7 @@ export default function Site({
                                                     className="max-h-8 max-w-14 object-contain"
                                                 />
                                             ) : (
-                                                <span className="text-xs font-semibold text-neutral-700">
+                                                <span className="text-sm font-semibold text-neutral-700">
                                                     {method.name}
                                                 </span>
                                             )}

@@ -190,7 +190,7 @@ export default function VendorOverview({
                                             <p className="font-medium tabular-nums">
                                                 {request.total}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground">
                                                 {formatDateTime(
                                                     request.sent_at,
                                                 )}
