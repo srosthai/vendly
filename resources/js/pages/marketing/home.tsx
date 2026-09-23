@@ -85,12 +85,12 @@ export default function Home({
         <>
             <MarketingHead meta={meta} />
 
-            <section className="relative overflow-hidden">
+            <section className="relative flex min-h-[calc(100svh-4rem)] flex-col justify-between gap-10 overflow-hidden pb-10">
                 <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(60%_60%_at_20%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent),radial-gradient(40%_50%_at_90%_10%,color-mix(in_oklab,var(--highlight)_14%,transparent),transparent)]"
                 />
-                <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-14 pb-16 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-20">
+                <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-14 px-4 pt-14 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-10">
                     <div className="hero-copy max-w-xl">
                         <h1 className="text-4xl leading-[1.04] font-bold tracking-[-0.03em] sm:text-5xl lg:text-6xl">
                             A shop your customers open from a link.
@@ -120,11 +120,8 @@ export default function Home({
                     </div>
                     <HowItLooks />
                 </div>
-            </section>
-
-            <div className="pb-16">
                 <RecentlyJoined stores={recentStores} />
-            </div>
+            </section>
 
             <section className="bg-card px-4 py-20 md:px-6">
                 <div className="mx-auto max-w-6xl">

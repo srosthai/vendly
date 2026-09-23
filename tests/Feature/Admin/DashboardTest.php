@@ -1,12 +1,15 @@
 <?php
 
 use App\Actions\Billing\SavePlan;
+use App\Models\PaymentMethod;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Models\Testimonial;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 test('vendors cannot open the admin dashboard', function () {
     $user = User::factory()->create();
@@ -275,4 +278,66 @@ test('the telegram test message reports success and each failure clearly', funct
 
 test('only an admin can send a telegram test', function () {
     $this->actingAs(User::factory()->create())->post(route('admin.telegram.test'))->assertForbidden();
+});
+
+test('an admin saves the site footer details and they reach the website', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->put(route('admin.site.update'), [
+        'company_name' => 'Vendly Co',
+        'address' => 'Street 240, Phnom Penh',
+        'phone' => '+855 12 345 678',
+        'email' => 'hello@vendly.example',
+        'footer_text' => '<b>Small shops</b> on the web.',
+        'social_links' => ['facebook' => 'https://facebook.com/vendly', 'tiktok' => ''],
+    ])->assertSessionHasNoErrors();
+
+    $this->get(route('home'))
+        ->assertInertia(fn ($page) => $page
+            ->where('site.company_name', 'Vendly Co')
+            ->where('site.address', 'Street 240, Phnom Penh')
+            ->where('site.footer_text', 'Small shops on the web.')
+            ->where('site.socials', ['facebook' => 'https://facebook.com/vendly']));
+});
+
+test('site settings reject bad links and phones', function () {
+    $this->actingAs(User::factory()->admin()->create())->put(route('admin.site.update'), [
+        'phone' => 'call us',
+        'social_links' => ['instagram' => 'http://insecure.example', 'youtube' => 'not a link'],
+    ])->assertInvalid(['phone', 'social_links.instagram', 'social_links.youtube']);
+});
+
+test('an admin adds, edits, and removes accepted payment methods with logos', function () {
+    Storage::fake('public');
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->post(route('admin.site.payment-methods.store'), [
+        'name' => 'ABA',
+        'sort' => 1,
+        'logo' => UploadedFile::fake()->image('aba.png', 120, 40),
+    ])->assertSessionHasNoErrors();
+    $this->actingAs($admin)->post(route('admin.site.payment-methods.store'), ['name' => 'Wing', 'sort' => 2]);
+
+    $aba = PaymentMethod::query()->where('name', 'ABA')->sole();
+    Storage::disk('public')->assertExists($aba->logo_path);
+
+    $this->get(route('pricing'))
+        ->assertInertia(fn ($page) => $page
+            ->where('site.payment_methods.0.name', 'ABA')
+            ->where('site.payment_methods.1.name', 'Wing')
+            ->where('site.payment_methods.1.logo', null));
+
+    $logo = $aba->logo_path;
+    $this->actingAs($admin)->delete(route('admin.site.payment-methods.destroy', $aba))->assertRedirect();
+
+    Storage::disk('public')->assertMissing($logo);
+    expect(PaymentMethod::query()->pluck('name')->all())->toBe(['Wing']);
+});
+
+test('only an admin can change site settings', function () {
+    $vendor = User::factory()->create();
+
+    $this->actingAs($vendor)->get(route('admin.site'))->assertForbidden();
+    $this->actingAs($vendor)->put(route('admin.site.update'), ['company_name' => 'Hijack'])->assertForbidden();
+    $this->actingAs($vendor)->post(route('admin.site.payment-methods.store'), ['name' => 'Fake'])->assertForbidden();
 });

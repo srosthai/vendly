@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import AppLogo from '@/components/app-logo';
+import { SiteFooter } from '@/components/marketing/site-footer';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { Button } from '@/components/ui/button';
 import {
@@ -190,67 +191,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
             <main className="flex-1">{children}</main>
 
-            <footer className="border-t bg-card">
-                <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[minmax(0,1fr)_auto] md:px-6">
-                    <div className="max-w-xs">
-                        <Link
-                            href={home()}
-                            className="inline-flex items-center gap-1 rounded-md"
-                            aria-label="Vendly home"
-                        >
-                            <AppLogo />
-                        </Link>
-                        <p className="mt-3 text-sm text-muted-foreground">
-                            One link for your shop, on the web and inside
-                            Telegram.
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-10 text-sm sm:grid-cols-2">
-                        <div>
-                            <p className="font-semibold">Product</p>
-                            <ul className="mt-3 space-y-2">
-                                {links.map((link) => (
-                                    <li key={link.title}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-muted-foreground hover:text-foreground"
-                                        >
-                                            {link.title}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <p className="font-semibold">Account</p>
-                            <ul className="mt-3 space-y-2">
-                                <li>
-                                    <Link
-                                        href={startSelling}
-                                        className="text-muted-foreground hover:text-foreground"
-                                    >
-                                        Start selling
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        href={login()}
-                                        className="text-muted-foreground hover:text-foreground"
-                                    >
-                                        Log in
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div className="border-t">
-                    <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-muted-foreground md:px-6">
-                        © {new Date().getFullYear()} Vendly. Small shops on the
-                        web and in Telegram.
-                    </p>
-                </div>
-            </footer>
+            <SiteFooter />
         </div>
     );
 }

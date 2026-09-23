@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
+use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\TelegramTestController;
 use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -101,6 +102,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
         Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
         Route::get('requests', [AdminInquiryController::class, 'index'])->name('requests');
+        Route::get('site', [SiteSettingsController::class, 'edit'])->name('site');
+        Route::put('site', [SiteSettingsController::class, 'update'])->name('site.update');
+        Route::post('site/payment-methods', [SiteSettingsController::class, 'storePaymentMethod'])->name('site.payment-methods.store');
+        Route::put('site/payment-methods/{paymentMethod}', [SiteSettingsController::class, 'updatePaymentMethod'])->name('site.payment-methods.update');
+        Route::delete('site/payment-methods/{paymentMethod}', [SiteSettingsController::class, 'destroyPaymentMethod'])->name('site.payment-methods.destroy');
         Route::get('testimonials', [AdminTestimonialController::class, 'index'])->name('testimonials');
         Route::post('testimonials', [AdminTestimonialController::class, 'store'])->name('testimonials.store');
         Route::put('testimonials/{testimonial}', [AdminTestimonialController::class, 'update'])->name('testimonials.update');
