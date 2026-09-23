@@ -68,6 +68,7 @@ class StoreController extends Controller
                 'telegram_url' => $settings->miniAppLink($store->slug),
                 'products_count' => $store->products()->published()->count(),
                 'joined_at' => $store->created_at?->toIso8601String(),
+                ...$store->publicProfile(),
             ],
             'categories' => $store->categories()
                 ->whereHas('products', fn ($products) => $products->published())

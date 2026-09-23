@@ -8,6 +8,8 @@ import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
 import { StoreHeader } from '@/components/storefront/store-header';
+import { StoreContact } from '@/components/storefront/store-profile';
+import type { StoreProfile } from '@/components/storefront/store-profile';
 import { StorefrontFooter } from '@/components/storefront/storefront-footer';
 import {
     TelegramSignInNotice,
@@ -36,7 +38,7 @@ type StoreProps = {
     slug: string;
     url: string;
     logo: string | null;
-};
+} & StoreProfile;
 
 function Gallery({ product }: { product: ProductProps }) {
     const [active, setActive] = useState(0);
@@ -287,6 +289,17 @@ export default function Product({
                                 </p>
                             </>
                         )}
+                        {store.phone ||
+                        store.address ||
+                        store.hours ||
+                        Object.keys(store.socials).length > 0 ? (
+                            <section className="mt-2 grid gap-3 rounded-2xl border bg-card p-4">
+                                <h2 className="text-sm font-semibold">
+                                    Contact {store.name}
+                                </h2>
+                                <StoreContact profile={store} />
+                            </section>
+                        ) : null}
                     </div>
                 </div>
                 <StorefrontFooter hidden={inTelegram} />

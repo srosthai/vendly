@@ -83,6 +83,7 @@ class ProductController extends Controller
                 'slug' => $store->slug,
                 'url' => route('stores.show', $store),
                 'logo' => $store->logoUrl(),
+                ...$store->publicProfile(),
             ],
             'embedded' => request()->session()->get('mini_app') === true,
             'authenticated' => request()->user() !== null,

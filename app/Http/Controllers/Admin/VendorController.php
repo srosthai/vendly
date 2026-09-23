@@ -48,6 +48,7 @@ class VendorController extends Controller
                 'telegram_connected' => filled($store->telegram_chat_id),
                 'suspended' => $store->isSuspended(),
                 'suspended_at' => $store->suspended_at?->toIso8601String(),
+                ...$store->publicProfile(),
             ],
             'owner' => $owner === null ? null : [
                 'name' => $owner->name,

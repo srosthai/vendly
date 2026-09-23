@@ -20,15 +20,35 @@ use Illuminate\Support\Facades\Storage;
  * @property string $currency
  * @property CarbonInterface|null $suspended_at
  * @property string|null $telegram_chat_id
+ * @property string|null $accent
+ * @property string|null $phone
+ * @property string|null $address
+ * @property string|null $hours
+ * @property array<string, string>|null $social_links
  * @property-read int|null $published_products_count Only when loaded with withCount in a listing.
  */
-#[Fillable(['user_id', 'name', 'slug', 'description', 'logo_path', 'currency', 'telegram_chat_id'])]
+#[Fillable(['user_id', 'name', 'slug', 'description', 'logo_path', 'currency', 'telegram_chat_id', 'accent', 'phone', 'address', 'hours', 'social_links'])]
 class Store extends Model
 {
     /**
      * Telegram's startapp value is at most 64 characters, so store slugs are too.
      */
     public const MaxSlugLength = 64;
+
+    /**
+     * The colors a store can pick for its mark and header. Each is dark or
+     * bright enough to carry its text in both themes.
+     *
+     * @var list<string>
+     */
+    public const Accents = ['blue', 'orange', 'green', 'teal', 'purple', 'pink', 'red', 'slate'];
+
+    /**
+     * The places a store can link to, in display order.
+     *
+     * @var list<string>
+     */
+    public const SocialNetworks = ['facebook', 'instagram', 'tiktok', 'website'];
 
     /**
      * Words that would read like a Vendly page rather than a shop.
@@ -48,6 +68,7 @@ class Store extends Model
     {
         return [
             'suspended_at' => 'datetime',
+            'social_links' => 'array',
         ];
     }
 
@@ -107,5 +128,25 @@ class Store extends Model
     public function logoUrl(): ?string
     {
         return $this->logo_path === null ? null : Storage::disk('public')->url($this->logo_path);
+    }
+
+    /**
+     * What customers see about the store beyond its name: only the details
+     * the vendor filled in, with social links in display order.
+     *
+     * @return array{accent: string|null, phone: string|null, address: string|null, hours: string|null, socials: array<string, string>}
+     */
+    public function publicProfile(): array
+    {
+        return [
+            'accent' => $this->accent,
+            'phone' => $this->phone,
+            'address' => $this->address,
+            'hours' => $this->hours,
+            'socials' => collect(self::SocialNetworks)
+                ->mapWithKeys(fn (string $network): array => [$network => $this->social_links[$network] ?? null])
+                ->filter()
+                ->all(),
+        ];
     }
 }

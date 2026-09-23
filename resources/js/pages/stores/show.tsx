@@ -6,6 +6,8 @@ import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import { EmptyState } from '@/components/empty-state';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
 import { StoreHeader } from '@/components/storefront/store-header';
+import { StoreContact } from '@/components/storefront/store-profile';
+import type { StoreProfile } from '@/components/storefront/store-profile';
 import { StorefrontFooter } from '@/components/storefront/storefront-footer';
 import {
     TelegramSignInNotice,
@@ -86,7 +88,7 @@ export default function Show({
         telegram_url: string | null;
         products_count: number;
         joined_at: string | null;
-    };
+    } & StoreProfile;
     categories: Option[];
     brands: Option[];
     filters: Filters;
@@ -127,33 +129,36 @@ export default function Show({
                 <StoreHeader
                     store={store}
                     details={
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <span className="rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
-                                {store.products_count === 1
-                                    ? '1 product'
-                                    : `${store.products_count} products`}
-                            </span>
-                            {store.joined_at ? (
-                                <span className="rounded-full border px-3 py-1">
-                                    On Vendly since{' '}
-                                    {formatDate(store.joined_at)}
+                        <>
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                <span className="rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                                    {store.products_count === 1
+                                        ? '1 product'
+                                        : `${store.products_count} products`}
                                 </span>
-                            ) : null}
-                            {!inTelegram && store.telegram_url ? (
-                                <a
-                                    href={store.telegram_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5"
-                                >
-                                    <Send
-                                        className="size-3.5"
-                                        aria-hidden="true"
-                                    />
-                                    Open in Telegram
-                                </a>
-                            ) : null}
-                        </div>
+                                {store.joined_at ? (
+                                    <span className="rounded-full border px-3 py-1">
+                                        On Vendly since{' '}
+                                        {formatDate(store.joined_at)}
+                                    </span>
+                                ) : null}
+                                {!inTelegram && store.telegram_url ? (
+                                    <a
+                                        href={store.telegram_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5"
+                                    >
+                                        <Send
+                                            className="size-3.5"
+                                            aria-hidden="true"
+                                        />
+                                        Open in Telegram
+                                    </a>
+                                ) : null}
+                            </div>
+                            <StoreContact profile={store} className="mt-3" />
+                        </>
                     }
                     cart={
                         <CartSheet
