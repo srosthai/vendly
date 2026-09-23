@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lists\TestimonialListRequest;
 use App\Http\Requests\SaveTestimonialRequest;
 use App\Models\Testimonial;
 use Illuminate\Http\RedirectResponse;
@@ -15,15 +16,26 @@ use Inertia\Response;
  */
 class TestimonialController extends Controller
 {
-    public function index(): Response
+    public function index(TestimonialListRequest $request): Response
     {
+        $filters = $request->filters();
+        $pattern = $request->searchPattern();
+
         return Inertia::render('admin/testimonials', [
+            'filters' => $filters,
             'testimonials' => Testimonial::query()
+                ->when($filters['search'] !== '', fn ($query) => $query->where(fn ($query) => $query
+                    ->whereLike('name', $pattern)
+                    ->orWhereLike('role', $pattern)
+                    ->orWhereLike('quote', $pattern)))
+                ->when($filters['status'] === 'published', fn ($query) => $query->whereNotNull('published_at'))
+                ->when($filters['status'] === 'draft', fn ($query) => $query->whereNull('published_at'))
                 ->orderBy('sort')
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
-                ->get()
-                ->map(fn (Testimonial $testimonial): array => [
+                ->paginate(TestimonialListRequest::PerPage)
+                ->withQueryString()
+                ->through(fn (Testimonial $testimonial): array => [
                     'id' => $testimonial->id,
                     'name' => $testimonial->name,
                     'role' => $testimonial->role,

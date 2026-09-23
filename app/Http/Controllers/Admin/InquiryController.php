@@ -3,32 +3,41 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lists\InquiryListRequest;
 use App\Models\Inquiry;
 use App\Models\InquiryItem;
+use App\Models\Store;
 use App\Services\Telegram\TelegramNotifier;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InquiryController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(InquiryListRequest $request): Response
     {
-        $undelivered = $request->query('filter') === 'undelivered';
+        $filters = $request->filters();
+        $pattern = $request->searchPattern();
 
         $inquiries = Inquiry::query()
             ->with(['store', 'items'])
-            ->when($undelivered, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+            ->when($filters['search'] !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->whereLike('customer_name', $pattern)
+                ->orWhereLike('contact', $pattern)
+                ->orWhereHas('store', fn (Builder $store) => $store->whereLike('name', $pattern))))
+            ->when($filters['delivery'] === 'undelivered', fn (Builder $query) => $query->where(fn (Builder $query) => $query
                 ->whereNull('admin_notified_at')
                 ->orWhere(fn (Builder $query) => $query
                     ->whereNull('vendor_notified_at')
                     ->whereHas('store', fn (Builder $store) => $store->whereNotNull('telegram_chat_id')))))
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate(25)
+            ->when($filters['store'] !== 'all', fn (Builder $query) => $query->where('store_id', (int) $filters['store']))
+            ->when($filters['channel'] === 'cart', fn (Builder $query) => $query->where('from_cart', true))
+            ->when($filters['channel'] === 'buy', fn (Builder $query) => $query->where('from_cart', false))
+            ->when($filters['sort'] === 'oldest', fn (Builder $query) => $query->orderBy('created_at')->orderBy('id'))
+            ->when($filters['sort'] !== 'oldest', fn (Builder $query) => $query->orderByDesc('created_at')->orderByDesc('id'))
+            ->paginate(InquiryListRequest::PerPage)
             ->withQueryString()
             ->through(fn (Inquiry $inquiry): array => [
                 'id' => $inquiry->id,
@@ -50,7 +59,8 @@ class InquiryController extends Controller
 
         return Inertia::render('admin/requests', [
             'inquiries' => $inquiries,
-            'filter' => $undelivered ? 'undelivered' : 'all',
+            'filters' => $filters,
+            'stores' => Store::query()->whereHas('inquiries')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

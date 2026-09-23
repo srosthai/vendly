@@ -38,7 +38,7 @@ test('an admin can list vendors, create a plan, and save telegram settings', fun
     $this->actingAs($admin)
         ->get(route('admin.plans'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('admin/plans')->has('plans', 1));
+        ->assertInertia(fn ($page) => $page->component('admin/plans')->has('plans.data', 1));
 
     $this->actingAs($admin)->put(route('admin.telegram.update'), [
         'admin_chat_id' => '4242',
@@ -186,7 +186,7 @@ test('admin vendor and payment lists are paginated', function () {
 
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.vendors'))
-        ->assertInertia(fn ($page) => $page->has('vendors.data', 25)->where('vendors.last_page', 2));
+        ->assertInertia(fn ($page) => $page->has('vendors.data', 20)->where('vendors.last_page', 2)->where('vendors.total', 26));
 });
 
 test('an admin adds, publishes, edits, and deletes a testimonial', function () {

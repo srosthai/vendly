@@ -1,8 +1,9 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
 import InquiryController from '@/actions/App/Http/Controllers/Admin/InquiryController';
 import { SimplePagination } from '@/components/simple-pagination';
 import type { Paginated } from '@/components/simple-pagination';
+import { ListToolbar } from '@/components/admin/list-toolbar';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -104,13 +105,36 @@ function sentAt(iso: string | null): string {
           });
 }
 
+type Filters = {
+    search: string;
+    delivery: string;
+    store: string;
+    channel: string;
+    sort: string;
+};
+
+const defaults: Filters = {
+    search: '',
+    delivery: 'all',
+    store: 'all',
+    channel: 'all',
+    sort: 'newest',
+};
+
 export default function Requests({
     inquiries,
-    filter,
+    filters,
+    stores,
 }: {
     inquiries: Paginated<Request>;
-    filter: 'all' | 'undelivered';
+    filters: Filters;
+    stores: { id: number; name: string }[];
 }) {
+    const undelivered = filters.delivery === 'undelivered';
+    const filtered = (Object.keys(defaults) as (keyof Filters)[]).some(
+        (key) => key !== 'sort' && filters[key] !== defaults[key],
+    );
+
     return (
         <>
             <Head title="Requests" />
@@ -118,64 +142,70 @@ export default function Requests({
                 <PageHeader
                     title="Requests"
                     description="Buy and cart requests sent to Telegram. Send one again once the chat problem is fixed."
-                    actions={
-                        <div
-                            className="flex gap-1 rounded-full border bg-card p-1"
-                            role="group"
-                            aria-label="Show"
-                        >
-                            <Button
-                                variant={
-                                    filter === 'all' ? 'secondary' : 'ghost'
-                                }
-                                size="sm"
-                                asChild
-                            >
-                                <Link
-                                    href={InquiryController.index()}
-                                    aria-current={
-                                        filter === 'all' ? 'page' : undefined
-                                    }
-                                >
-                                    All
-                                </Link>
-                            </Button>
-                            <Button
-                                variant={
-                                    filter === 'undelivered'
-                                        ? 'secondary'
-                                        : 'ghost'
-                                }
-                                size="sm"
-                                asChild
-                            >
-                                <Link
-                                    href={InquiryController.index({
-                                        query: { filter: 'undelivered' },
-                                    })}
-                                    aria-current={
-                                        filter === 'undelivered'
-                                            ? 'page'
-                                            : undefined
-                                    }
-                                >
-                                    Not delivered
-                                </Link>
-                            </Button>
-                        </div>
-                    }
+                />
+                <ListToolbar
+                    url={InquiryController.index.url()}
+                    values={filters}
+                    defaults={defaults}
+                    searchPlaceholder="Search customer, contact, or store"
+                    filters={[
+                        {
+                            key: 'delivery',
+                            label: 'Delivery',
+                            options: [
+                                { value: 'all', label: 'Any delivery' },
+                                {
+                                    value: 'undelivered',
+                                    label: 'Not delivered',
+                                },
+                            ],
+                        },
+                        {
+                            key: 'store',
+                            label: 'Store',
+                            options: [
+                                { value: 'all', label: 'All stores' },
+                                ...stores.map((store) => ({
+                                    value: String(store.id),
+                                    label: store.name,
+                                })),
+                            ],
+                        },
+                        {
+                            key: 'channel',
+                            label: 'Kind',
+                            options: [
+                                { value: 'all', label: 'Buy and cart' },
+                                { value: 'buy', label: 'Buy now' },
+                                { value: 'cart', label: 'Cart' },
+                            ],
+                        },
+                    ]}
+                    sorts={[
+                        { value: 'newest', label: 'Newest first' },
+                        { value: 'oldest', label: 'Oldest first' },
+                    ]}
+                    total={inquiries.total ?? inquiries.data.length}
+                    noun={['request', 'requests']}
                 />
                 {inquiries.data.length === 0 ? (
                     <EmptyState
                         icon={MessageSquare}
                         title={
-                            filter === 'undelivered'
+                            undelivered &&
+                            filters.search === '' &&
+                            filters.store === 'all' &&
+                            filters.channel === 'all'
                                 ? 'Every request reached Telegram'
-                                : 'No requests yet'
+                                : filtered
+                                  ? 'No requests match these filters'
+                                  : 'No requests yet'
                         }
                         description={
-                            filter === 'undelivered'
-                                ? 'Nothing is waiting to be sent again.'
+                            filtered
+                                ? undelivered
+                                    ? 'Nothing is waiting to be sent again here.'
+                                    : 'Try another search or filter, or clear them to see every request.'
                                 : 'They appear when customers tap Buy or send a cart.'
                         }
                     />

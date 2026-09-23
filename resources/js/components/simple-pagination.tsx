@@ -7,6 +7,9 @@ export type Paginated<T> = {
     last_page: number;
     prev_page_url: string | null;
     next_page_url: string | null;
+    from?: number | null;
+    to?: number | null;
+    total?: number;
 };
 
 function PageButton({ href, label }: { href: string | null; label: string }) {
@@ -42,7 +45,9 @@ export function SimplePagination<T>({ page }: { page: Paginated<T> }) {
         >
             <PageButton href={page.prev_page_url} label="Previous" />
             <span className="text-sm text-muted-foreground">
-                Page {page.current_page} of {page.last_page}
+                {page.from && page.to && page.total !== undefined
+                    ? `Showing ${page.from}–${page.to} of ${page.total}`
+                    : `Page ${page.current_page} of ${page.last_page}`}
             </span>
             <PageButton href={page.next_page_url} label="Next" />
         </nav>
