@@ -47,7 +47,7 @@ class DashboardController extends Controller
     public function plans(): Response
     {
         return Inertia::render('admin/plans', [
-            'plans' => Plan::query()->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'price_cents', 'product_limit', 'is_active', 'is_default']),
+            'plans' => Plan::query()->orderByDesc('created_at')->orderByDesc('id')->get(['id', 'name', 'price_cents', 'yearly_price_cents', 'product_limit', 'is_active', 'is_default']),
         ]);
     }
 

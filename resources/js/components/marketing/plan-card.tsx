@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { offersYearly, yearlySaving } from '@/lib/billing';
+import type { BillingPeriod } from '@/lib/billing';
 import { dollars } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { register } from '@/routes';
@@ -9,6 +11,7 @@ export type MarketingPlan = {
     id: number;
     name: string;
     price_cents: number;
+    yearly_price_cents: number | null;
     product_limit: number;
     is_default: boolean;
 };
@@ -21,13 +24,20 @@ export type MarketingPlan = {
 export function PlanCard({
     plan,
     largestLimit,
+    period = 'monthly',
     featured = false,
 }: {
     plan: MarketingPlan;
     largestLimit: number;
+    period?: BillingPeriod;
     featured?: boolean;
 }) {
     const free = plan.price_cents === 0;
+    const yearly = period === 'yearly' && offersYearly(plan);
+    const saving = yearlySaving(plan);
+    const muted = featured
+        ? 'text-background/70 dark:text-muted-foreground'
+        : 'text-muted-foreground';
     const share = Math.max(
         4,
         Math.round(
@@ -57,20 +67,40 @@ export function PlanCard({
                 ) : null}
             </div>
 
-            <p className="mt-6 flex items-baseline gap-1.5">
-                <span className="text-5xl font-bold tracking-tight tabular-nums">
-                    {free ? '$0' : dollars(plan.price_cents)}
-                </span>
-                <span
-                    className={cn(
-                        featured
-                            ? 'text-background/70 dark:text-muted-foreground'
-                            : 'text-muted-foreground',
-                    )}
-                >
-                    per month
-                </span>
-            </p>
+            <div className="mt-6">
+                <p className="flex items-baseline gap-1.5">
+                    <span className="text-5xl font-bold tracking-tight tabular-nums">
+                        {free
+                            ? '$0'
+                            : dollars(
+                                  yearly
+                                      ? (plan.yearly_price_cents ?? 0)
+                                      : plan.price_cents,
+                              )}
+                    </span>
+                    <span className={muted}>
+                        {yearly ? 'per year' : 'per month'}
+                    </span>
+                </p>
+                <p className={cn('mt-2 min-h-6 text-sm', muted)}>
+                    {yearly ? (
+                        <>
+                            About{' '}
+                            {dollars(
+                                Math.round((plan.yearly_price_cents ?? 0) / 12),
+                            )}{' '}
+                            a month
+                            {saving > 0 ? (
+                                <span className="ml-2 rounded-full bg-success/15 px-2 py-0.5 font-medium text-success">
+                                    Save {dollars(saving)}
+                                </span>
+                            ) : null}
+                        </>
+                    ) : period === 'yearly' && !free ? (
+                        'Monthly only'
+                    ) : null}
+                </p>
+            </div>
 
             <div className="mt-8">
                 <p className="flex items-baseline justify-between gap-3">
@@ -129,7 +159,7 @@ export function PlanCard({
                     />
                     {free
                         ? 'No payment needed'
-                        : `About ${dollars(Math.round(plan.price_cents / Math.max(plan.product_limit, 1)))} per live product`}
+                        : `About ${dollars(Math.round(plan.price_cents / Math.max(plan.product_limit, 1)))} per live product a month`}
                 </li>
                 <li className="flex gap-2.5">
                     <Check
@@ -138,7 +168,9 @@ export function PlanCard({
                     />
                     {free
                         ? 'Upgrade any time from your dashboard'
-                        : 'Paid monthly by Cambodia QR'}
+                        : yearly
+                          ? 'Paid yearly by Cambodia QR'
+                          : 'Paid monthly by Cambodia QR'}
                 </li>
             </ul>
 

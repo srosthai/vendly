@@ -140,7 +140,7 @@ class ApplyCutluyEvent
 
         $subscription->plan_id = $payment->plan_id;
         $subscription->status = SubscriptionStatus::Active;
-        $subscription->ends_at = $base->addMonth();
+        $subscription->ends_at = $base->addMonths($payment->period->months());
         $subscription->save();
 
         $this->telegram->planPaid($subscription->store()->firstOrFail());

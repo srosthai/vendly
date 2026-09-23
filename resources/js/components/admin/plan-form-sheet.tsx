@@ -19,6 +19,7 @@ export type AdminPlan = {
     id: number;
     name: string;
     price_cents: number;
+    yearly_price_cents: number | null;
     product_limit: number;
     is_active: boolean;
     is_default: boolean;
@@ -98,6 +99,29 @@ export function PlanFormSheet({ plan = null }: { plan?: AdminPlan | null }) {
                                     least $0.01.
                                 </p>
                                 <InputError message={errors.price} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor={`yearly-price-${key}`}>
+                                    Yearly price (USD, optional)
+                                </Label>
+                                <Input
+                                    id={`yearly-price-${key}`}
+                                    name="yearly_price"
+                                    inputMode="decimal"
+                                    placeholder="50.00"
+                                    defaultValue={
+                                        plan?.yearly_price_cents
+                                            ? (
+                                                  plan.yearly_price_cents / 100
+                                              ).toFixed(2)
+                                            : ''
+                                    }
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    One payment for twelve months. Leave it
+                                    empty to sell this plan monthly only.
+                                </p>
+                                <InputError message={errors.yearly_price} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor={`limit-${key}`}>
