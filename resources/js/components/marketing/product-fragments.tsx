@@ -30,7 +30,7 @@ export function PhoneMockup({ className }: { className?: string }) {
     return (
         <div
             className={cn(
-                'relative w-[264px] rounded-[2.75rem] bg-[#16161a] p-2 shadow-[0_30px_80px_-20px_rgb(8_26_59/0.45)] ring-1 ring-black/5 sm:w-[280px] dark:bg-[#2b2b30] dark:shadow-[0_30px_80px_-20px_rgb(0_0_0/0.8)] dark:ring-white/15',
+                'relative w-[300px] rounded-[3rem] bg-[#16161a] p-2.5 shadow-[0_30px_80px_-20px_rgb(8_26_59/0.45)] ring-1 ring-black/5 sm:w-[340px] dark:bg-[#2b2b30] dark:shadow-[0_30px_80px_-20px_rgb(0_0_0/0.8)] dark:ring-white/15',
                 className,
             )}
             role="img"
@@ -44,7 +44,7 @@ export function PhoneMockup({ className }: { className?: string }) {
                 className="absolute top-32 -right-[3px] h-14 w-[3px] rounded-r-sm bg-[#16161a] dark:bg-[#2b2b30]"
                 aria-hidden="true"
             />
-            <div className="relative overflow-hidden rounded-[2.25rem] bg-background ring-1 ring-black/10 dark:ring-white/5">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-background ring-1 ring-black/10 dark:ring-white/5">
                 <div
                     className="absolute top-2 left-1/2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-black"
                     aria-hidden="true"

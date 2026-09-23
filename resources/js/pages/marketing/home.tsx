@@ -123,13 +123,13 @@ export default function Home({
                         </p>
                     </div>
                     <div className="relative flex justify-center py-4 lg:justify-end">
-                        <div className="relative w-full max-w-[548px]">
+                        <div className="relative w-full max-w-[600px]">
                             <div
                                 aria-hidden="true"
                                 className="absolute top-1/2 right-0 size-[380px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--primary)_22%,transparent),transparent)] sm:right-[-50px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--primary)_16%,transparent),transparent)]"
                             />
                             <PhoneMockup className="hero-phone relative mx-auto sm:mr-0 sm:ml-auto" />
-                            <RequestMessage className="hero-message absolute bottom-10 left-0 hidden w-72 sm:block" />
+                            <RequestMessage className="hero-message absolute bottom-12 left-0 hidden w-72 sm:block lg:-left-16" />
                         </div>
                     </div>
                 </div>
