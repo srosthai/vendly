@@ -90,7 +90,7 @@ After sign-in:
 - No store yet, and they chose Start selling → create the store (name + slug), attach the free plan, notify the admin Telegram chat.
 - They already own a store → vendor dashboard.
 
-Fortify password reset, two-factor, and passkey screens stay. Web entry is email and password, or Google. Telegram-only customers have no email or password, so `users.email` and `users.password` are nullable, `MustVerifyEmail` must not block a user who signed in with Telegram, and settings never ask them for a password they do not have.
+Fortify password reset, two-factor, and passkey settings stay. The log in page offers email and password, or Google, and no passkey button. Web entry is email and password, or Google. Telegram-only customers have no email or password, so `users.email` and `users.password` are nullable, `MustVerifyEmail` must not block a user who signed in with Telegram, and settings never ask them for a password they do not have.
 
 Seeded demo accounts exist for local and testing only. The seeder refuses to run in production.
 
