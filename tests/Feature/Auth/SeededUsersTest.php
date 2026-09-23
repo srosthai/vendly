@@ -38,7 +38,7 @@ test('seeded accounts can sign in for admin, vendor, and customer', function () 
     ])->assertRedirect(route('dashboard', absolute: false));
 
     $this->get(route('dashboard'))->assertOk();
-    $this->get(route('vendor.products'))->assertForbidden();
+    $this->get(route('vendor.products'))->assertRedirect(route('selling.create'));
     $this->get(route('admin.vendors'))->assertForbidden();
 });
 
