@@ -47,11 +47,13 @@ class StoreController extends Controller
                 'name' => $store->name,
                 'slug' => $store->slug,
                 'description' => $store->description,
+                'logo' => $store->logoUrl(),
             ],
             'categories' => $store->categories()->orderBy('sort')->orderBy('id')->get(['name', 'slug']),
             'activeCategory' => $category,
             'embedded' => $request->session()->get('mini_app') === true,
             'authenticated' => $request->user() !== null,
+            'status' => $request->session()->get('status'),
             'cart' => $cart->for($request, $store),
             'products' => Inertia::scroll(fn () => $products->paginate(24)->withQueryString()->through(fn (Product $product): array => [
                 'id' => $product->id,

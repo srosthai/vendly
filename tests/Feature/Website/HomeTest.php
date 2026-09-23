@@ -134,3 +134,16 @@ test('a slug race ends in a validation error, not a server error', function () {
 
     expect($vendor->store()->exists())->toBeFalse();
 });
+
+test('the landing page lists the plans vendors can choose, free default first', function () {
+    freePlan();
+    Plan::query()->create(['name' => 'Starter', 'price_cents' => 500, 'product_limit' => 100, 'is_active' => true, 'is_default' => false]);
+    Plan::query()->create(['name' => 'Hidden', 'price_cents' => 900, 'product_limit' => 500, 'is_active' => false, 'is_default' => false]);
+
+    $this->get(route('home'))
+        ->assertInertia(fn ($page) => $page
+            ->component('welcome')
+            ->has('plans', 2)
+            ->where('plans.0.name', 'Free')
+            ->where('plans.1.name', 'Starter'));
+});
