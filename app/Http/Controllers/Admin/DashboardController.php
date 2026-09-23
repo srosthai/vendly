@@ -21,10 +21,11 @@ class DashboardController extends Controller
             ->withCount(['products as published_count' => fn ($query) => $query->published()])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->get();
+            ->paginate(25)
+            ->withQueryString();
 
         return Inertia::render('admin/vendors', [
-            'vendors' => $stores->map(fn (Store $store): array => [
+            'vendors' => $stores->through(fn (Store $store): array => [
                 'id' => $store->id,
                 'name' => $store->name,
                 'slug' => $store->slug,
@@ -32,7 +33,7 @@ class DashboardController extends Controller
                 'plan' => $store->subscription?->plan->name,
                 'published_count' => (int) $store->getAttribute('published_count'),
                 'suspended' => $store->isSuspended(),
-            ])->values(),
+            ]),
         ]);
     }
 
@@ -49,16 +50,17 @@ class DashboardController extends Controller
             ->with(['store', 'plan'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->get();
+            ->paginate(25)
+            ->withQueryString();
 
         return Inertia::render('admin/payments', [
-            'payments' => $payments->map(fn (SubscriptionPayment $payment): array => [
+            'payments' => $payments->through(fn (SubscriptionPayment $payment): array => [
                 'id' => $payment->id,
                 'store' => $payment->store?->name,
                 'plan' => $payment->plan?->name,
                 'amount_cents' => $payment->amount_cents,
                 'status' => $payment->status->value,
-            ])->values(),
+            ]),
         ]);
     }
 

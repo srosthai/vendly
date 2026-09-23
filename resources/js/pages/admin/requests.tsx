@@ -1,5 +1,7 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import InquiryController from '@/actions/App/Http/Controllers/Admin/InquiryController';
+import { SimplePagination } from '@/components/simple-pagination';
+import type { Paginated } from '@/components/simple-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,14 +29,6 @@ type Request = {
     admin: Delivery;
     vendor: Delivery & { connected: boolean };
     can_retry: boolean;
-};
-
-type Paginated<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
 };
 
 function DeliveryBadge({
@@ -271,45 +265,7 @@ export default function Requests({
                                 </Card>
                             ))}
                         </div>
-                        {inquiries.last_page > 1 ? (
-                            <nav
-                                aria-label="Pages"
-                                className="flex items-center justify-between gap-4"
-                            >
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!inquiries.prev_page_url}
-                                    asChild={!!inquiries.prev_page_url}
-                                >
-                                    {inquiries.prev_page_url ? (
-                                        <Link href={inquiries.prev_page_url}>
-                                            Previous
-                                        </Link>
-                                    ) : (
-                                        'Previous'
-                                    )}
-                                </Button>
-                                <span className="text-sm text-muted-foreground">
-                                    Page {inquiries.current_page} of{' '}
-                                    {inquiries.last_page}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!inquiries.next_page_url}
-                                    asChild={!!inquiries.next_page_url}
-                                >
-                                    {inquiries.next_page_url ? (
-                                        <Link href={inquiries.next_page_url}>
-                                            Next
-                                        </Link>
-                                    ) : (
-                                        'Next'
-                                    )}
-                                </Button>
-                            </nav>
-                        ) : null}
+                        <SimplePagination page={inquiries} />
                     </>
                 )}
             </div>

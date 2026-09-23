@@ -173,3 +173,13 @@ test('an oversized price or product limit is a validation error', function (arra
     'a huge price' => [['price' => '99999999999'], 'price'],
     'a huge product limit' => [['product_limit' => 4294967296], 'product_limit'],
 ]);
+
+test('admin vendor and payment lists are paginated', function () {
+    foreach (range(1, 26) as $number) {
+        openStore(User::factory()->create(), 'Store '.$number);
+    }
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.vendors'))
+        ->assertInertia(fn ($page) => $page->has('vendors.data', 25)->where('vendors.last_page', 2));
+});
