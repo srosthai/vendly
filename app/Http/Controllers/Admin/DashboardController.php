@@ -8,11 +8,8 @@ use App\Http\Requests\Admin\Lists\PaymentListRequest;
 use App\Http\Requests\Admin\Lists\PlanListRequest;
 use App\Http\Requests\Admin\Lists\VendorListRequest;
 use App\Models\Plan;
-use App\Models\PlatformSetting;
 use App\Models\Store;
 use App\Models\SubscriptionPayment;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -130,43 +127,5 @@ class DashboardController extends Controller
                 'paid_at' => $payment->paid_at?->toIso8601String(),
             ]),
         ]);
-    }
-
-    public function telegram(): Response
-    {
-        $settings = PlatformSetting::current();
-
-        return Inertia::render('admin/telegram', [
-            'settings' => [
-                'admin_chat_id' => $settings->admin_chat_id ?? '',
-                'bot_username' => $settings->bot_username ?? '',
-                'mini_app_short_name' => $settings->mini_app_short_name ?? '',
-            ],
-            'secrets' => [
-                'bot_token' => filled(config('services.telegram.bot_token')),
-                'cutluy_key' => $settings->cutluyApiKey() !== '',
-                'cutluy_webhook' => $settings->cutluyWebhookSecret() !== '',
-                'telegram_webhook' => filled(config('services.telegram.webhook_secret')),
-            ],
-            'testResult' => request()->session()->get('telegram_test'),
-            'webhookUrls' => [
-                'telegram' => route('webhooks.telegram'),
-                'cutluy' => route('webhooks.cutluy'),
-            ],
-        ]);
-    }
-
-    public function updateTelegram(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'admin_chat_id' => ['nullable', 'string', 'max:64'],
-            'bot_username' => ['nullable', 'string', 'max:64'],
-            'mini_app_short_name' => ['nullable', 'string', 'max:64'],
-        ]);
-
-        PlatformSetting::current()->update($validated);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Telegram settings saved.']);
-
-        return back();
     }
 }

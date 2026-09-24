@@ -50,7 +50,7 @@ class TelegramLinkController extends Controller
             return $this->testResult('error', 'Connect your Telegram chat first.');
         }
 
-        if (blank(config('services.telegram.bot_token'))) {
+        if (PlatformSetting::current()->botToken() === '') {
             return $this->testResult('error', 'The Vendly bot is not set up yet. Ask the Vendly admin to finish the bot setup.');
         }
 

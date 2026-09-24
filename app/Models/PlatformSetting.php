@@ -23,9 +23,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool $google_enabled
  * @property string|null $google_client_id
  * @property string|null $google_client_secret
+ * @property string|null $telegram_bot_token
+ * @property string|null $telegram_webhook_secret
  */
-#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links', 'cutluy_api_key', 'cutluy_webhook_secret', 'cutluy_base_url', 'google_enabled', 'google_client_id', 'google_client_secret'])]
-#[Hidden(['cutluy_api_key', 'cutluy_webhook_secret', 'google_client_secret'])]
+#[Fillable(['admin_chat_id', 'bot_username', 'mini_app_short_name', 'company_name', 'address', 'phone', 'email', 'footer_text', 'social_links', 'cutluy_api_key', 'cutluy_webhook_secret', 'cutluy_base_url', 'google_enabled', 'google_client_id', 'google_client_secret', 'telegram_bot_token', 'telegram_webhook_secret'])]
+#[Hidden(['cutluy_api_key', 'cutluy_webhook_secret', 'google_client_secret', 'telegram_bot_token', 'telegram_webhook_secret'])]
 class PlatformSetting extends Model
 {
     /**
@@ -46,6 +48,8 @@ class PlatformSetting extends Model
             'cutluy_webhook_secret' => 'encrypted',
             'google_enabled' => 'boolean',
             'google_client_secret' => 'encrypted',
+            'telegram_bot_token' => 'encrypted',
+            'telegram_webhook_secret' => 'encrypted',
         ];
     }
 
@@ -98,13 +102,33 @@ class PlatformSetting extends Model
         return (string) config('services.telegram.admin_chat_id');
     }
 
+    /**
+     * The bot's username without a leading "@", as Telegram links need it.
+     */
     public function botUsername(): string
     {
-        if (is_string($this->bot_username) && $this->bot_username !== '') {
-            return $this->bot_username;
-        }
+        $username = is_string($this->bot_username) && $this->bot_username !== ''
+            ? $this->bot_username
+            : (string) config('services.telegram.bot_username');
 
-        return (string) config('services.telegram.bot_username');
+        return ltrim(trim($username), '@');
+    }
+
+    /**
+     * The bot token: the one saved by the admin, or the environment's.
+     */
+    public function botToken(): string
+    {
+        return $this->telegram_bot_token ?: (string) config('services.telegram.bot_token');
+    }
+
+    /**
+     * The secret Telegram sends with every webhook call: the one Vendly
+     * generated when the bot was connected, or the environment's.
+     */
+    public function telegramWebhookSecret(): string
+    {
+        return $this->telegram_webhook_secret ?: (string) config('services.telegram.webhook_secret');
     }
 
     /**

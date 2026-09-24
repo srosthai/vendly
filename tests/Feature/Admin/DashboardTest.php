@@ -42,14 +42,13 @@ test('an admin can list vendors, create a plan, and save telegram settings', fun
 
     $this->actingAs($admin)->put(route('admin.telegram.update'), [
         'admin_chat_id' => '4242',
-        'bot_username' => 'VendlyBot',
         'mini_app_short_name' => 'shop',
     ])->assertRedirect();
 
     $settings = PlatformSetting::current();
 
     expect($settings->admin_chat_id)->toBe('4242')
-        ->and($settings->botUsername())->toBe('VendlyBot');
+        ->and($settings->mini_app_short_name)->toBe('shop');
 
     $this->actingAs($admin)
         ->get(route('admin.payments'))
@@ -261,7 +260,7 @@ test('the telegram test message reports success and each failure clearly', funct
 
     config(['services.telegram.bot_token' => null]);
     $this->actingAs($admin)->post(route('admin.telegram.test'))
-        ->assertSessionHas('telegram_test', fn (array $result): bool => $result['type'] === 'error' && str_contains($result['message'], 'TELEGRAM_BOT_TOKEN'));
+        ->assertSessionHas('telegram_test', fn (array $result): bool => $result['type'] === 'error' && str_contains($result['message'], 'Add the bot token'));
 
     config(['services.telegram.bot_token' => '123:ABC']);
     Http::fake(['api.telegram.org/*' => Http::sequence()
