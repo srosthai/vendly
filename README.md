@@ -1,6 +1,6 @@
 # Vendly
 
-Vendly gives a small shop one link that opens as a web store and inside Telegram as a mini app. Customers pick products and send a buy or cart request, and the request lands in the seller's Telegram chat. Sellers pay a monthly or yearly plan by Cambodia QR (through CutLuy) for more published products; Vendly takes nothing from their sales.
+Vendly gives a small shop one link that opens as a web store and inside Telegram as a mini app. Customers pick products and send a buy or cart request, and the request lands in the seller's Telegram chat or group. Sellers pay a monthly or yearly plan by Cambodia QR (through CutLuy) for more published products; Vendly takes nothing from their sales.
 
 ![The Vendly home page](docs/screenshots/home.webp)
 
@@ -11,7 +11,7 @@ Vendly gives a small shop one link that opens as a web store and inside Telegram
 ## Who uses it
 
 - **Customers** browse a store on the web or in Telegram, add products to a cart, and send a request. On the web, Buy opens the product in the Telegram mini app.
-- **Vendors** open one store, manage products, categories, brands, and the store profile, connect their Telegram chat, and pay for a plan.
+- **Vendors** open one store, manage products, categories, brands, and the store profile, connect their own Telegram chat or a group (and disconnect or switch later), follow up requests in the Requests list, and pay for a plan.
 - **Admins** see every vendor, manage plans, payments, requests, testimonials, and the website footer, and set up Telegram, CutLuy, and Google sign-in.
 
 ## Stack
@@ -104,25 +104,38 @@ Values saved in **Admin → Site settings** and **Admin → Telegram** take over
 
 | Service                               | `.env` keys                                                                                                                                                      | Managed in the admin                                                              |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Telegram bot and mini app             | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_MINI_APP_SHORT_NAME`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_INIT_DATA_MAX_AGE` | Bot username, mini app short name, and admin chat id                              |
+| Telegram bot and mini app             | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_MINI_APP_SHORT_NAME`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_INIT_DATA_MAX_AGE` | Bot token (encrypted), mini app short name, and admin chat id                     |
 | CutLuy payments                       | `CUTLUY_API_KEY`, `CUTLUY_WEBHOOK_SECRET`, `CUTLUY_BASE_URL`                                                                                                     | All three (the key and secret are stored encrypted and never sent to the browser) |
 | Google sign-in                        | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`                                                                                                | On or off, client id, and client secret (encrypted)                               |
 | Mail (sign-up codes, password resets) | `MAIL_*`                                                                                                                                                         | No                                                                                |
 
-The bot token and the Telegram webhook secret stay in `.env`.
+### Telegram
+
+Paste the bot token from @BotFather in **Admin → Telegram** and choose **Save and connect**. Vendly checks the token with Telegram, fills in the bot username, generates the webhook secret, and registers the webhook. Registering needs an https `APP_URL`, such as the tunnel address above. The page shows the webhook's status, and **Register again** repairs it after the address changes.
+
+A store's mini app link is `https://t.me/<bot>/<short name>?startapp=<store-slug>`, and it opens that store. Vendors connect in **Telegram** on their dashboard, with their own chat or by adding the bot to a group.
+
+### Plan payments (CutLuy)
+
+1. The vendor picks a plan. Vendly creates a CutLuy payment and shows CutLuy's KHQR image (`/api/render/khqr/<qr_string>.svg`).
+2. The QR lasts 5 minutes (CutLuy's `expires_at`), with a countdown. While it can be paid, the dialog closes only with **Cancel**. An expired QR is never shown again; the dialog offers a new one.
+3. Every 5 seconds the dialog asks Vendly, which reads the payment from CutLuy, so a payment shows as paid within seconds. The CutLuy webhook applies the same change, and each payment is applied only once.
+4. A paid payment activates or extends the plan. CutLuy has no cancel, so a QR paid after **Cancel** still counts.
+
+In the CutLuy dashboard, under **Webhooks**, add an endpoint with the address shown in **Admin → Site settings** (`https://<your domain>/webhooks/cutluy`). Its signing secret must match the CutLuy webhook secret in Site settings. **Send test** checks it. A refused delivery is logged with the reason (never the secret) in `storage/logs/laravel.log`.
 
 ### Webhooks
 
-| Endpoint                  | Sender                                                  | Signed with                                                |
-| ------------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
-| `POST /webhooks/telegram` | Telegram (bot updates, used to connect a vendor's chat) | `TELEGRAM_WEBHOOK_SECRET`, sent as the secret token header |
-| `POST /webhooks/cutluy`   | CutLuy (payment events)                                 | The CutLuy webhook secret                                  |
+| Endpoint                  | Sender                                                  | Signed with                                                  |
+| ------------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| `POST /webhooks/telegram` | Telegram (bot updates, used to connect a vendor's chat) | The Telegram webhook secret, sent as the secret token header |
+| `POST /webhooks/cutluy`   | CutLuy (payment events)                                 | The CutLuy webhook secret                                    |
 
 The admin Telegram and Site settings pages show the exact addresses to paste into each service.
 
 ## Running in production
 
-- **Queue worker:** Telegram messages and CutLuy events are queued. Run `php artisan queue:work` (or Laravel Cloud's worker).
+- **Queue worker:** Telegram messages and CutLuy webhook events are queued. Run `php artisan queue:work` (or Laravel Cloud's worker).
 - **Scheduler:** `subscriptions:expire` runs daily to end lapsed paid plans. Run `php artisan schedule:work`, or a cron entry for `php artisan schedule:run` every minute.
 - **Storage:** run `php artisan storage:link` once, or use a public disk such as S3.
 - **Assets:** `npm run build`.
