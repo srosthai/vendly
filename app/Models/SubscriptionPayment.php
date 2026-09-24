@@ -21,8 +21,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $checkout_url
  * @property string|null $qr_string
  * @property CarbonInterface|null $paid_at
+ * @property CarbonInterface|null $expires_at
  */
-#[Fillable(['public_id', 'store_id', 'plan_id', 'amount_cents', 'period', 'cutluy_id', 'status', 'checkout_url', 'qr_string', 'paid_at'])]
+#[Fillable(['public_id', 'store_id', 'plan_id', 'amount_cents', 'period', 'cutluy_id', 'status', 'checkout_url', 'qr_string', 'paid_at', 'expires_at'])]
 class SubscriptionPayment extends Model
 {
     /**
@@ -42,6 +43,7 @@ class SubscriptionPayment extends Model
             'status' => PaymentStatus::class,
             'period' => BillingPeriod::class,
             'paid_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 
@@ -59,5 +61,26 @@ class SubscriptionPayment extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * An open payment whose QR ran out of time. CutLuy also reports it, but
+     * the vendor should not wait for that.
+     */
+    public function hasLapsed(): bool
+    {
+        return $this->status->isOpen() && $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * CutLuy's KHQR image for this payment's QR text.
+     */
+    public function qrImageUrl(): ?string
+    {
+        if ($this->qr_string === null || $this->qr_string === '') {
+            return null;
+        }
+
+        return PlatformSetting::current()->cutluyBaseUrl().'/api/render/khqr/'.rawurlencode($this->qr_string).'.svg';
     }
 }

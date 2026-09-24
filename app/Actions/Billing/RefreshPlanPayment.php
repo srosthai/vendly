@@ -2,7 +2,6 @@
 
 namespace App\Actions\Billing;
 
-use App\Enums\PaymentStatus;
 use App\Exceptions\CutluyRequestException;
 use App\Models\SubscriptionPayment;
 use App\Services\Cutluy\CutluyClient;
@@ -31,7 +30,7 @@ class RefreshPlanPayment
      */
     public function handle(SubscriptionPayment $payment): ?string
     {
-        if ($payment->cutluy_id === null || in_array($payment->status, [PaymentStatus::Paid, PaymentStatus::Expired, PaymentStatus::Failed], true)) {
+        if ($payment->cutluy_id === null || ! $payment->status->isOpen()) {
             return null;
         }
 

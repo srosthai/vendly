@@ -6,6 +6,7 @@ const labels: Record<string, string> = {
     paid: 'Paid',
     expired: 'Expired',
     failed: 'Failed',
+    canceled: 'Canceled',
 };
 
 const variants: Record<
@@ -17,6 +18,7 @@ const variants: Record<
     expired: 'secondary',
     scanned: 'warning',
     pending: 'secondary',
+    canceled: 'secondary',
 };
 
 /**

@@ -82,6 +82,7 @@ export default function Payments({
                                 { value: 'scanned', label: 'Opened' },
                                 { value: 'expired', label: 'Expired' },
                                 { value: 'failed', label: 'Failed' },
+                                { value: 'canceled', label: 'Canceled' },
                             ],
                         },
                     ]}

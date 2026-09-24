@@ -9,4 +9,13 @@ enum PaymentStatus: string
     case Paid = 'paid';
     case Expired = 'expired';
     case Failed = 'failed';
+    case Canceled = 'canceled';
+
+    /**
+     * Whether the QR can still be paid.
+     */
+    public function isOpen(): bool
+    {
+        return $this === self::Pending || $this === self::Scanned;
+    }
 }

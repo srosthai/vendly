@@ -12,6 +12,9 @@ use App\Models\SubscriptionPayment;
 use App\Services\Cutluy\CutluyClient;
 use App\Services\Telegram\TelegramNotifier;
 use App\Support\Money;
+use Carbon\CarbonInterface;
+use Carbon\Exceptions\InvalidFormatException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -19,6 +22,13 @@ use Illuminate\Validation\ValidationException;
 
 class CreatePlanPayment
 {
+    private const QrMinutes = 5;
+
+    /**
+     * A QR about to run out is not worth showing again.
+     */
+    private const MinimumSecondsLeft = 30;
+
     public function __construct(
         private CutluyClient $cutluy,
         private TelegramNotifier $telegram,
@@ -90,7 +100,21 @@ class CreatePlanPayment
         $payment->cutluy_id = $created['id'];
         $payment->checkout_url = $created['checkout_url'];
         $payment->qr_string = $created['qr_string'];
+        $payment->expires_at = $this->expiresAt($created['expires_at']);
         $payment->save();
+    }
+
+    /**
+     * CutLuy's KHQR lasts five minutes. Its own time wins; a missing or
+     * unreadable one falls back to five minutes from now.
+     */
+    private function expiresAt(?string $expiresAt): CarbonInterface
+    {
+        try {
+            return $expiresAt === null ? now()->addMinutes(self::QrMinutes) : Carbon::parse($expiresAt);
+        } catch (InvalidFormatException) {
+            return now()->addMinutes(self::QrMinutes);
+        }
     }
 
     /**
@@ -111,7 +135,9 @@ class CreatePlanPayment
     /**
      * The store row is locked while the pending payment is found or created,
      * so a double click shares one local payment and one idempotency key. A
-     * pending payment is reused only for the same plan, period, and amount.
+     * pending payment is reused only for the same plan, period, and amount,
+     * and only while its QR has time left. One that never reached CutLuy has
+     * no time yet, so a retry keeps its idempotency key.
      */
     private function pendingPayment(Store $store, Plan $plan, BillingPeriod $period, int $amount): SubscriptionPayment
     {
@@ -124,6 +150,9 @@ class CreatePlanPayment
                 ->where('period', $period)
                 ->where('amount_cents', $amount)
                 ->where('status', PaymentStatus::Pending)
+                ->where(fn ($query) => $query
+                    ->where('expires_at', '>', now()->addSeconds(self::MinimumSecondsLeft))
+                    ->orWhere(fn ($query) => $query->whereNull('expires_at')->whereNull('cutluy_id')))
                 ->latest('id')
                 ->first();
 
