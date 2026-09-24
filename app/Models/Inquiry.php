@@ -21,8 +21,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $contact
  * @property CarbonInterface|null $admin_notified_at
  * @property CarbonInterface|null $vendor_notified_at
+ * @property CarbonInterface|null $handled_at
  */
-#[Fillable(['public_id', 'number', 'store_id', 'user_id', 'customer_name', 'contact', 'from_cart', 'admin_notified_at', 'vendor_notified_at', 'admin_error', 'vendor_error'])]
+#[Fillable(['public_id', 'number', 'store_id', 'user_id', 'customer_name', 'contact', 'from_cart', 'admin_notified_at', 'vendor_notified_at', 'admin_error', 'vendor_error', 'handled_at'])]
 class Inquiry extends Model
 {
     /**
@@ -31,6 +32,7 @@ class Inquiry extends Model
     protected function casts(): array
     {
         return [
+            'handled_at' => 'datetime',
             'admin_notified_at' => 'datetime',
             'vendor_notified_at' => 'datetime',
             'from_cart' => 'boolean',

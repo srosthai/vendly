@@ -27,6 +27,8 @@ class SendTelegramMessage implements ShouldQueue
         public string $text,
         public ?int $inquiryId = null,
         public ?string $destination = null,
+        /** @var array<string, mixed> Extra Bot API fields, such as parse_mode or reply_markup. */
+        public array $options = [],
     ) {}
 
     /**
@@ -37,7 +39,7 @@ class SendTelegramMessage implements ShouldQueue
     public function handle(TelegramClient $telegram): void
     {
         try {
-            $sent = $telegram->sendMessage($this->chatId, $this->text);
+            $sent = $telegram->sendMessage($this->chatId, $this->text, $this->options);
         } catch (RequestException $exception) {
             $status = $exception->response->status();
             $reason = (string) $exception->response->json('description', 'Telegram refused the message.');

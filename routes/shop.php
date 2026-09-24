@@ -25,6 +25,7 @@ use App\Http\Controllers\Selling\StartSellingController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\StoreSuspensionController;
 use App\Http\Controllers\TelegramLinkController;
+use App\Http\Controllers\Vendor\RequestController as VendorRequestController;
 use App\Http\Controllers\Vendor\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -77,6 +78,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('vendor/brands', [WorkspaceController::class, 'brands'])->name('vendor.brands');
         Route::get('vendor/plan', [WorkspaceController::class, 'plan'])->name('vendor.plan');
         Route::get('vendor/telegram', [WorkspaceController::class, 'telegram'])->name('vendor.telegram');
+        Route::get('vendor/requests', [VendorRequestController::class, 'index'])->name('vendor.requests');
+        Route::patch('vendor/requests/{inquiry}', [VendorRequestController::class, 'update'])->name('vendor.requests.update');
         Route::get('vendor/products/{product}/edit', [WorkspaceController::class, 'editProduct'])->name('vendor.products.edit');
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');

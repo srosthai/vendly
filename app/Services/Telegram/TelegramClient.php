@@ -9,7 +9,10 @@ use Illuminate\Support\Facades\Http;
 
 class TelegramClient
 {
-    public function sendMessage(string $chatId, string $text): bool
+    /**
+     * @param  array<string, mixed>  $options  Extra Bot API fields, such as parse_mode or reply_markup.
+     */
+    public function sendMessage(string $chatId, string $text, array $options = []): bool
     {
         $token = PlatformSetting::current()->botToken();
 
@@ -17,7 +20,7 @@ class TelegramClient
             return false;
         }
 
-        $this->call($token, 'sendMessage', ['chat_id' => $chatId, 'text' => $text]);
+        $this->call($token, 'sendMessage', ['chat_id' => $chatId, 'text' => $text, ...$options]);
 
         return true;
     }
