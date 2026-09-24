@@ -56,6 +56,12 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
+        "tunnel": [
+            "Composer\\Config::disableProcessTimeout",
+            "npm run build",
+            "@php -r \"file_exists('public/hot') && unlink('public/hot');\"",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve --host=127.0.0.1 --port=8000\" \"php artisan queue:listen --tries=1 --timeout=0\" \"cloudflared tunnel --config $HOME/.cloudflared/vendly.yml run vendly\" --names=server,queue,tunnel --kill-others"
+        ],
         "lint": [
             "pint --parallel"
         ],

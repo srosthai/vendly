@@ -54,6 +54,37 @@ composer run dev          # app server, queue worker, logs, and Vite together
 
 Open the `APP_URL` from `.env` (for example `http://127.0.0.1:8000`).
 
+### Testing on a public address (Cloudflare Tunnel)
+
+Telegram (the mini app and webhooks), CutLuy webhooks, and Google sign-in need a public https address. A Cloudflare Tunnel gives the local app one, for example `https://vendly.srosthai.me`.
+
+One-time setup, with the domain's zone on your Cloudflare account and [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) installed:
+
+```bash
+cloudflared tunnel login                                   # pick the domain's zone in the browser
+cloudflared tunnel create vendly
+cloudflared tunnel route dns vendly vendly.srosthai.me
+```
+
+Then point the tunnel at the app in `~/.cloudflared/vendly.yml` (its own file, so other tunnels on the machine keep their config):
+
+```yaml
+tunnel: vendly
+credentials-file: /home/<you>/.cloudflared/<tunnel-id>.json
+ingress:
+    - hostname: vendly.srosthai.me
+      service: http://127.0.0.1:8000
+    - service: http_status:404
+```
+
+Set `APP_URL=https://vendly.srosthai.me` in `.env` (uploaded images and emails use it), then run:
+
+```bash
+composer run tunnel       # builds assets, then runs the app, queue worker, and tunnel together
+```
+
+The tunnel serves built assets, because the Vite dev server only listens on localhost. Run `composer run dev` again for local work with hot reload.
+
 ### Demo accounts (local and testing only)
 
 The seeders refuse to run in production, because these accounts share a public password.

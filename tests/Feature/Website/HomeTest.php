@@ -231,3 +231,13 @@ test('the footer names Vendly when no company name is set, whatever the app name
     $this->get(route('home'))
         ->assertInertia(fn ($page) => $page->where('site.company_name', 'Vendly'));
 });
+
+test('behind the tunnel the app builds links for the public https address', function () {
+    $this->withHeaders([
+        'X-Forwarded-Proto' => 'https',
+        'X-Forwarded-Host' => 'vendly.srosthai.me',
+        'X-Forwarded-Port' => '443',
+    ])->get('/pricing')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('meta.url', 'https://vendly.srosthai.me/pricing'));
+});
