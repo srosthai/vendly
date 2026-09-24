@@ -235,6 +235,11 @@ export default function VendorOverview({
                                     What customers asked for on Telegram.
                                 </CardDescription>
                             </div>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={vendor.requests()}>
+                                    All requests
+                                </Link>
+                            </Button>
                         </CardHeader>
                         {recentRequests.length === 0 ? (
                             <EmptyState

@@ -50,6 +50,11 @@ const vendorGroups: NavGroup[] = [
     {
         label: 'Store',
         items: [
+            {
+                title: 'Requests',
+                href: vendor.requests(),
+                icon: MessageSquare,
+            },
             { title: 'Store', href: vendor.store(), icon: Store },
             { title: 'Telegram', href: vendor.telegram(), icon: Send },
             { title: 'Plan', href: vendor.plan(), icon: CreditCard },

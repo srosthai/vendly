@@ -146,6 +146,7 @@ class SearchController extends Controller
                 ['New product', route('vendor.products', ['create' => 1])],
                 ['Categories', route('vendor.categories')],
                 ['Brands', route('vendor.brands')],
+                ['Requests', route('vendor.requests')],
                 ['Store', route('vendor.store')],
                 ['Telegram', route('vendor.telegram')],
                 ['Plan', route('vendor.plan')],
@@ -191,7 +192,7 @@ class SearchController extends Controller
             ],
             [
                 'label' => 'Requests',
-                'items' => $this->requests($store->inquiries()->getQuery()->with('store'), $pattern, fn (): string => route('dashboard')),
+                'items' => $this->requests($store->inquiries()->getQuery()->with('store'), $pattern, fn (Inquiry $inquiry): string => route('vendor.requests', ['search' => $inquiry->customer_name, 'open' => $inquiry->id])),
             ],
         ];
     }

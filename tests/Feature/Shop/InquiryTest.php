@@ -232,7 +232,7 @@ test('requests are numbered per store and the number is in the message', functio
     $this->actingAs($customer)->post(route('inquiries.product', [$cake, Product::factory()->for($cake)->create()]));
 
     expect(Inquiry::query()->orderBy('id')->pluck('number')->all())->toBe([1, 2, 1]);
-    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_starts_with($job->text, 'New request #2 — Smile Tea'));
+    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => str_starts_with($job->text, '<b>New request #2</b> · Smile Tea'));
 });
 
 test('a permanent telegram error fails at once and is recorded', function (int $status) {
