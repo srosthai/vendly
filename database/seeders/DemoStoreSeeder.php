@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Ten demo vendors, each with a store on Plan B and 25 published products
- * across its own categories and brands. Local and testing only: the
+ * Ten demo vendors, each with a store on Plan B, a logo, and 25 published
+ * products with photos across its own categories and brands. The photos
+ * are openly licensed; see data/images/CREDITS.md. Local and testing only: the
  * accounts share a public password. Running it again adds nothing.
  *
  * Logins: vendor1@vendly.test to vendor10@vendly.test, password "password".
@@ -83,6 +84,8 @@ class DemoStoreSeeder extends Seeder
             'hours' => $data['hours'],
         ]);
 
+        $this->ensureLogo($store);
+
         $subscription = $store->subscription()->first();
 
         if ($subscription === null || $subscription->plan_id !== $plan->id) {
@@ -119,38 +122,88 @@ class DemoStoreSeeder extends Seeder
     private function seedProduct(Store $store, Category $category, Brand $brand, string $name, array $data): void
     {
         $slug = Str::slug($name);
+        $product = $store->products()->where('slug', $slug)->first();
 
-        if ($store->products()->where('slug', $slug)->exists()) {
-            return;
+        if ($product === null) {
+            [$min, $max] = $data['price'];
+            $roll = random_int(1, 10);
+
+            $product = Product::query()->create([
+                'store_id' => $store->id,
+                'category_id' => $category->id,
+                'brand_id' => $brand->id,
+                'name' => $name,
+                'slug' => $slug,
+                'description' => $name.' from '.$store->name.'. '.$data['description'],
+                'price_cents' => (int) (round(random_int($min, $max) / 10) * 10),
+                'stock' => match (true) {
+                    $roll === 1 => 0,
+                    $roll <= 5 => null,
+                    default => random_int(1, 60),
+                },
+                'status' => ProductStatus::Published,
+            ]);
         }
 
-        [$min, $max] = $data['price'];
-        $roll = random_int(1, 10);
-
-        $product = Product::query()->create([
-            'store_id' => $store->id,
-            'category_id' => $category->id,
-            'brand_id' => $brand->id,
-            'name' => $name,
-            'slug' => $slug,
-            'description' => $name.' from '.$store->name.'. '.$data['description'],
-            'price_cents' => (int) (round(random_int($min, $max) / 10) * 10),
-            'stock' => match (true) {
-                $roll === 1 => 0,
-                $roll <= 5 => null,
-                default => random_int(1, 60),
-            },
-            'status' => ProductStatus::Published,
-        ]);
-
-        $path = "demo/{$store->slug}/{$slug}.svg";
-        Storage::disk('public')->put($path, $this->photo($name, self::AccentColors[$data['accent']] ?? '#0054D5'));
-        ProductImage::query()->create(['product_id' => $product->id, 'path' => $path, 'sort' => 0]);
+        $this->ensurePhoto($store, $product, $data);
     }
 
     /**
-     * A plain product card image: the product's initials on the store's
-     * color. It is clearly a placeholder, not a photo.
+     * Give the store its logo from the seed data, unless it already has one.
+     */
+    private function ensureLogo(Store $store): void
+    {
+        $source = __DIR__.'/data/logos/'.$store->slug.'.svg';
+
+        if ($store->logo_path !== null || ! is_file($source)) {
+            return;
+        }
+
+        $path = 'logos/demo-'.$store->slug.'.svg';
+        Storage::disk('public')->put($path, (string) file_get_contents($source));
+        $store->forceFill(['logo_path' => $path])->save();
+    }
+
+    /**
+     * Give the product its photo from the seed data. A product seeded before
+     * the photos existed has its placeholder swapped for the photo; one with
+     * no photo in the data keeps or gets the placeholder.
+     *
+     * @param  DemoStore  $data
+     */
+    private function ensurePhoto(Store $store, Product $product, array $data): void
+    {
+        $image = $product->images()->first();
+        $source = __DIR__.'/data/images/'.$store->slug.'/'.$product->slug.'.webp';
+
+        if (is_file($source)) {
+            if ($image !== null && ! str_ends_with($image->path, '.svg')) {
+                return;
+            }
+
+            $path = "demo/{$store->slug}/{$product->slug}.webp";
+            Storage::disk('public')->put($path, (string) file_get_contents($source));
+
+            if ($image !== null) {
+                Storage::disk('public')->delete($image->path);
+                $image->forceFill(['path' => $path])->save();
+            } else {
+                ProductImage::query()->create(['product_id' => $product->id, 'path' => $path, 'sort' => 0]);
+            }
+
+            return;
+        }
+
+        if ($image === null) {
+            $path = "demo/{$store->slug}/{$product->slug}.svg";
+            Storage::disk('public')->put($path, $this->photo($product->name, self::AccentColors[$data['accent']] ?? '#0054D5'));
+            ProductImage::query()->create(['product_id' => $product->id, 'path' => $path, 'sort' => 0]);
+        }
+    }
+
+    /**
+     * A plain product card image, used only when the seed data has no photo
+     * for a product: the product's initials on the store's color.
      */
     private function photo(string $name, string $color): string
     {

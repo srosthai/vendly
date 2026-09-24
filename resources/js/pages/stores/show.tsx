@@ -1,7 +1,13 @@
 import { Head, InfiniteScroll, Link, router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { ArrowDownUp, Package, Send, ShoppingBag } from 'lucide-react';
+import {
+    ArrowDownUp,
+    ChevronLeft,
+    Package,
+    Send,
+    ShoppingBag,
+} from 'lucide-react';
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import { EmptyState } from '@/components/empty-state';
 import { CartSheet, type CartData } from '@/components/storefront/cart-sheet';
@@ -24,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dollars, formatDate } from '@/lib/format';
+import { index as storesIndex } from '@/routes/stores';
 import { cn } from '@/lib/utils';
 
 type ProductCard = {
@@ -126,6 +133,15 @@ export default function Show({
             </Head>
             <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-6 px-4 py-4 sm:py-6 md:px-6">
                 <TelegramSignInNotice {...miniApp} />
+                {!inTelegram ? (
+                    <Link
+                        href={storesIndex()}
+                        className="-mb-2 inline-flex min-h-11 items-center gap-1 self-start rounded-md pr-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                        <ChevronLeft className="size-4" aria-hidden="true" />
+                        All stores
+                    </Link>
+                ) : null}
                 <StoreHeader
                     store={store}
                     details={
