@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\AuthenticateGoogleUser;
 use App\Http\Controllers\Controller;
+use App\Http\Responses\LoginResponse;
 use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,7 @@ class GoogleAuthController extends Controller
         Auth::login($user);
         request()->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        return LoginResponse::redirectFor(request());
     }
 
     /**
