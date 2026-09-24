@@ -28,8 +28,15 @@ class TelegramWebhookController extends Controller
 
         $text = $request->input('message.text');
         $chatId = $request->input('message.chat.id');
+        $movedTo = $request->input('message.migrate_to_chat_id');
 
-        if (is_string($text) && preg_match('/^\/start link_([A-Za-z0-9]+)$/', $text, $matches) && (is_string($chatId) || is_int($chatId))) {
+        if ((is_string($chatId) || is_int($chatId)) && (is_string($movedTo) || is_int($movedTo))) {
+            $links->migrate((string) $chatId, (string) $movedTo);
+        }
+
+        // In a private chat the command is "/start link_…"; in a group it
+        // names the bot: "/start@VendlyBot link_…".
+        if (is_string($text) && preg_match('/^\/start(?:@\w+)?\s+link_([A-Za-z0-9]+)$/', $text, $matches) && (is_string($chatId) || is_int($chatId))) {
             $store = $links->complete($matches[1], (string) $chatId, $this->chatName($request));
 
             if ($store !== null) {

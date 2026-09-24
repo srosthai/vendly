@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\ResolvesVendorStore;
 use App\Models\PlatformSetting;
 use App\Services\Telegram\TelegramClient;
 use App\Services\Telegram\TelegramFailure;
+use App\Services\Telegram\TelegramNotifier;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -29,13 +30,30 @@ class TelegramLinkController extends Controller
             ]);
         }
 
-        $url = $links->start($store);
+        $links = $links->start($store);
 
         if ($request->expectsJson()) {
-            return response()->json(['url' => $url]);
+            return response()->json(['url' => $links['chat'], 'group_url' => $links['group']]);
         }
 
-        return back()->with('telegram_link', $url);
+        return back()->with('telegram_link', $links);
+    }
+
+    /**
+     * Stop sending requests to the connected chat, telling that chat first.
+     */
+    public function destroy(Request $request, LinkStoreTelegram $links, TelegramNotifier $telegram): RedirectResponse
+    {
+        $store = $this->vendorStore($request);
+
+        if (filled($store->telegram_chat_id)) {
+            $telegram->storeDisconnected($store);
+            $links->disconnect($store);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Telegram disconnected. Requests now only reach the Vendly admin.']);
+
+        return back();
     }
 
     /**

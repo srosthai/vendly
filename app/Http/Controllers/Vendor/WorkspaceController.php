@@ -423,6 +423,7 @@ class WorkspaceController extends Controller
             'connected' => filled($store->telegram_chat_id),
             'chat' => filled($store->telegram_chat_id) ? [
                 'name' => $store->telegram_chat_name,
+                'group' => str_starts_with((string) $store->telegram_chat_id, '-'),
                 'connected_at' => $store->telegram_connected_at?->toIso8601String(),
             ] : null,
             'bot' => $botUsername === '' ? null : '@'.$botUsername,

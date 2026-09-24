@@ -9,14 +9,44 @@ use Illuminate\Support\Str;
 
 class LinkStoreTelegram
 {
-    public function start(Store $store): string
+    /**
+     * One-time links that connect a chat to the store, valid for 15 minutes:
+     * `chat` opens the bot in the vendor's own chat, `group` lets them pick
+     * a group, which adds the bot there.
+     *
+     * @return array{chat: string, group: string}
+     */
+    public function start(Store $store): array
     {
         $token = Str::random(40);
         Cache::put($this->key($token), $store->id, now()->addMinutes(15));
 
-        $username = PlatformSetting::current()->botUsername();
+        $bot = 'https://t.me/'.PlatformSetting::current()->botUsername();
 
-        return 'https://t.me/'.$username.'?start=link_'.$token;
+        return [
+            'chat' => $bot.'?start=link_'.$token,
+            'group' => $bot.'?startgroup=link_'.$token,
+        ];
+    }
+
+    /**
+     * Stop sending the store's requests to its chat.
+     */
+    public function disconnect(Store $store): void
+    {
+        $store->telegram_chat_id = null;
+        $store->telegram_chat_name = null;
+        $store->telegram_connected_at = null;
+        $store->save();
+    }
+
+    /**
+     * Telegram gives a group a new id when it becomes a supergroup; keep
+     * every store that used the old id connected.
+     */
+    public function migrate(string $fromChatId, string $toChatId): void
+    {
+        Store::query()->where('telegram_chat_id', $fromChatId)->update(['telegram_chat_id' => $toChatId]);
     }
 
     /**
