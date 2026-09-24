@@ -41,6 +41,20 @@
 
         @if (str_starts_with($page['component'] ?? '', 'stores/'))
             <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        @else
+            {{-- A mini app link opened on another page: go to the store it names, keeping Telegram's data. --}}
+            <script>
+                (function () {
+                    try {
+                        var data = new URLSearchParams(window.location.hash.slice(1)).get('tgWebAppData');
+                        var start = data ? new URLSearchParams(data).get('start_param') : null;
+
+                        if (start && /^[A-Za-z0-9_-]{1,64}$/.test(start)) {
+                            window.location.replace('/m?startapp=' + encodeURIComponent(start) + window.location.hash);
+                        }
+                    } catch (error) {}
+                })();
+            </script>
         @endif
 
         @viteReactRefresh

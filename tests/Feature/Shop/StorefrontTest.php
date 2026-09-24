@@ -223,3 +223,30 @@ test('the mini app opens the product named in the link', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('stores/enter'));
 });
+
+test('a mini app link opened on the home page goes to the store it names', function () {
+    $store = openStore(User::factory()->create(), 'Alex Store');
+
+    $this->get('/?tgWebAppStartParam='.$store->slug)
+        ->assertRedirect(route('mini-app', ['startapp' => $store->slug]));
+
+    $this->get(route('mini-app', ['startapp' => $store->slug]))
+        ->assertRedirect(route('stores.show', $store))
+        ->assertSessionHas('mini_app', true);
+});
+
+test('a mini app product link opened on any page goes to the product', function () {
+    $store = openStore(User::factory()->create(), 'Alex Store');
+    $product = Product::factory()->for($store)->create();
+
+    $this->get('/pricing?tgWebAppStartParam=p_'.$product->id)
+        ->assertRedirect(route('mini-app', ['startapp' => 'p_'.$product->id]));
+});
+
+test('the mini app entry itself and odd start values are left alone', function () {
+    $store = openStore(User::factory()->create(), 'Alex Store');
+
+    $this->get('/m?tgWebAppStartParam='.$store->slug)->assertRedirect(route('stores.show', $store));
+    $this->get('/?tgWebAppStartParam=<script>')->assertOk();
+    $this->get('/')->assertOk();
+});
