@@ -1,8 +1,9 @@
 import { Form, Head, usePoll } from '@inertiajs/react';
-import { Check, ChevronDown, Send } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import TelegramLinkController from '@/actions/App/Http/Controllers/TelegramLinkController';
+import { Disclosure } from '@/components/disclosure';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -351,21 +352,16 @@ export default function Telegram({
                             <CardTitle>Help</CardTitle>
                             <div className="divide-y">
                                 {help.map((item) => (
-                                    <details
+                                    <Disclosure
                                         key={item.question}
-                                        className="group py-1 [&_summary::-webkit-details-marker]:hidden"
+                                        summary={item.question}
+                                        className="py-1"
+                                        summaryClassName="text-sm font-medium"
                                     >
-                                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
-                                            {item.question}
-                                            <ChevronDown
-                                                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                                                aria-hidden="true"
-                                            />
-                                        </summary>
-                                        <p className="mb-2 text-sm text-muted-foreground">
+                                        <p className="pb-2 text-sm text-muted-foreground">
                                             {item.answer}
                                         </p>
-                                    </details>
+                                    </Disclosure>
                                 ))}
                             </div>
                         </Card>
