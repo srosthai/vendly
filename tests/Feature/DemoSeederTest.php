@@ -37,7 +37,10 @@ test('the demo seeders build ten stores on plan b with unique catalogs and testi
         expect($names->unique()->count())->toBe($names->count());
     }
 
-    expect(ProductImage::query()->count())->toBe(250)
+    expect(Store::query()->whereNotNull('logo_path')->count())->toBe(10)
+        ->and(Storage::disk('public')->exists(Store::query()->value('logo_path')))->toBeTrue()
+        ->and(ProductImage::query()->where('path', 'like', '%.webp')->count())->toBe(250)
+        ->and(ProductImage::query()->count())->toBe(250)
         ->and(Storage::disk('public')->exists(ProductImage::query()->value('path')))->toBeTrue()
         ->and(Testimonial::query()->whereNotNull('published_at')->count())->toBe(10)
         ->and(User::query()->where('email', 'vendor10@vendly.test')->exists())->toBeTrue();
@@ -51,6 +54,20 @@ test('running the demo seeders again adds nothing', function () {
     $this->seed([DemoStoreSeeder::class, DemoTestimonialSeeder::class]);
 
     expect($counts())->toBe($before);
+});
+
+test('a second run swaps placeholder images for photos and keeps logos', function () {
+    $this->seed(DemoStoreSeeder::class);
+    $image = ProductImage::query()->where('path', 'like', '%.webp')->firstOrFail();
+    $image->forceFill(['path' => 'demo/placeholder.svg'])->save();
+    $store = Store::query()->firstOrFail();
+    $store->forceFill(['logo_path' => 'logos/own-logo.png'])->save();
+
+    $this->seed(DemoStoreSeeder::class);
+
+    expect($image->fresh()->path)->toEndWith('.webp')
+        ->and($store->fresh()->logo_path)->toBe('logos/own-logo.png')
+        ->and(ProductImage::query()->count())->toBe(250);
 });
 
 test('the demo seeders refuse to run in production', function () {
