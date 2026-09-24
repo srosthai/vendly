@@ -1,8 +1,10 @@
 <?php
 
+use App\Jobs\SendTelegramMessage;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     config([
@@ -84,4 +86,68 @@ test('someone without a store cannot send a test', function () {
         ->assertForbidden();
 
     Http::assertNothingSent();
+});
+
+test('the link offers the vendor chat and a group, with one code', function () {
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Smile Tea');
+
+    $links = $this->actingAs($vendor)->postJson(route('telegram.link'))->assertOk()->json();
+
+    expect($links['url'])->toStartWith('https://t.me/VendlyBot?start=link_')
+        ->and($links['group_url'])->toStartWith('https://t.me/VendlyBot?startgroup=link_')
+        ->and(str($links['url'])->after('link_')->toString())->toBe(str($links['group_url'])->after('link_')->toString());
+});
+
+test('a group connects with the command that names the bot', function () {
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Smile Tea');
+    $store->update(['telegram_chat_id' => '77', 'telegram_chat_name' => 'Sokha']);
+    $token = (string) str($this->actingAs($vendor)->postJson(route('telegram.link'))->json('group_url'))->after('startgroup=link_');
+
+    $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'tg-secret')->postJson(route('webhooks.telegram'), [
+        'message' => [
+            'text' => '/start@VendlyBot link_'.$token,
+            'chat' => ['id' => -100200300, 'type' => 'supergroup', 'title' => 'Smile Tea orders'],
+        ],
+    ])->assertNoContent();
+
+    expect($store->fresh())
+        ->telegram_chat_id->toBe('-100200300')
+        ->telegram_chat_name->toBe('Smile Tea orders');
+
+    $this->actingAs($vendor)->get(route('vendor.telegram'))
+        ->assertInertia(fn ($page) => $page->where('chat.group', true)->where('chat.name', 'Smile Tea orders'));
+});
+
+test('a group upgraded to a supergroup stays connected', function () {
+    $store = openStore(User::factory()->create(), 'Smile Tea');
+    $store->update(['telegram_chat_id' => '-4001']);
+
+    $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'tg-secret')->postJson(route('webhooks.telegram'), [
+        'message' => ['chat' => ['id' => -4001, 'type' => 'group'], 'migrate_to_chat_id' => -1004001],
+    ])->assertNoContent();
+
+    expect($store->fresh()->telegram_chat_id)->toBe('-1004001');
+});
+
+test('a vendor disconnects and the old chat is told', function () {
+    Queue::fake();
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Smile Tea');
+    $store->update(['telegram_chat_id' => '77', 'telegram_chat_name' => 'Sokha', 'telegram_connected_at' => now()]);
+
+    $this->actingAs($vendor)->delete(route('telegram.unlink'))->assertRedirect();
+
+    expect($store->fresh())
+        ->telegram_chat_id->toBeNull()
+        ->telegram_chat_name->toBeNull()
+        ->telegram_connected_at->toBeNull();
+    Queue::assertPushed(SendTelegramMessage::class, fn (SendTelegramMessage $job): bool => $job->chatId === '77' && str_contains($job->text, 'no longer receives'));
+
+    $this->actingAs($vendor)->get(route('vendor.telegram'))->assertInertia(fn ($page) => $page->where('connected', false));
+});
+
+test('someone without a store cannot disconnect', function () {
+    $this->actingAs(User::factory()->create())->delete(route('telegram.unlink'))->assertForbidden();
 });

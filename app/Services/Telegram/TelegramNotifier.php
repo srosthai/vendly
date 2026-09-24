@@ -94,6 +94,16 @@ class TelegramNotifier
         );
     }
 
+    public function storeDisconnected(Store $store): void
+    {
+        $this->dispatch(
+            (string) $store->telegram_chat_id,
+            "This chat no longer receives buy requests from {$store->name}.",
+            null,
+            'vendor',
+        );
+    }
+
     private function dispatch(string $chatId, string $text, ?int $inquiryId, string $destination): void
     {
         SendTelegramMessage::dispatch($chatId, $text, $inquiryId, $destination);

@@ -95,6 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('telegram/link', [TelegramLinkController::class, 'store'])
             ->middleware('throttle:6,1')
             ->name('telegram.link');
+        Route::delete('telegram/link', [TelegramLinkController::class, 'destroy'])->name('telegram.unlink');
         Route::post('telegram/test', [TelegramLinkController::class, 'test'])
             ->middleware('throttle:5,1')
             ->name('telegram.test');
