@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // The app only ever sits behind a proxy (Cloudflare Tunnel locally,
+        // the load balancer in production) and listens on localhost, so its
+        // forwarded host and https scheme are trusted.
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->alias([
