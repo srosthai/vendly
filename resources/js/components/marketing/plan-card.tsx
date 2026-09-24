@@ -48,10 +48,10 @@ export function PlanCard({
     return (
         <article
             className={cn(
-                'relative flex h-full flex-col rounded-3xl border p-7',
+                'relative flex h-full flex-col rounded-3xl border p-7 transition-[translate,box-shadow,border-color] duration-200 ease-out hover:-translate-y-1.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0',
                 featured
-                    ? 'border-transparent bg-foreground text-background shadow-xl dark:border-primary/60 dark:bg-card dark:text-foreground'
-                    : 'bg-card',
+                    ? 'border-transparent bg-foreground text-background shadow-xl hover:shadow-2xl hover:shadow-primary/25 dark:border-primary/60 dark:bg-card dark:text-foreground'
+                    : 'bg-card hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10',
             )}
         >
             <div className="flex items-center justify-between gap-3">
