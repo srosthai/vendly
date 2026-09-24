@@ -19,6 +19,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
 
@@ -732,4 +733,34 @@ test('cancel leaves a paid payment paid', function () {
         ->postJson(route('vendor.plan.payments.cancel', $payment->public_id))
         ->assertOk()
         ->assertJsonPath('status', 'paid');
+});
+
+test('a refused webhook logs why, without the secret', function (Closure $signature, string $reason) {
+    Log::spy();
+    $raw = cutluyDelivery('payment.completed');
+
+    cutluyCall($raw, 'payment.completed', $signature($raw))->assertUnauthorized();
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message): bool => str_contains($message, $reason)
+        && ! str_contains($message, 'whsec_test'));
+})->with([
+    'a malformed header' => [fn (string $raw): string => 'nope', 'missing or malformed'],
+    'an old signature' => [fn (string $raw): string => cutluySignature($raw, now()->subMinutes(6)->getTimestamp()), 'more than five minutes old'],
+    'another secret' => [fn (string $raw): string => 't='.now()->getTimestamp().',v1='.hash_hmac('sha256', now()->getTimestamp().'.'.$raw, 'whsec_other'), 'does not match'],
+]);
+
+test('a QR paid in its last seconds counts as paid, not expired', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Last Second Tea');
+    $payment = pendingStarterPayment($store);
+    $payment->update(['expires_at' => now()->subSecond()]);
+    Http::fake(['cutluy.com/v1/payments/pay_123' => Http::response(['id' => 'pay_123', 'status' => 'paid', 'amount' => '5.00', 'currency' => 'USD', 'reference_id' => 'subpay_test'])]);
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', ['publicId' => $payment->public_id, 'refresh' => 1]))
+        ->assertOk()
+        ->assertJsonPath('status', 'paid');
+
+    expect($store->fresh()->subscription->plan_id)->toBe($payment->plan_id);
 });

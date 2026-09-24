@@ -255,15 +255,18 @@ export default function Plan({
             return;
         }
 
-        const timer = window.setInterval(() => check(false), 10000);
+        // Asks CutLuy through Vendly, so a payment shows as paid even when
+        // the webhook is late or missing.
+        const timer = window.setInterval(() => check(true), 5000);
 
         return () => window.clearInterval(timer);
     }, [open, settled, check]);
 
-    // When the time runs out, ask once so the server records it.
+    // When the time runs out, ask once more; a payment made in the last
+    // seconds still counts, and otherwise the server records the expiry.
     useEffect(() => {
         if (open && timedOut && !settled) {
-            check(false);
+            check(true);
         }
     }, [open, timedOut, settled, check]);
 

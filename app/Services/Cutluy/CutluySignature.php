@@ -19,19 +19,30 @@ class CutluySignature
         }
 
         if (! preg_match('/^t=(\d+),v1=([a-fA-F0-9]+)$/', $header, $matches)) {
-            throw new HttpException(401, 'Invalid CutLuy signature.');
+            $this->refuse('Invalid CutLuy signature.', 'the signature header is missing or malformed');
         }
 
         $timestamp = (int) $matches[1];
 
         if (abs(now()->getTimestamp() - $timestamp) > 300) {
-            throw new HttpException(401, 'CutLuy signature has expired.');
+            $this->refuse('CutLuy signature has expired.', 'the signature is more than five minutes old');
         }
 
         $expected = hash_hmac('sha256', $timestamp.'.'.$rawBody, $secret);
 
         if (! hash_equals($expected, strtolower($matches[2]))) {
-            throw new HttpException(401, 'Invalid CutLuy signature.');
+            $this->refuse('Invalid CutLuy signature.', 'the signature does not match the webhook secret');
         }
+    }
+
+    /**
+     * A refused delivery is logged with the reason, never the secret, so a
+     * webhook that never lands can be traced.
+     */
+    private function refuse(string $message, string $reason): never
+    {
+        Log::warning('CutLuy webhook refused: '.$reason.'. Check that the signing secret in CutLuy Dashboard > Webhooks matches Site settings.');
+
+        throw new HttpException(401, $message);
     }
 }
