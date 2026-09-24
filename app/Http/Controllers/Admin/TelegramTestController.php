@@ -21,8 +21,8 @@ class TelegramTestController extends Controller
     {
         $chatId = PlatformSetting::current()->adminChatId();
 
-        if (blank(config('services.telegram.bot_token'))) {
-            return $this->result('error', 'Add TELEGRAM_BOT_TOKEN to the server environment, then send the test again.');
+        if (PlatformSetting::current()->botToken() === '') {
+            return $this->result('error', 'Add the bot token above and save, then send the test again.');
         }
 
         if ($chatId === '') {

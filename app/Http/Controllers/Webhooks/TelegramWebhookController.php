@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Actions\Telegram\LinkStoreTelegram;
 use App\Http\Controllers\Controller;
+use App\Models\PlatformSetting;
 use App\Services\Telegram\TelegramNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -13,10 +14,10 @@ class TelegramWebhookController extends Controller
 {
     public function __invoke(Request $request, LinkStoreTelegram $links, TelegramNotifier $telegram): Response
     {
-        $secret = config('services.telegram.webhook_secret');
+        $secret = PlatformSetting::current()->telegramWebhookSecret();
 
-        if (! is_string($secret) || $secret === '') {
-            Log::error('Telegram webhook refused: TELEGRAM_WEBHOOK_SECRET is not set.');
+        if ($secret === '') {
+            Log::error('Telegram webhook refused: no webhook secret. Connect the bot in Admin > Telegram.');
 
             abort(401);
         }

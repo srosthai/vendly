@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InquiryController as AdminInquiryController;
 use App\Http\Controllers\Admin\SiteSettingsController;
+use App\Http\Controllers\Admin\TelegramSettingsController;
 use App\Http\Controllers\Admin\TelegramTestController;
 use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Admin\VendorController;
@@ -110,7 +111,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('vendors/{store}', [VendorController::class, 'show'])->name('vendors.show');
         Route::get('plans', [AdminDashboardController::class, 'plans'])->name('plans');
         Route::get('payments', [AdminDashboardController::class, 'payments'])->name('payments');
-        Route::get('telegram', [AdminDashboardController::class, 'telegram'])->name('telegram');
+        Route::get('telegram', [TelegramSettingsController::class, 'edit'])->name('telegram');
         Route::get('requests', [AdminInquiryController::class, 'index'])->name('requests');
         Route::get('site', [SiteSettingsController::class, 'edit'])->name('site');
         Route::put('site', [SiteSettingsController::class, 'update'])->name('site.update');
@@ -126,7 +127,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('requests/{inquiry}/retry', [AdminInquiryController::class, 'retry'])
             ->middleware('throttle:30,1')
             ->name('requests.retry');
-        Route::put('telegram', [AdminDashboardController::class, 'updateTelegram'])->name('telegram.update');
+        Route::put('telegram', [TelegramSettingsController::class, 'update'])->name('telegram.update');
+        Route::post('telegram/webhook', [TelegramSettingsController::class, 'registerWebhook'])
+            ->middleware('throttle:6,1')
+            ->name('telegram.webhook');
         Route::post('telegram/test', TelegramTestController::class)
             ->middleware('throttle:6,1')
             ->name('telegram.test');

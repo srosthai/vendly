@@ -2,6 +2,7 @@
 
 namespace App\Services\Telegram;
 
+use App\Models\PlatformSetting;
 use Illuminate\Validation\ValidationException;
 
 class TelegramInitData
@@ -22,9 +23,9 @@ class TelegramInitData
             ]);
         }
 
-        $token = config('services.telegram.bot_token');
+        $token = PlatformSetting::current()->botToken();
 
-        if (! is_string($token) || $token === '') {
+        if ($token === '') {
             throw ValidationException::withMessages([
                 'init_data' => 'Telegram sign-in is not configured.',
             ]);
