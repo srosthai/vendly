@@ -54,6 +54,7 @@ const paymentSlices: Record<string, { label: string; color: string }> = {
     scanned: { label: 'Opened', color: 'var(--highlight)' },
     expired: { label: 'Expired', color: 'var(--muted-foreground)' },
     failed: { label: 'Failed', color: 'var(--destructive)' },
+    canceled: { label: 'Canceled', color: 'var(--chart-5)' },
 };
 
 const deliverySlices: Record<string, { label: string; color: string }> = {

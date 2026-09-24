@@ -1,5 +1,4 @@
-import { Form, Head, useHttp } from '@inertiajs/react';
-import QRCode from 'qrcode';
+import { Form, Head, router, useHttp } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
 import PlanPaymentController from '@/actions/App/Http/Controllers/Billing/PlanPaymentController';
 import { BillingPeriodSwitch } from '@/components/billing-period-switch';
@@ -15,6 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { offersYearly, yearlySaving } from '@/lib/billing';
 import type { BillingPeriod } from '@/lib/billing';
@@ -25,8 +25,10 @@ import vendor from '@/routes/vendor';
 type Payment = {
     public_id: string;
     status: string;
-    checkout_url: string | null;
     qr_string: string | null;
+    qr_image: string | null;
+    expires_in: number | null;
+    plan_id: number;
     amount_cents: number;
     period?: BillingPeriod;
     notice?: string | null;
@@ -100,9 +102,84 @@ const statusLabel: Record<string, string> = {
     paid: 'Paid',
     expired: 'Expired',
     failed: 'Failed',
+    canceled: 'Canceled',
 };
 
-const finalStatuses = ['paid', 'expired', 'failed'];
+const finalStatuses = ['paid', 'expired', 'failed', 'canceled'];
+
+/**
+ * Seconds left on the QR, counted down every second from when the server
+ * last said. Null when the payment has no expiry.
+ */
+function useSecondsLeft(payment: Payment | null, running: boolean) {
+    const [deadline, setDeadline] = useState<number | null>(null);
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        setNow(Date.now());
+        setDeadline(
+            payment?.expires_in == null
+                ? null
+                : Date.now() + payment.expires_in * 1000,
+        );
+    }, [payment]);
+
+    useEffect(() => {
+        if (!running) {
+            return;
+        }
+
+        const timer = window.setInterval(() => setNow(Date.now()), 1000);
+
+        return () => window.clearInterval(timer);
+    }, [running]);
+
+    return deadline === null
+        ? null
+        : Math.max(0, Math.ceil((deadline - now) / 1000));
+}
+
+function clock(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/**
+ * CutLuy's KHQR card, with a placeholder of the same shape while it loads.
+ */
+function KhqrImage({ src, label }: { src: string; label: string }) {
+    const [state, setState] = useState<'loading' | 'ready' | 'error'>(
+        'loading',
+    );
+
+    useEffect(() => setState('loading'), [src]);
+
+    if (state === 'error') {
+        return (
+            <p className="flex aspect-[408/541] w-72 items-center justify-center rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                The QR code did not load. Check your connection, then tap Check
+                payment.
+            </p>
+        );
+    }
+
+    return (
+        <div className="relative aspect-[408/541] w-72">
+            {state === 'loading' ? (
+                <Skeleton className="absolute inset-3 rounded-2xl" />
+            ) : null}
+            <img
+                src={src}
+                alt={label}
+                onLoad={() => setState('ready')}
+                onError={() => setState('error')}
+                className={cn(
+                    'size-full transition-opacity duration-300',
+                    state === 'ready' ? 'opacity-100' : 'opacity-0',
+                )}
+            />
+        </div>
+    );
+}
 
 export default function Plan({
     usage,
@@ -121,7 +198,6 @@ export default function Plan({
 }) {
     const [payment, setPayment] = useState<Payment | null>(flashedPayment);
     const [open, setOpen] = useState(flashedPayment !== null);
-    const [qr, setQr] = useState<string | null>(null);
     const http = useHttp<Record<string, never>, Payment>();
     const expired = usage.status === 'expired';
     const [period, setPeriod] = useState<BillingPeriod>('monthly');
@@ -139,19 +215,6 @@ export default function Plan({
         setPayment(flashedPayment);
         setOpen(flashedPayment !== null);
     }, [flashedPayment]);
-
-    useEffect(() => {
-        if (!payment?.qr_string) {
-            setQr(null);
-
-            return;
-        }
-
-        void QRCode.toDataURL(payment.qr_string, {
-            margin: 1,
-            width: 240,
-        }).then(setQr);
-    }, [payment?.qr_string]);
 
     const check = useCallback(
         (refresh: boolean) => {
@@ -182,6 +245,10 @@ export default function Plan({
     );
 
     const settled = payment ? finalStatuses.includes(payment.status) : true;
+    const secondsLeft = useSecondsLeft(payment, open && !settled);
+    const timedOut = secondsLeft === 0;
+    const active = payment !== null && !settled && !timedOut;
+    const paid = payment?.status === 'paid';
 
     useEffect(() => {
         if (!open || settled) {
@@ -192,6 +259,29 @@ export default function Plan({
 
         return () => window.clearInterval(timer);
     }, [open, settled, check]);
+
+    // When the time runs out, ask once so the server records it.
+    useEffect(() => {
+        if (open && timedOut && !settled) {
+            check(false);
+        }
+    }, [open, timedOut, settled, check]);
+
+    useEffect(() => {
+        if (paid) {
+            router.reload({ only: ['usage'] });
+        }
+    }, [paid]);
+
+    const cancel = () => {
+        if (!payment) {
+            return;
+        }
+
+        void http
+            .post(PlanPaymentController.cancel.url(payment.public_id))
+            .finally(() => setOpen(false));
+    };
 
     return (
         <>
@@ -412,8 +502,24 @@ export default function Plan({
                     })}
                 </div>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent>
+            <Dialog
+                open={open}
+                onOpenChange={(next) => {
+                    if (next || !active) {
+                        setOpen(next);
+                    }
+                }}
+            >
+                <DialogContent
+                    showCloseButton={!active}
+                    onEscapeKeyDown={(event) =>
+                        active && event.preventDefault()
+                    }
+                    onInteractOutside={(event) =>
+                        active && event.preventDefault()
+                    }
+                    className="sm:max-w-sm"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {payment
@@ -421,63 +527,128 @@ export default function Plan({
                                 : 'Payment'}
                         </DialogTitle>
                         <DialogDescription>
-                            Scan the QR code with your banking app, or open the
-                            payment page.
+                            {paid
+                                ? 'Thank you. Your plan is active.'
+                                : active
+                                  ? 'Scan with any banking app that supports KHQR. This updates on its own once you pay.'
+                                  : 'This QR code can no longer be paid.'}
                         </DialogDescription>
                     </DialogHeader>
                     {payment ? (
                         <div className="flex flex-col items-center gap-4">
+                            {active && payment.qr_image ? (
+                                <KhqrImage
+                                    src={payment.qr_image}
+                                    label={`KHQR code to pay ${dollars(payment.amount_cents)}`}
+                                />
+                            ) : null}
                             <p
                                 role="status"
-                                className="flex items-center gap-2 text-sm font-medium"
+                                className="flex flex-wrap items-center justify-center gap-2 text-sm font-medium"
                             >
                                 <Badge
                                     variant={
-                                        payment.status === 'paid'
+                                        paid
                                             ? 'default'
-                                            : payment.status === 'expired' ||
-                                                payment.status === 'failed'
-                                              ? 'destructive'
-                                              : 'secondary'
+                                            : active
+                                              ? 'secondary'
+                                              : 'destructive'
                                     }
                                 >
-                                    {statusLabel[payment.status] ??
-                                        payment.status}
+                                    {timedOut && !settled
+                                        ? 'Expired'
+                                        : (statusLabel[payment.status] ??
+                                          payment.status)}
                                 </Badge>
-                                {payment.status === 'paid'
-                                    ? 'Your plan is active.'
-                                    : null}
+                                {active && secondsLeft !== null ? (
+                                    <span
+                                        className={cn(
+                                            'tabular-nums',
+                                            secondsLeft <= 60
+                                                ? 'text-destructive'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        Expires in {clock(secondsLeft)}
+                                    </span>
+                                ) : null}
                             </p>
-                            {qr && !settled ? (
-                                <img
-                                    src={qr}
-                                    alt="Payment QR code"
-                                    className="size-60"
-                                />
-                            ) : null}
                             {payment.notice ? (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-center text-sm text-muted-foreground">
                                     {payment.notice}
                                 </p>
                             ) : null}
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {payment.checkout_url && !settled ? (
-                                    <Button variant="outline" asChild>
-                                        <a href={payment.checkout_url}>
-                                            Open payment page
-                                        </a>
+                            <div className="flex w-full flex-wrap justify-center gap-2">
+                                {active ? (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            onClick={cancel}
+                                            disabled={http.processing}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => check(true)}
+                                            disabled={http.processing}
+                                        >
+                                            {http.processing && <Spinner />}
+                                            Check payment
+                                        </Button>
+                                    </>
+                                ) : paid ? (
+                                    <Button onClick={() => setOpen(false)}>
+                                        Done
                                     </Button>
-                                ) : null}
-                                {!settled ? (
-                                    <Button
-                                        variant="secondary"
-                                        onClick={() => check(true)}
-                                        disabled={http.processing}
-                                    >
-                                        {http.processing && <Spinner />}
-                                        Refresh
-                                    </Button>
-                                ) : null}
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setOpen(false)}
+                                        >
+                                            Close
+                                        </Button>
+                                        {payment.period ? (
+                                            <Form
+                                                {...PlanPaymentController.store.form(
+                                                    payment.plan_id,
+                                                )}
+                                                options={{
+                                                    preserveScroll: true,
+                                                }}
+                                            >
+                                                {({ processing, errors }) => (
+                                                    <div className="grid gap-2">
+                                                        <input
+                                                            type="hidden"
+                                                            name="period"
+                                                            value={
+                                                                payment.period
+                                                            }
+                                                        />
+                                                        <Button
+                                                            type="submit"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            New QR code
+                                                        </Button>
+                                                        <InputError
+                                                            message={
+                                                                errors.plan
+                                                            }
+                                                        />
+                                                    </div>
+                                                )}
+                                            </Form>
+                                        ) : null}
+                                    </>
+                                )}
                             </div>
                         </div>
                     ) : null}

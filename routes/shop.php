@@ -105,6 +105,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('vendor/plan/payments/{publicId}', [PlanPaymentController::class, 'show'])
             ->middleware('throttle:30,1')
             ->name('vendor.plan.payments.show');
+        Route::post('vendor/plan/payments/{publicId}/cancel', [PlanPaymentController::class, 'cancel'])
+            ->middleware('throttle:30,1')
+            ->name('vendor.plan.payments.cancel');
         Route::post('plans/{plan}/payments', [PlanPaymentController::class, 'store'])
             ->middleware('throttle:plan-payments')
             ->name('plans.payments.store');

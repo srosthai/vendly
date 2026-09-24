@@ -118,6 +118,7 @@ const paymentStatus: Record<
     scanned: { label: 'Opened', variant: 'secondary' },
     expired: { label: 'Expired', variant: 'destructive' },
     failed: { label: 'Failed', variant: 'destructive' },
+    canceled: { label: 'Canceled', variant: 'secondary' },
 };
 
 /**

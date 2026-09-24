@@ -285,7 +285,7 @@ test('trying again reuses the same local payment and idempotency key', function 
 
     $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertInvalid(['plan']);
     $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk();
-    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk()->assertJsonPath('checkout_url', 'https://cutluy.com/pay/pay_again');
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $paid))->assertOk()->assertJsonPath('qr_image', 'https://cutluy.com/api/render/khqr/000201.svg');
 
     $payment = SubscriptionPayment::query()->sole();
     $keys = collect(Http::recorded())->map(fn (array $pair): string => $pair[0]['idempotency_key'])->unique()->values()->all();
@@ -642,4 +642,94 @@ test('a completed yearly payment adds twelve months', function () {
     expect($store->fresh()->subscription)
         ->status->toBe(SubscriptionStatus::Active)
         ->ends_at->toEqual(now()->addYear());
+});
+
+test('a new QR keeps cutluy\'s expiry and shows cutluy\'s KHQR image', function (?string $expiresAt, int $seconds) {
+    Http::preventStrayRequests();
+    $this->freezeSecond();
+    Http::fake(['cutluy.com/*' => Http::response([
+        ...createdCutluyPayment('pay_khqr'),
+        'qr_string' => '0002 ABA Bank/6304',
+        'expires_at' => $expiresAt,
+    ], 201)]);
+
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Khqr Tea');
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', starterPlan()))
+        ->assertOk()
+        ->assertJsonPath('qr_image', 'https://cutluy.com/api/render/khqr/0002%20ABA%20Bank%2F6304.svg')
+        ->assertJsonPath('expires_in', $seconds)
+        ->assertJsonMissingPath('checkout_url');
+})->with([
+    'cutluy\'s time' => [fn (): string => now()->addMinutes(4)->toIso8601String(), 240],
+    'no time' => [null, 300],
+    'an unreadable time' => ['soon', 300],
+]);
+
+test('an expired QR is not shown again and a new one is created', function () {
+    Http::preventStrayRequests();
+    $this->freezeSecond();
+    Http::fakeSequence()
+        ->push(createdCutluyPayment('pay_first'), 201)
+        ->push(createdCutluyPayment('pay_second'), 201);
+
+    $vendor = User::factory()->create();
+    openStore($vendor, 'Fresh Tea');
+    $plan = starterPlan();
+
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan))->assertOk();
+    $this->travel(5)->minutes();
+    $this->actingAs($vendor)->postJson(route('plans.payments.store', $plan))->assertOk()->assertJsonPath('expires_in', 300);
+
+    expect(SubscriptionPayment::query()->pluck('cutluy_id')->all())->toBe(['pay_first', 'pay_second']);
+});
+
+test('the dialog records a QR whose time ran out as expired', function () {
+    Http::preventStrayRequests();
+    $vendor = User::factory()->create();
+    $payment = pendingStarterPayment(openStore($vendor, 'Lapsed Tea'));
+    $payment->update(['expires_at' => now()->subSecond()]);
+
+    $this->actingAs($vendor)
+        ->getJson(route('vendor.plan.payments.show', $payment->public_id))
+        ->assertOk()
+        ->assertJsonPath('status', 'expired')
+        ->assertJsonPath('expires_in', 0);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Expired);
+});
+
+test('a vendor cancels only their own QR, and a payment that still arrives activates the plan', function () {
+    $vendor = User::factory()->create();
+    $store = openStore($vendor, 'Cancel Tea');
+    $payment = pendingStarterPayment($store);
+    $other = User::factory()->create();
+    openStore($other, 'Other Cancel Tea');
+
+    $this->actingAs($other)->postJson(route('vendor.plan.payments.cancel', $payment->public_id))->assertNotFound();
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Pending);
+
+    $this->actingAs($vendor)
+        ->postJson(route('vendor.plan.payments.cancel', $payment->public_id))
+        ->assertOk()
+        ->assertJsonPath('status', 'canceled');
+
+    cutluyCall(cutluyDelivery('payment.scanned', ['status' => 'scanned']), 'payment.scanned')->assertNoContent();
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Canceled);
+
+    cutluyCall(cutluyDelivery('payment.completed'), 'payment.completed')->assertNoContent();
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Paid)
+        ->and($store->fresh()->subscription->plan_id)->toBe($payment->plan_id);
+});
+
+test('cancel leaves a paid payment paid', function () {
+    $vendor = User::factory()->create();
+    $payment = pendingStarterPayment(openStore($vendor, 'Kept Tea'));
+    $payment->update(['status' => PaymentStatus::Paid]);
+
+    $this->actingAs($vendor)
+        ->postJson(route('vendor.plan.payments.cancel', $payment->public_id))
+        ->assertOk()
+        ->assertJsonPath('status', 'paid');
 });

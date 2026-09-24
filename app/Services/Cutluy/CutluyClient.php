@@ -21,7 +21,7 @@ class CutluyClient
      * queue the single delayed retry.
      *
      * @param  array<string, mixed>  $metadata
-     * @return array{id: string, status: string, checkout_url: string, qr_string: string}
+     * @return array{id: string, status: string, checkout_url: string, qr_string: string, expires_at: string|null}
      *
      * @throws CutluyRequestException
      */
@@ -81,13 +81,13 @@ class CutluyClient
     }
 
     /**
-     * @return array{id: string, status: string, checkout_url: string, qr_string: string}
+     * @return array{id: string, status: string, checkout_url: string, qr_string: string, expires_at: string|null}
      */
     private function payment(Response $response): array
     {
         $this->ensureSuccessful($response);
 
-        /** @var array{id?: string, status?: string, checkout_url?: string, qr_string?: string} $json */
+        /** @var array{id?: string, status?: string, checkout_url?: string, qr_string?: string, expires_at?: mixed} $json */
         $json = $response->json();
 
         return [
@@ -95,6 +95,7 @@ class CutluyClient
             'status' => (string) ($json['status'] ?? 'pending'),
             'checkout_url' => (string) ($json['checkout_url'] ?? ''),
             'qr_string' => (string) ($json['qr_string'] ?? ''),
+            'expires_at' => is_string($json['expires_at'] ?? null) ? $json['expires_at'] : null,
         ];
     }
 

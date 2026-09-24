@@ -96,9 +96,13 @@ class ApplyCutluyEvent
         return $payment;
     }
 
+    /**
+     * Paid and canceled payments keep their status. A canceled one can still
+     * be completed, because the money did move.
+     */
     private function mark(SubscriptionPayment $payment, PaymentStatus $status): void
     {
-        if ($payment->status === PaymentStatus::Paid) {
+        if ($payment->status === PaymentStatus::Paid || $payment->status === PaymentStatus::Canceled) {
             return;
         }
 
